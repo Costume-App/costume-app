@@ -1,26 +1,84 @@
 @import "tailwindcss";
 
+/* ── Atelier / theatrical theme ─────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f4ecdd;          /* muslin paper */
+  --surface: #fbf5e9;     /* card cream */
+  --ink: #241c19;         /* near-black ink */
+  --muted: #8a7d6c;       /* warm grey */
+  --red: #8c2b22;         /* curtain red */
+  --red-fg: #f6ead2;      /* cream on red */
+  --line: #2a211c;        /* card border */
+  --field-line: #d8c7a9;  /* input border */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-hanken);
+  --font-serif: var(--font-fraunces);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-hanken), system-ui, sans-serif;
 }
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Card surface with a subtle "stitched" offset shadow */
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 0 rgba(42, 33, 28, 0.08);
+}
+
+.field {
+  background: #fffaf0;
+  border: 1px solid var(--field-line);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  color: var(--ink);
+}
+.field::placeholder { color: #b6a98f; }
+.field:focus { outline: 2px solid var(--red); outline-offset: 0; border-color: var(--red); }
+
+.btn-primary {
+  background: var(--red);
+  color: var(--red-fg);
+  border-radius: 12px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+}
+.btn-primary:disabled { opacity: 0.5; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.4rem 0.85rem;
+  font-weight: 600;
+}
+.btn-ghost:disabled { opacity: 0.5; }
+
+.link-red { color: var(--red); border-bottom: 1px dotted var(--red); }
+.link-muted { color: var(--muted); }
+.link-muted:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--red); }
+.muted { color: var(--muted); }
+
+/* Cast switcher chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 13px; border-radius: 999px; font-size: 13px;
+  border: 1px solid var(--field-line); color: var(--muted); background: transparent; cursor: pointer;
+}
+.chip-selected { background: #fff7ea; border-color: var(--red); color: var(--red); font-weight: 600; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #cbb890; }
+.dot-selected { background: var(--red); }

@@ -36,14 +36,14 @@ export default async function ProductionDetailPage({
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <Link href="/productions" className="text-sm text-gray-500 hover:underline">
+      <Link href="/productions" className="link-muted text-sm">
         ← Productions
       </Link>
-      <div className="mt-2 mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{production.title}</h1>
-        <div className="flex items-center gap-2">
+      <div className="mt-2 mb-6 flex items-end justify-between gap-3">
+        <h1 className="font-display text-3xl font-semibold leading-none">{production.title}</h1>
+        <div className="flex flex-col items-end gap-1">
           {production.show_date && (
-            <span className="text-sm text-gray-600">{formatShowDate(production.show_date)}</span>
+            <span className="text-sm muted">{formatShowDate(production.show_date)}</span>
           )}
           <CountdownBadge showDate={production.show_date} />
         </div>

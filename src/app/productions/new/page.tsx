@@ -32,12 +32,12 @@ export default function NewProductionPage() {
 
   return (
     <main className="mx-auto max-w-md p-6">
-      <h1 className="mb-6 text-2xl font-bold">New Production</h1>
+      <h1 className="font-display mb-6 text-3xl font-semibold">New Production</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
           <span className="mb-1 block font-medium">Show title</span>
           <input
-            className="w-full rounded-lg border p-3"
+            className="field w-full"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Mary Poppins"
@@ -48,17 +48,13 @@ export default function NewProductionPage() {
           <span className="mb-1 block font-medium">Show date</span>
           <input
             type="date"
-            className="w-full rounded-lg border p-3"
+            className="field w-full"
             value={showDate}
             onChange={(e) => setShowDate(e.target.value)}
           />
         </label>
-        {error && <p className="text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
-        >
+        {error && <p className="text-[var(--red)]">{error}</p>}
+        <button type="submit" disabled={saving} className="btn-primary w-full">
           {saving ? "Saving…" : "Create production"}
         </button>
       </form>

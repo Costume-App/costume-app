@@ -37,16 +37,16 @@ export default async function MeasurementPage({
 
   return (
     <main className="mx-auto max-w-md p-6">
-      <Link href={`/productions/${id}`} className="text-sm text-gray-500 hover:underline">
+      <Link href={`/productions/${id}`} className="link-muted text-sm">
         ← Cast
       </Link>
       <div className="mt-2 mb-6">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm muted">
           {production.title}
           {cast ? ` · ${cast.name}` : ""}
         </p>
-        <h1 className="text-2xl font-bold">{role?.name ?? "Measurements"}</h1>
-        <p className="text-gray-600">
+        <h1 className="font-display text-3xl font-semibold">{role?.name ?? "Measurements"}</h1>
+        <p className="muted">
           {performer?.label ?? "Performer"}
           {casting?.assignment === "understudy" ? " · Understudy" : ""}
         </p>
