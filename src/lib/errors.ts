@@ -5,3 +5,11 @@ export class ValidationError extends Error {
     this.name = "ValidationError";
   }
 }
+
+// Thrown when a resource doesn't exist or isn't visible to the caller; maps to HTTP 404.
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}

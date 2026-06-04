@@ -31,6 +31,20 @@ export async function listProductions(orgId: string): Promise<Production[]> {
   return (data ?? []) as Production[];
 }
 
+export async function getProduction(
+  orgId: string,
+  productionId: string,
+): Promise<Production | null> {
+  const { data, error } = await supabaseAdmin
+    .from("productions")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("id", productionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Production) ?? null;
+}
+
 export async function createProduction(input: CreateProductionInput): Promise<Production> {
   const title = input.title.trim();
   if (!title) throw new ValidationError("Title is required");
