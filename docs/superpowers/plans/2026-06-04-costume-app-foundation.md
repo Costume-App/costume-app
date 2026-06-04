@@ -634,6 +634,14 @@ git commit -m "feat: add productions data layer (list/create)"
 `GET /api/productions` (list for the active org) and `POST /api/productions` (create).
 Both go through `getAuthContext`. Before insert, `POST` ensures the org row exists.
 
+> **Amended after code review (commit `fd1c158`):** instead of string-matching the error
+> message for the 400 case, a typed `ValidationError` was added in `src/lib/errors.ts`;
+> `createProduction` throws it, and `errorResponse` maps `ValidationError` → 400. Also:
+> `ensureOrganization` uses `ignoreDuplicates: true` (insert-only — never overwrites an
+> existing org's name); `errorResponse` maps `SyntaxError` → 400 (malformed JSON); and a
+> non-string `title` is coerced to `""`. Extra tests cover POST 403 (DB untouched),
+> malformed JSON, and the title coercion.
+
 **Files:**
 - Create: `src/lib/data/organizations.ts`
 - Create: `src/app/api/productions/route.ts`
