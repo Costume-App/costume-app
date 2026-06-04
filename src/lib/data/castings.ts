@@ -7,6 +7,7 @@ export type Assignment = "primary" | "understudy";
 export interface Casting {
   id: string;
   production_id: string;
+  cast_id: string;
   role_id: string;
   performer_id: string;
   assignment: Assignment;
@@ -25,6 +26,7 @@ export async function listCastings(productionId: string): Promise<Casting[]> {
 
 export async function addCastMember(input: {
   productionId: string;
+  castId: string;
   roleId: string;
   name: string;
   assignment: Assignment;
@@ -37,6 +39,7 @@ export async function addCastMember(input: {
     .from("castings")
     .insert({
       production_id: input.productionId,
+      cast_id: input.castId,
       role_id: input.roleId,
       performer_id: performer.id,
       assignment: input.assignment,

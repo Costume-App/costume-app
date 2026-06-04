@@ -43,11 +43,12 @@ test("listCastings filters by production, ordered by created_at", async () => {
 test("addCastMember creates a performer then a casting and returns both", async () => {
   createPerformer.mockResolvedValue({ id: "pf9", label: "Ava" });
   insertSingle.mockResolvedValue({
-    data: { id: "c9", role_id: "r1", performer_id: "pf9", assignment: "understudy" },
+    data: { id: "c9", cast_id: "ct1", role_id: "r1", performer_id: "pf9", assignment: "understudy" },
     error: null,
   });
   const result = await addCastMember({
     productionId: "p1",
+    castId: "ct1",
     roleId: "r1",
     name: "Ava",
     assignment: "understudy",
@@ -55,20 +56,21 @@ test("addCastMember creates a performer then a casting and returns both", async 
   expect(createPerformer).toHaveBeenCalledWith({ productionId: "p1", label: "Ava" });
   expect(insert).toHaveBeenCalledWith({
     production_id: "p1",
+    cast_id: "ct1",
     role_id: "r1",
     performer_id: "pf9",
     assignment: "understudy",
   });
   expect(result).toEqual({
     performer: { id: "pf9", label: "Ava" },
-    casting: { id: "c9", role_id: "r1", performer_id: "pf9", assignment: "understudy" },
+    casting: { id: "c9", cast_id: "ct1", role_id: "r1", performer_id: "pf9", assignment: "understudy" },
   });
 });
 
 test("addCastMember rejects an invalid assignment", async () => {
   await expect(
     // @ts-expect-error testing runtime guard with a bad value
-    addCastMember({ productionId: "p1", roleId: "r1", name: "Ava", assignment: "lead" }),
+    addCastMember({ productionId: "p1", castId: "ct1", roleId: "r1", name: "Ava", assignment: "lead" }),
   ).rejects.toThrow("assignment");
   expect(createPerformer).not.toHaveBeenCalled();
 });
