@@ -138,12 +138,29 @@ export function CastWorkspace({
       body: JSON.stringify({ castId: selectedCastId, roleId, name, assignment }),
     });
     if (res.ok) {
+      // API returns snake_case DB rows; map to this component's camelCase shape
+      // so the new casting matches the cast filter and shows immediately.
       const { performer, casting } = (await res.json()) as {
         performer: { id: string; label: string };
-        casting: Casting;
+        casting: {
+          id: string;
+          cast_id: string;
+          role_id: string;
+          performer_id: string;
+          assignment: "primary" | "understudy";
+        };
       };
       setPerformers((prev) => [...prev, { id: performer.id, name: performer.label }]);
-      setCastings((prev) => [...prev, casting]);
+      setCastings((prev) => [
+        ...prev,
+        {
+          id: casting.id,
+          castId: casting.cast_id,
+          roleId: casting.role_id,
+          performerId: casting.performer_id,
+          assignment: casting.assignment,
+        },
+      ]);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast member");
     }
