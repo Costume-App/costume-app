@@ -86,6 +86,26 @@ export function CastWorkspace({
     setBusy(false);
   }
 
+  async function deleteCast(castId: string) {
+    if (!confirm("Delete this cast and all of its assignments? This can't be undone.")) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/casts/${castId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (res.ok) {
+      const remaining = casts.filter((c) => c.id !== castId);
+      setCasts(remaining);
+      setCastings((prev) => prev.filter((c) => c.castId !== castId));
+      setSelectedCastId(remaining[0]?.id ?? "");
+      setShowRenameCast(false);
+    } else {
+      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't delete cast");
+    }
+    setBusy(false);
+  }
+
   async function addRole(e: React.FormEvent) {
     e.preventDefault();
     if (!newRole.trim()) return;
@@ -165,6 +185,16 @@ export function CastWorkspace({
                 <button type="button" onClick={() => setShowRenameCast(false)} className="link-muted text-sm">
                   Cancel
                 </button>
+                {casts.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => deleteCast(c.id)}
+                    disabled={busy}
+                    className="text-sm text-[var(--red)] hover:underline disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                )}
               </form>
             );
           }
