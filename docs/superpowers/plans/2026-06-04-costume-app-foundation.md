@@ -1108,6 +1108,22 @@ fabric" number, built test-first.
 
 ---
 
+## Deferred follow-ups for Milestone 2 (from final review)
+
+These were intentionally not done in M1 (non-blocking) and should be picked up in M2:
+
+1. **Resolve the org name from Clerk, not the client.** `POST /api/productions` currently
+   defaults the org name to `"My School"` and the form never sends `orgName`, so the first
+   production in an org names it "My School". Resolve the real name server-side (Clerk
+   org/slug) inside the `ensureOrganization` caller; drop the client-supplied `orgName`.
+2. **Advance `productions.updated_at`.** It defaults to `now()` but never updates. Add a
+   `moddatetime` trigger (or set it on app-side updates) once something reads it.
+3. **Production-scoped access.** M1 gates at org level only. Before any production-scoped
+   query in M2, insert a `resolveProductionAccess(productionId, userId)` step
+   (owner/editor/viewer per `production_collaborators`, spec §6).
+4. **`assertWithinPlanLimits(org, action)`** billing seam — add the no-op checkpoint
+   (the `organizations.plan`/`limits` columns already exist).
+
 ## Self-review notes
 
 - **Spec coverage (this milestone):** §3 stack (Tasks 1–2, 8), §4 organizations +
