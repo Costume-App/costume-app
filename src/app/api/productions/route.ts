@@ -1,22 +1,8 @@
 import { NextResponse } from "next/server";
-import { getAuthContext, AuthError } from "@/lib/auth-context";
-import { ValidationError } from "@/lib/errors";
+import { getAuthContext } from "@/lib/auth-context";
+import { errorResponse } from "@/lib/api";
 import { listProductions, createProduction } from "@/lib/data/productions";
 import { ensureOrganization } from "@/lib/data/organizations";
-
-function errorResponse(err: unknown) {
-  if (err instanceof AuthError) {
-    return NextResponse.json({ error: err.message }, { status: err.status });
-  }
-  if (err instanceof ValidationError) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
-  }
-  if (err instanceof SyntaxError) {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  const message = err instanceof Error ? err.message : "Unexpected error";
-  return NextResponse.json({ error: message }, { status: 500 });
-}
 
 export async function GET() {
   try {
