@@ -10,31 +10,26 @@ export default async function ProductionsPage() {
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Productions</h1>
-        <Link
-          href="/productions/new"
-          className="rounded-lg bg-black px-4 py-2 font-medium text-white"
-        >
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="font-display text-3xl font-semibold">Productions</h1>
+        <Link href="/productions/new" className="btn-primary shrink-0 text-sm">
           + New Production
         </Link>
       </div>
 
       {productions.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-gray-500">
+        <p className="rounded-xl border border-dashed border-[var(--field-line)] p-8 text-center muted">
           No productions yet. Create your first show to get started.
         </p>
       ) : (
         <ul className="space-y-3">
           {productions.map((p) => (
-            <li key={p.id} className="rounded-lg border hover:bg-gray-50">
+            <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
               <Link href={`/productions/${p.id}`} className="block p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-lg font-semibold">{p.title}</span>
+                  <span className="font-display text-xl font-semibold">{p.title}</span>
                   <div className="flex items-center gap-2">
-                    {p.show_date && (
-                      <span className="text-sm text-gray-600">{formatShowDate(p.show_date)}</span>
-                    )}
+                    {p.show_date && <span className="text-sm muted">{formatShowDate(p.show_date)}</span>}
                     <CountdownBadge showDate={p.show_date} />
                   </div>
                 </div>

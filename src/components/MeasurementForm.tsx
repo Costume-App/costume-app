@@ -44,29 +44,29 @@ export function MeasurementForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm muted">
         {filledCount} of {definitions.length} measured
       </p>
       {definitions.map((def) => (
         <label key={def.key} className="block">
           <span className="mb-1 block font-medium">
-            {def.label} <span className="text-gray-400">({def.unit})</span>
+            {def.label} <span className="muted">({def.unit})</span>
           </span>
-          {def.help_text && <span className="mb-1 block text-xs text-gray-500">{def.help_text}</span>}
+          {def.help_text && <span className="mb-1 block text-xs muted">{def.help_text}</span>}
           <div className="flex items-center gap-2">
             <input
               type="number"
               inputMode="decimal"
               step="0.25"
-              className="w-full rounded-lg border p-3"
+              className="field w-full"
               value={values[def.key]}
               onChange={(e) => setValues((v) => ({ ...v, [def.key]: e.target.value }))}
               onBlur={(e) => save(def, e.target.value)}
             />
-            <span className="w-14 text-sm text-gray-500">
+            <span className="w-14 text-sm muted">
               {saved[def.key] === "saving" && "Saving…"}
               {saved[def.key] === "saved" && "Saved"}
-              {saved[def.key] === "error" && <span className="text-red-600">Error</span>}
+              {saved[def.key] === "error" && <span className="text-[var(--red)]">Error</span>}
             </span>
           </div>
         </label>

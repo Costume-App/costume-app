@@ -14,14 +14,6 @@ interface Casting {
   assignment: "primary" | "understudy";
 }
 
-const COLOR_DOT: Record<string, string> = {
-  slate: "bg-slate-400",
-  gold: "bg-amber-400",
-  blue: "bg-blue-500",
-  red: "bg-red-500",
-  green: "bg-emerald-500",
-};
-
 export function CastWorkspace({
   productionId,
   initialCasts,
@@ -159,11 +151,9 @@ export function CastWorkspace({
           <button
             key={c.id}
             onClick={() => setSelectedCastId(c.id)}
-            className={`flex items-center gap-2 rounded-full border px-3 py-1 text-sm ${
-              c.id === selectedCastId ? "border-black font-semibold" : "border-gray-200 text-gray-600"
-            }`}
+            className={`chip ${c.id === selectedCastId ? "chip-selected" : ""}`}
           >
-            <span className={`h-2.5 w-2.5 rounded-full ${COLOR_DOT[c.color] ?? "bg-slate-400"}`} />
+            <span className={`dot ${c.id === selectedCastId ? "dot-selected" : ""}`} />
             {c.name}
           </button>
         ))}
@@ -171,12 +161,12 @@ export function CastWorkspace({
           <form onSubmit={addCast} className="flex items-center gap-1">
             <input
               autoFocus
-              className="w-28 rounded-lg border p-1.5 text-sm"
+              className="field w-28 !p-1.5 text-sm"
               value={newCast}
               onChange={(e) => setNewCast(e.target.value)}
               placeholder="Cast name"
             />
-            <button type="submit" disabled={busy} className="rounded-lg border px-2 py-1 text-sm disabled:opacity-50">
+            <button type="submit" disabled={busy} className="btn-ghost text-sm">
               Add
             </button>
             <button
@@ -185,7 +175,7 @@ export function CastWorkspace({
                 setShowAddCast(false);
                 setNewCast("");
               }}
-              className="text-sm text-gray-400 hover:underline"
+              className="link-muted text-sm"
             >
               Cancel
             </button>
@@ -194,29 +184,21 @@ export function CastWorkspace({
           <form onSubmit={renameCast} className="flex items-center gap-1">
             <input
               autoFocus
-              className="w-28 rounded-lg border p-1.5 text-sm"
+              className="field w-28 !p-1.5 text-sm"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               placeholder="Cast name"
             />
-            <button type="submit" disabled={busy} className="rounded-lg border px-2 py-1 text-sm disabled:opacity-50">
+            <button type="submit" disabled={busy} className="btn-ghost text-sm">
               Save
             </button>
-            <button
-              type="button"
-              onClick={() => setShowRenameCast(false)}
-              className="text-sm text-gray-400 hover:underline"
-            >
+            <button type="button" onClick={() => setShowRenameCast(false)} className="link-muted text-sm">
               Cancel
             </button>
           </form>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => setShowAddCast(true)}
-              className="text-sm text-gray-500 hover:underline"
-            >
+            <button type="button" onClick={() => setShowAddCast(true)} className="link-muted text-sm">
               + Add cast
             </button>
             {selectedCastId && (
@@ -226,7 +208,7 @@ export function CastWorkspace({
                   setRenameValue(casts.find((c) => c.id === selectedCastId)?.name ?? "");
                   setShowRenameCast(true);
                 }}
-                className="text-sm text-gray-500 hover:underline"
+                className="link-muted text-sm"
               >
                 Rename
               </button>
@@ -237,9 +219,9 @@ export function CastWorkspace({
 
       {/* Roles for the selected cast */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Roles &amp; cast</h2>
+        <h2 className="font-display mb-3 text-xl font-semibold">Roles &amp; cast</h2>
         {roles.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-6 text-center text-gray-500">
+          <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
             No roles yet. Add the first character below.
           </p>
         ) : (
@@ -249,11 +231,11 @@ export function CastWorkspace({
               const primary = forRole.find((c) => c.assignment === "primary");
               const understudies = forRole.filter((c) => c.assignment === "understudy");
               return (
-                <li key={r.id} className="rounded-lg border p-4">
-                  <div className="mb-2 text-lg font-semibold">{r.name}</div>
+                <li key={r.id} className="surface p-4">
+                  <div className="font-display mb-2 text-xl font-semibold">{r.name}</div>
 
                   <div className="mt-1">
-                    <span className="mr-2 text-xs uppercase tracking-wide text-gray-400">Primary</span>
+                    <span className="lbl mr-2">Primary</span>
                     {primary ? (
                       <CastLink
                         productionId={productionId}
@@ -267,8 +249,8 @@ export function CastWorkspace({
                     )}
                   </div>
 
-                  <div className="mt-2">
-                    <span className="text-xs uppercase tracking-wide text-gray-400">Understudies</span>
+                  <div className="mt-3">
+                    <span className="lbl">Understudies</span>
                     {understudies.map((u) => (
                       <CastLink
                         key={u.performerId}
@@ -290,16 +272,16 @@ export function CastWorkspace({
 
       <form onSubmit={addRole} className="flex gap-2">
         <input
-          className="flex-1 rounded-lg border p-3"
+          className="field flex-1"
           value={newRole}
           onChange={(e) => setNewRole(e.target.value)}
           placeholder="Add a role (character)"
         />
-        <button type="submit" disabled={busy} className="rounded-lg bg-black px-4 py-2 font-medium text-white disabled:opacity-50">
+        <button type="submit" disabled={busy} className="btn-primary shrink-0">
           Add role
         </button>
       </form>
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <p className="text-[var(--red)]">{error}</p>}
     </div>
   );
 }
@@ -319,10 +301,17 @@ function CastLink({
 }) {
   return (
     <div className="mt-1 flex items-center justify-between gap-3">
-      <Link href={`/productions/${productionId}/performers/${performerId}`} className="font-medium hover:underline">
+      <Link
+        href={`/productions/${productionId}/performers/${performerId}`}
+        className="font-medium hover:underline"
+      >
         {name}
       </Link>
-      <button onClick={onRemove} disabled={busy} className="text-sm text-red-600 hover:underline disabled:opacity-50">
+      <button
+        onClick={onRemove}
+        disabled={busy}
+        className="text-sm text-[var(--red)] hover:underline disabled:opacity-50"
+      >
         Remove
       </button>
     </div>
@@ -338,24 +327,46 @@ function AddName({
   onAdd: (name: string) => void;
   busy: boolean;
 }) {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="link-muted mt-1 block text-sm">
+        + {placeholder}
+      </button>
+    );
+  }
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         onAdd(name);
         setName("");
+        setOpen(false);
       }}
       className="mt-1 flex gap-2"
     >
       <input
-        className="flex-1 rounded-lg border p-2 text-sm"
+        autoFocus
+        className="field flex-1 !p-2 text-sm"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={placeholder}
       />
-      <button type="submit" disabled={busy} className="rounded-lg border px-3 py-1 text-sm font-medium disabled:opacity-50">
+      <button type="submit" disabled={busy} className="btn-ghost text-sm">
         Add
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          setName("");
+        }}
+        className="link-muted text-sm"
+      >
+        Cancel
       </button>
     </form>
   );
