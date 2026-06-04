@@ -1251,7 +1251,9 @@ Each role now has a named primary cast member and any number of understudies, ev
 
 ## Deferred / follow-ups (carried forward)
 
-- **Multiple casts (Gold/Blue)** — next slice: `casts` table, `castings.cast_id` (migration backfills existing castings to a default cast), cast switcher UI.
+- **Multiple casts (Gold/Blue)** — next slice: `casts` table, `castings.cast_id` (migration backfills existing castings to a default cast), cast switcher UI. With casts, revisit the `unique(role_id, performer_id)` constraint (likely `(role_id, performer_id, cast_id)`).
+- **Centralize role↔production tenancy** — add `assertRoleInProduction(productionId, roleId)` and use it in `addCastMember`/castings route (currently a casting can reference another production's role id — Minor, self-pollution only; final-review note). The role DELETE IDOR was already fixed (scoped `deleteRole(productionId, id)`). Consider a DB-level guarantee that `castings.production_id` matches `roles.production_id` / `performers.production_id`.
+- **CastBoard UX:** `removeCast` swallows DELETE failures silently (add an error path); add confirm dialogs for destructive role/cast deletion.
 - **Reuse an existing performer across roles** — currently each assignment creates a new person; cross-role reuse is out of scope here.
 - **Edit a role/performer name in place** — current UI is add/remove only.
 - Plus carry-overs: in/cm toggle + server-derived measurement unit; measurement-clear path; org name from Clerk; `updated_at` trigger; per-production roles (owner/editor/viewer); `assertWithinPlanLimits`.
