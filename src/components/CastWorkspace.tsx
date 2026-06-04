@@ -147,16 +147,51 @@ export function CastWorkspace({
     <div className="space-y-5">
       {/* Cast switcher */}
       <div className="flex flex-wrap items-center gap-2">
-        {casts.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setSelectedCastId(c.id)}
-            className={`chip ${c.id === selectedCastId ? "chip-selected" : ""}`}
-          >
-            <span className={`dot ${c.id === selectedCastId ? "dot-selected" : ""}`} />
-            {c.name}
-          </button>
-        ))}
+        {casts.map((c) => {
+          const selected = c.id === selectedCastId;
+          if (selected && showRenameCast) {
+            return (
+              <form key={c.id} onSubmit={renameCast} className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  className="field w-28 !p-1.5 text-sm"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  placeholder="Cast name"
+                />
+                <button type="submit" disabled={busy} className="btn-ghost text-sm">
+                  Save
+                </button>
+                <button type="button" onClick={() => setShowRenameCast(false)} className="link-muted text-sm">
+                  Cancel
+                </button>
+              </form>
+            );
+          }
+          return (
+            <span key={c.id} className={`chip ${selected ? "chip-selected" : ""}`}>
+              <button type="button" onClick={() => setSelectedCastId(c.id)} className="flex items-center gap-2">
+                <span className={`dot ${selected ? "dot-selected" : ""}`} />
+                {c.name}
+              </button>
+              {selected && (
+                <button
+                  type="button"
+                  aria-label={`Rename ${c.name}`}
+                  title="Rename cast"
+                  onClick={() => {
+                    setRenameValue(c.name);
+                    setShowRenameCast(true);
+                  }}
+                  className="ml-0.5 opacity-60 hover:opacity-100"
+                >
+                  <PencilIcon />
+                </button>
+              )}
+            </span>
+          );
+        })}
+
         {showAddCast ? (
           <form onSubmit={addCast} className="flex items-center gap-1">
             <input
@@ -180,40 +215,16 @@ export function CastWorkspace({
               Cancel
             </button>
           </form>
-        ) : showRenameCast ? (
-          <form onSubmit={renameCast} className="flex items-center gap-1">
-            <input
-              autoFocus
-              className="field w-28 !p-1.5 text-sm"
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              placeholder="Cast name"
-            />
-            <button type="submit" disabled={busy} className="btn-ghost text-sm">
-              Save
-            </button>
-            <button type="button" onClick={() => setShowRenameCast(false)} className="link-muted text-sm">
-              Cancel
-            </button>
-          </form>
         ) : (
-          <>
-            <button type="button" onClick={() => setShowAddCast(true)} className="link-muted text-sm">
-              + Add cast
-            </button>
-            {selectedCastId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRenameValue(casts.find((c) => c.id === selectedCastId)?.name ?? "");
-                  setShowRenameCast(true);
-                }}
-                className="link-muted text-sm"
-              >
-                Rename
-              </button>
-            )}
-          </>
+          <button
+            type="button"
+            aria-label="Add cast"
+            title="Add cast"
+            onClick={() => setShowAddCast(true)}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--field-line)] text-lg leading-none text-[var(--muted)] hover:border-[var(--red)] hover:text-[var(--red)]"
+          >
+            +
+          </button>
         )}
       </div>
 
@@ -283,6 +294,25 @@ export function CastWorkspace({
       </form>
       {error && <p className="text-[var(--red)]">{error}</p>}
     </div>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
 
