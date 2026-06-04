@@ -102,6 +102,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    // Foundation lands before any test files exist; keep the suite green until then.
+    passWithNoTests: true,
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },
@@ -491,9 +493,9 @@ const select = vi.fn(() => ({ eq }));
 const single = vi.fn();
 const insertSelect = vi.fn(() => ({ single }));
 const insert = vi.fn(() => ({ select: insertSelect }));
-const from = vi.fn(() => ({ select, insert }));
+const from = vi.fn((_table: string) => ({ select, insert }));
 
-vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (...a: unknown[]) => from(...a) } }));
+vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) => from(table) } }));
 
 import { listProductions, createProduction } from "@/lib/data/productions";
 
@@ -543,6 +545,13 @@ test("createProduction rejects an empty title", async () => {
   await expect(
     createProduction({ orgId: "org_1", createdBy: "user_1", title: "  ", showDate: null, notes: null }),
   ).rejects.toThrow("Title is required");
+});
+
+test("createProduction throws on supabase error", async () => {
+  single.mockResolvedValue({ data: null, error: { message: "insert failed" } });
+  await expect(
+    createProduction({ orgId: "org_1", createdBy: "user_1", title: "Cats", showDate: null, notes: null }),
+  ).rejects.toThrow("insert failed");
 });
 ```
 
@@ -624,6 +633,14 @@ git commit -m "feat: add productions data layer (list/create)"
 
 `GET /api/productions` (list for the active org) and `POST /api/productions` (create).
 Both go through `getAuthContext`. Before insert, `POST` ensures the org row exists.
+
+> **Amended after code review (commit `fd1c158`):** instead of string-matching the error
+> message for the 400 case, a typed `ValidationError` was added in `src/lib/errors.ts`;
+> `createProduction` throws it, and `errorResponse` maps `ValidationError` → 400. Also:
+> `ensureOrganization` uses `ignoreDuplicates: true` (insert-only — never overwrites an
+> existing org's name); `errorResponse` maps `SyntaxError` → 400 (malformed JSON); and a
+> non-string `title` is coerced to `""`. Extra tests cover POST 403 (DB untouched),
+> malformed JSON, and the title coercion.
 
 **Files:**
 - Create: `src/lib/data/organizations.ts`
@@ -1090,6 +1107,22 @@ deterministic fabric calc engine (Milestone 2 in spec §9) — the first real "h
 fabric" number, built test-first.
 
 ---
+
+## Deferred follow-ups for Milestone 2 (from final review)
+
+These were intentionally not done in M1 (non-blocking) and should be picked up in M2:
+
+1. **Resolve the org name from Clerk, not the client.** `POST /api/productions` currently
+   defaults the org name to `"My School"` and the form never sends `orgName`, so the first
+   production in an org names it "My School". Resolve the real name server-side (Clerk
+   org/slug) inside the `ensureOrganization` caller; drop the client-supplied `orgName`.
+2. **Advance `productions.updated_at`.** It defaults to `now()` but never updates. Add a
+   `moddatetime` trigger (or set it on app-side updates) once something reads it.
+3. **Production-scoped access.** M1 gates at org level only. Before any production-scoped
+   query in M2, insert a `resolveProductionAccess(productionId, userId)` step
+   (owner/editor/viewer per `production_collaborators`, spec §6).
+4. **`assertWithinPlanLimits(org, action)`** billing seam — add the no-op checkpoint
+   (the `organizations.plan`/`limits` columns already exist).
 
 ## Self-review notes
 
