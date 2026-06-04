@@ -1171,6 +1171,13 @@ Productions support multiple named, colored casts; roles are shared while primar
 
 ## Deferred / follow-ups (carried forward)
 
+**From this slice's final review (robustness/UX — no security issues):**
+- **Map Postgres `23505` → `ValidationError` (400)** in `addCastMember` so duplicate-primary / duplicate-casting return a friendly message instead of a 500 with the raw DB string. Branch on the index name in `error.message` for a specific message (one-primary vs duplicate-person).
+- **Make `addCastMember` transactional** (or delete the just-created performer on casting-insert failure) so a rejected casting doesn't orphan a performer — compounds once performer-reuse lands.
+- **`errorResponse` 500 branch leaks raw error messages** to the client — return a generic message for untyped errors (app-wide hardening).
+- **Cast color picker:** `addCast` only sends `{ name }`, so every cast is `slate`; the color column/dots exist but aren't user-selectable yet.
+- **Guarantee one default cast per production** (`unique (production_id) where is_default`) + harden the 0004 backfill against a production lacking a default.
+- **Measurement page assumes one casting per performer** (`find(...)`); safe now (one performer = one casting) but add a comment / resolve by route once performer-reuse exists.
 - **Rename/recolor a cast**, reorder casts, mark a different default — add when needed.
 - **Garment templates + deterministic fabric calc engine** (spec §5 — the "how much fabric" core) — the big next milestone; needs Nada's measurement list + skirt/pants/vest formulas.
 - **Per-role costume designs**, then sourcing (make/on-hand/shared) + budgets, then play-templates/invites.
