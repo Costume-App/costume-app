@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAuthContext } from "@/lib/auth-context";
 import { listProductions } from "@/lib/data/productions";
 import { CountdownBadge } from "@/components/CountdownBadge";
+import { formatShowDate } from "@/lib/countdown";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
@@ -29,7 +30,12 @@ export default async function ProductionsPage() {
             <li key={p.id} className="rounded-lg border p-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-lg font-semibold">{p.title}</span>
-                <CountdownBadge showDate={p.show_date} />
+                <div className="flex items-center gap-2">
+                  {p.show_date && (
+                    <span className="text-sm text-gray-600">{formatShowDate(p.show_date)}</span>
+                  )}
+                  <CountdownBadge showDate={p.show_date} />
+                </div>
               </div>
             </li>
           ))}

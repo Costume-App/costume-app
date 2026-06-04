@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { countdown, todayIso } from "@/lib/countdown";
+import { countdown, todayIso, formatShowDate } from "@/lib/countdown";
 
 test("future date shows days to go", () => {
   expect(countdown("2026-07-16", "2026-06-04")).toEqual({
@@ -46,4 +46,10 @@ test("crossing a year boundary counts whole days correctly", () => {
 test("todayIso formats a Date as local YYYY-MM-DD", () => {
   expect(todayIso(new Date(2026, 5, 4, 9, 30))).toBe("2026-06-04");
   expect(todayIso(new Date(2026, 0, 9))).toBe("2026-01-09");
+});
+
+test("formatShowDate renders a human-readable date with no timezone drift", () => {
+  expect(formatShowDate("2026-07-16")).toBe("Jul 16, 2026");
+  expect(formatShowDate("2026-01-01")).toBe("Jan 1, 2026");
+  expect(formatShowDate("2026-12-31")).toBe("Dec 31, 2026");
 });
