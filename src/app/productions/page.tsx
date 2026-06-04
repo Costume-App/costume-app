@@ -27,16 +27,18 @@ export default async function ProductionsPage() {
       ) : (
         <ul className="space-y-3">
           {productions.map((p) => (
-            <li key={p.id} className="rounded-lg border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-lg font-semibold">{p.title}</span>
-                <div className="flex items-center gap-2">
-                  {p.show_date && (
-                    <span className="text-sm text-gray-600">{formatShowDate(p.show_date)}</span>
-                  )}
-                  <CountdownBadge showDate={p.show_date} />
+            <li key={p.id} className="rounded-lg border hover:bg-gray-50">
+              <Link href={`/productions/${p.id}`} className="block p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-lg font-semibold">{p.title}</span>
+                  <div className="flex items-center gap-2">
+                    {p.show_date && (
+                      <span className="text-sm text-gray-600">{formatShowDate(p.show_date)}</span>
+                    )}
+                    <CountdownBadge showDate={p.show_date} />
+                  </div>
                 </div>
-              </div>
+              </Link>
             </li>
           ))}
         </ul>
