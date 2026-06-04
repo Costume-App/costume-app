@@ -1,8 +1,9 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { ValidationError } from "@/lib/errors";
 
-const order = vi.fn();
-const eq = vi.fn(() => ({ order }));
+const orderCreated = vi.fn();
+const orderShow = vi.fn(() => ({ order: orderCreated }));
+const eq = vi.fn(() => ({ order: orderShow }));
 const select = vi.fn(() => ({ eq }));
 const single = vi.fn();
 const insertSelect = vi.fn(() => ({ single }));
@@ -14,25 +15,27 @@ vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) 
 import { listProductions, createProduction } from "@/lib/data/productions";
 
 beforeEach(() => {
-  [order, eq, select, single, insertSelect, insert, from].forEach((m) => m.mockReset());
-  eq.mockReturnValue({ order });
+  [orderShow, orderCreated, eq, select, single, insertSelect, insert, from].forEach((m) => m.mockReset());
+  eq.mockReturnValue({ order: orderShow });
+  orderShow.mockReturnValue({ order: orderCreated });
   select.mockReturnValue({ eq });
   insertSelect.mockReturnValue({ single });
   insert.mockReturnValue({ select: insertSelect });
   from.mockReturnValue({ select, insert });
 });
 
-test("listProductions queries by org, ordered by show_date", async () => {
-  order.mockResolvedValue({ data: [{ id: "p1", title: "Mary Poppins" }], error: null });
+test("listProductions queries by org, ordered by show_date then created_at", async () => {
+  orderCreated.mockResolvedValue({ data: [{ id: "p1", title: "Mary Poppins" }], error: null });
   const rows = await listProductions("org_1");
   expect(from).toHaveBeenCalledWith("productions");
   expect(eq).toHaveBeenCalledWith("org_id", "org_1");
-  expect(order).toHaveBeenCalledWith("show_date", { ascending: true, nullsFirst: false });
+  expect(orderShow).toHaveBeenCalledWith("show_date", { ascending: true, nullsFirst: false });
+  expect(orderCreated).toHaveBeenCalledWith("created_at", { ascending: false });
   expect(rows).toEqual([{ id: "p1", title: "Mary Poppins" }]);
 });
 
 test("listProductions throws on supabase error", async () => {
-  order.mockResolvedValue({ data: null, error: { message: "boom" } });
+  orderCreated.mockResolvedValue({ data: null, error: { message: "boom" } });
   await expect(listProductions("org_1")).rejects.toThrow("boom");
 });
 
