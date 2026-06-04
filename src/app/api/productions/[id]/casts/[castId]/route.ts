@@ -2,10 +2,23 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { assertProductionInOrg } from "@/lib/data/production-access";
-import { listCasts, deleteCast } from "@/lib/data/casts";
+import { listCasts, deleteCast, updateCast } from "@/lib/data/casts";
 import { ValidationError } from "@/lib/errors";
 
 type Ctx = { params: Promise<{ id: string; castId: string }> };
+
+export async function PATCH(request: Request, { params }: Ctx) {
+  try {
+    const { orgId } = await getAuthContext();
+    const { id, castId } = await params;
+    await assertProductionInOrg(orgId, id);
+    const body = (await request.json()) as { name?: string };
+    const cast = await updateCast(id, castId, typeof body.name === "string" ? body.name : "");
+    return NextResponse.json({ cast });
+  } catch (err) {
+    return errorResponse(err);
+  }
+}
 
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
