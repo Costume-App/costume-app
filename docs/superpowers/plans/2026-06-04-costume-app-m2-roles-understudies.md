@@ -39,6 +39,7 @@ src/app/api/productions/[id]/
 ├── roles/[roleId]/route.ts                       # NEW: DELETE role
 └── castings/route.ts (+ test)                    # NEW: POST add cast member
 src/app/productions/[id]/page.tsx                 # MODIFY: fetch roles+castings+performers, render <CastBoard>
+src/app/productions/[id]/performers/[performerId]/page.tsx  # MODIFY: header shows role + cast member name (Task 9)
 src/components/
 ├── CastBoard.tsx                                 # NEW: client — roles + per-role primary/understudy
 └── PerformerList.tsx                             # DELETE (replaced by CastBoard)
@@ -1159,6 +1160,86 @@ git commit -m "chore: add one-off script to migrate seeded characters to roles"
 - [ ] **Step 4: Manual verify (browser, needs keys)**
 
 Open the Mary Poppins production. Expected: the **Roles & cast** section lists the 17 characters, each with empty Primary/Understudy slots. Add a primary name → it appears and links to that performer's measurement page. Add an understudy → appears under Understudies. Tap a name → measurements page; enter + reload → persists. Remove a cast member → disappears.
+
+---
+
+## Task 9: Measurement page header — role + cast member name
+
+Show whose measurements are being captured: the role and the cast member's name (plus an "understudy" tag) at the top of the measurement page. No new data-layer code — resolve from roles/castings/performers, which the page can already read.
+
+**Files:** Modify `src/app/productions/[id]/performers/[performerId]/page.tsx`
+
+- [ ] **Step 1: Update the measurement page**
+
+Replace `src/app/productions/[id]/performers/[performerId]/page.tsx` with:
+```tsx
+import Link from "next/link";
+import { getAuthContext } from "@/lib/auth-context";
+import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/production-access";
+import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
+import { getMeasurements, listPerformers } from "@/lib/data/performers";
+import { listRoles } from "@/lib/data/roles";
+import { listCastings } from "@/lib/data/castings";
+import { MeasurementForm } from "@/components/MeasurementForm";
+
+export default async function MeasurementPage({
+  params,
+}: {
+  params: Promise<{ id: string; performerId: string }>;
+}) {
+  const { orgId } = await getAuthContext();
+  const { id, performerId } = await params;
+  const production = await assertProductionInOrg(orgId, id);
+  await assertPerformerInOrg(orgId, performerId);
+
+  const [definitions, measurements, performers, roles, castings] = await Promise.all([
+    listMeasurementDefinitions(),
+    getMeasurements(performerId),
+    listPerformers(id),
+    listRoles(id),
+    listCastings(id),
+  ]);
+
+  const performer = performers.find((p) => p.id === performerId);
+  const casting = castings.find((c) => c.performer_id === performerId);
+  const role = casting ? roles.find((r) => r.id === casting.role_id) : undefined;
+
+  const initial: Record<string, number> = {};
+  for (const m of measurements) initial[m.measurement_key] = m.value_numeric;
+
+  return (
+    <main className="mx-auto max-w-md p-6">
+      <Link href={`/productions/${id}`} className="text-sm text-gray-500 hover:underline">
+        ← Cast
+      </Link>
+      <div className="mt-2 mb-6">
+        <p className="text-sm text-gray-500">{production.title}</p>
+        <h1 className="text-2xl font-bold">{role?.name ?? "Measurements"}</h1>
+        <p className="text-gray-600">
+          {performer?.label ?? "Performer"}
+          {casting?.assignment === "understudy" ? " · Understudy" : ""}
+        </p>
+      </div>
+      <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
+    </main>
+  );
+}
+```
+
+- [ ] **Step 2: Type-check and run the suite**
+
+Run: `npx tsc --noEmit -p tsconfig.json` (exit 0) and `npm test` (green — no tested module changed).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add "src/app/productions/[id]/performers/[performerId]/page.tsx"
+git commit -m "feat: show role and cast member name on the measurement page"
+```
+
+- [ ] **Step 4: Manual verify (browser)**
+
+Open a role's primary or understudy → the measurement page now shows the **role name** as the heading and the **cast member's name** (with "· Understudy" for understudies) above the fields.
 
 ---
 
