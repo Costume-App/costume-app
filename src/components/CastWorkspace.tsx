@@ -42,6 +42,7 @@ export function CastWorkspace({
   const [selectedCastId, setSelectedCastId] = useState<string>(initialCasts[0]?.id ?? "");
   const [newRole, setNewRole] = useState("");
   const [newCast, setNewCast] = useState("");
+  const [showAddCast, setShowAddCast] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +64,7 @@ export function CastWorkspace({
       setCasts((prev) => [...prev, cast]);
       setSelectedCastId(cast.id);
       setNewCast("");
+      setShowAddCast(false);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast");
     }
@@ -142,17 +144,38 @@ export function CastWorkspace({
             {c.name}
           </button>
         ))}
-        <form onSubmit={addCast} className="flex items-center gap-1">
-          <input
-            className="w-28 rounded-lg border p-1.5 text-sm"
-            value={newCast}
-            onChange={(e) => setNewCast(e.target.value)}
-            placeholder="+ Cast"
-          />
-          <button type="submit" disabled={busy} className="rounded-lg border px-2 py-1 text-sm disabled:opacity-50">
-            Add
+        {showAddCast ? (
+          <form onSubmit={addCast} className="flex items-center gap-1">
+            <input
+              autoFocus
+              className="w-28 rounded-lg border p-1.5 text-sm"
+              value={newCast}
+              onChange={(e) => setNewCast(e.target.value)}
+              placeholder="Cast name"
+            />
+            <button type="submit" disabled={busy} className="rounded-lg border px-2 py-1 text-sm disabled:opacity-50">
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddCast(false);
+                setNewCast("");
+              }}
+              className="text-sm text-gray-400 hover:underline"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowAddCast(true)}
+            className="text-sm text-gray-500 hover:underline"
+          >
+            + Add cast
           </button>
-        </form>
+        )}
       </div>
 
       {/* Roles for the selected cast */}
