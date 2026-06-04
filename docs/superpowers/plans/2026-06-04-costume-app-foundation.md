@@ -493,9 +493,9 @@ const select = vi.fn(() => ({ eq }));
 const single = vi.fn();
 const insertSelect = vi.fn(() => ({ single }));
 const insert = vi.fn(() => ({ select: insertSelect }));
-const from = vi.fn(() => ({ select, insert }));
+const from = vi.fn((_table: string) => ({ select, insert }));
 
-vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (...a: unknown[]) => from(...a) } }));
+vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) => from(table) } }));
 
 import { listProductions, createProduction } from "@/lib/data/productions";
 
@@ -545,6 +545,13 @@ test("createProduction rejects an empty title", async () => {
   await expect(
     createProduction({ orgId: "org_1", createdBy: "user_1", title: "  ", showDate: null, notes: null }),
   ).rejects.toThrow("Title is required");
+});
+
+test("createProduction throws on supabase error", async () => {
+  single.mockResolvedValue({ data: null, error: { message: "insert failed" } });
+  await expect(
+    createProduction({ orgId: "org_1", createdBy: "user_1", title: "Cats", showDate: null, notes: null }),
+  ).rejects.toThrow("insert failed");
 });
 ```
 
