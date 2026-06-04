@@ -29,6 +29,17 @@ export function countdown(showDate: string | null, today: string): Countdown {
   return { days, label: `Opened ${ago} ${unit} ago`, tone: "past" };
 }
 
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+// Render a YYYY-MM-DD date as e.g. "Jul 16, 2026" (date-only, no timezone drift).
+export function formatShowDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${d}, ${y}`;
+}
+
 // Today's date as YYYY-MM-DD in the user's local timezone.
 export function todayIso(now: Date = new Date()): string {
   const y = now.getFullYear();
