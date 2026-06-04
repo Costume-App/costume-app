@@ -43,6 +43,8 @@ export function CastWorkspace({
   const [newRole, setNewRole] = useState("");
   const [newCast, setNewCast] = useState("");
   const [showAddCast, setShowAddCast] = useState(false);
+  const [showRenameCast, setShowRenameCast] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +69,27 @@ export function CastWorkspace({
       setShowAddCast(false);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast");
+    }
+    setBusy(false);
+  }
+
+  async function renameCast(e: React.FormEvent) {
+    e.preventDefault();
+    if (!renameValue.trim() || !selectedCastId) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/casts/${selectedCastId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name: renameValue }),
+    });
+    if (res.ok) {
+      const { cast } = (await res.json()) as { cast: Cast };
+      setCasts((prev) => prev.map((c) => (c.id === selectedCastId ? { ...c, name: cast.name } : c)));
+      setShowRenameCast(false);
+    } else {
+      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't rename cast");
     }
     setBusy(false);
   }
@@ -167,14 +190,48 @@ export function CastWorkspace({
               Cancel
             </button>
           </form>
+        ) : showRenameCast ? (
+          <form onSubmit={renameCast} className="flex items-center gap-1">
+            <input
+              autoFocus
+              className="w-28 rounded-lg border p-1.5 text-sm"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Cast name"
+            />
+            <button type="submit" disabled={busy} className="rounded-lg border px-2 py-1 text-sm disabled:opacity-50">
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowRenameCast(false)}
+              className="text-sm text-gray-400 hover:underline"
+            >
+              Cancel
+            </button>
+          </form>
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowAddCast(true)}
-            className="text-sm text-gray-500 hover:underline"
-          >
-            + Add cast
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setShowAddCast(true)}
+              className="text-sm text-gray-500 hover:underline"
+            >
+              + Add cast
+            </button>
+            {selectedCastId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setRenameValue(casts.find((c) => c.id === selectedCastId)?.name ?? "");
+                  setShowRenameCast(true);
+                }}
+                className="text-sm text-gray-500 hover:underline"
+              >
+                Rename
+              </button>
+            )}
+          </>
         )}
       </div>
 

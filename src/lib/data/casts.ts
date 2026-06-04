@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ValidationError } from "@/lib/errors";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 
 export interface Cast {
   id: string;
@@ -35,6 +35,21 @@ export async function createCast(input: {
     .select()
     .single();
   if (error) throw new Error(error.message);
+  return data as Cast;
+}
+
+export async function updateCast(productionId: string, id: string, name: string): Promise<Cast> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new ValidationError("Cast name is required");
+  const { data, error } = await supabaseAdmin
+    .from("casts")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .eq("production_id", productionId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Cast not found");
   return data as Cast;
 }
 
