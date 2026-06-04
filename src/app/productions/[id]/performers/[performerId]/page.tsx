@@ -2,7 +2,9 @@ import Link from "next/link";
 import { getAuthContext } from "@/lib/auth-context";
 import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/production-access";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
-import { getMeasurements } from "@/lib/data/performers";
+import { getMeasurements, listPerformers } from "@/lib/data/performers";
+import { listRoles } from "@/lib/data/roles";
+import { listCastings } from "@/lib/data/castings";
 import { MeasurementForm } from "@/components/MeasurementForm";
 
 export default async function MeasurementPage({
@@ -12,13 +14,20 @@ export default async function MeasurementPage({
 }) {
   const { orgId } = await getAuthContext();
   const { id, performerId } = await params;
-  await assertProductionInOrg(orgId, id);
+  const production = await assertProductionInOrg(orgId, id);
   await assertPerformerInOrg(orgId, performerId);
 
-  const [definitions, measurements] = await Promise.all([
+  const [definitions, measurements, performers, roles, castings] = await Promise.all([
     listMeasurementDefinitions(),
     getMeasurements(performerId),
+    listPerformers(id),
+    listRoles(id),
+    listCastings(id),
   ]);
+
+  const performer = performers.find((p) => p.id === performerId);
+  const casting = castings.find((c) => c.performer_id === performerId);
+  const role = casting ? roles.find((r) => r.id === casting.role_id) : undefined;
 
   const initial: Record<string, number> = {};
   for (const m of measurements) initial[m.measurement_key] = m.value_numeric;
@@ -28,7 +37,14 @@ export default async function MeasurementPage({
       <Link href={`/productions/${id}`} className="text-sm text-gray-500 hover:underline">
         ← Cast
       </Link>
-      <h1 className="mt-2 mb-6 text-2xl font-bold">Measurements</h1>
+      <div className="mt-2 mb-6">
+        <p className="text-sm text-gray-500">{production.title}</p>
+        <h1 className="text-2xl font-bold">{role?.name ?? "Measurements"}</h1>
+        <p className="text-gray-600">
+          {performer?.label ?? "Performer"}
+          {casting?.assignment === "understudy" ? " · Understudy" : ""}
+        </p>
+      </div>
       <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
     </main>
   );

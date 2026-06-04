@@ -39,6 +39,7 @@ src/app/api/productions/[id]/
 ├── roles/[roleId]/route.ts                       # NEW: DELETE role
 └── castings/route.ts (+ test)                    # NEW: POST add cast member
 src/app/productions/[id]/page.tsx                 # MODIFY: fetch roles+castings+performers, render <CastBoard>
+src/app/productions/[id]/performers/[performerId]/page.tsx  # MODIFY: header shows role + cast member name (Task 9)
 src/components/
 ├── CastBoard.tsx                                 # NEW: client — roles + per-role primary/understudy
 └── PerformerList.tsx                             # DELETE (replaced by CastBoard)
@@ -1162,6 +1163,86 @@ Open the Mary Poppins production. Expected: the **Roles & cast** section lists t
 
 ---
 
+## Task 9: Measurement page header — role + cast member name
+
+Show whose measurements are being captured: the role and the cast member's name (plus an "understudy" tag) at the top of the measurement page. No new data-layer code — resolve from roles/castings/performers, which the page can already read.
+
+**Files:** Modify `src/app/productions/[id]/performers/[performerId]/page.tsx`
+
+- [ ] **Step 1: Update the measurement page**
+
+Replace `src/app/productions/[id]/performers/[performerId]/page.tsx` with:
+```tsx
+import Link from "next/link";
+import { getAuthContext } from "@/lib/auth-context";
+import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/production-access";
+import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
+import { getMeasurements, listPerformers } from "@/lib/data/performers";
+import { listRoles } from "@/lib/data/roles";
+import { listCastings } from "@/lib/data/castings";
+import { MeasurementForm } from "@/components/MeasurementForm";
+
+export default async function MeasurementPage({
+  params,
+}: {
+  params: Promise<{ id: string; performerId: string }>;
+}) {
+  const { orgId } = await getAuthContext();
+  const { id, performerId } = await params;
+  const production = await assertProductionInOrg(orgId, id);
+  await assertPerformerInOrg(orgId, performerId);
+
+  const [definitions, measurements, performers, roles, castings] = await Promise.all([
+    listMeasurementDefinitions(),
+    getMeasurements(performerId),
+    listPerformers(id),
+    listRoles(id),
+    listCastings(id),
+  ]);
+
+  const performer = performers.find((p) => p.id === performerId);
+  const casting = castings.find((c) => c.performer_id === performerId);
+  const role = casting ? roles.find((r) => r.id === casting.role_id) : undefined;
+
+  const initial: Record<string, number> = {};
+  for (const m of measurements) initial[m.measurement_key] = m.value_numeric;
+
+  return (
+    <main className="mx-auto max-w-md p-6">
+      <Link href={`/productions/${id}`} className="text-sm text-gray-500 hover:underline">
+        ← Cast
+      </Link>
+      <div className="mt-2 mb-6">
+        <p className="text-sm text-gray-500">{production.title}</p>
+        <h1 className="text-2xl font-bold">{role?.name ?? "Measurements"}</h1>
+        <p className="text-gray-600">
+          {performer?.label ?? "Performer"}
+          {casting?.assignment === "understudy" ? " · Understudy" : ""}
+        </p>
+      </div>
+      <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
+    </main>
+  );
+}
+```
+
+- [ ] **Step 2: Type-check and run the suite**
+
+Run: `npx tsc --noEmit -p tsconfig.json` (exit 0) and `npm test` (green — no tested module changed).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add "src/app/productions/[id]/performers/[performerId]/page.tsx"
+git commit -m "feat: show role and cast member name on the measurement page"
+```
+
+- [ ] **Step 4: Manual verify (browser)**
+
+Open a role's primary or understudy → the measurement page now shows the **role name** as the heading and the **cast member's name** (with "· Understudy" for understudies) above the fields.
+
+---
+
 ## Milestone 2 · Slice 2 complete
 
 Each role now has a named primary cast member and any number of understudies, every name is a real performer with their own measurements, and the seeded characters became roles. The model is ready for **multiple casts** (next slice: add `casts` + `castings.cast_id`, a cast switcher, and per-cast assignments).
@@ -1170,7 +1251,9 @@ Each role now has a named primary cast member and any number of understudies, ev
 
 ## Deferred / follow-ups (carried forward)
 
-- **Multiple casts (Gold/Blue)** — next slice: `casts` table, `castings.cast_id` (migration backfills existing castings to a default cast), cast switcher UI.
+- **Multiple casts (Gold/Blue)** — next slice: `casts` table, `castings.cast_id` (migration backfills existing castings to a default cast), cast switcher UI. With casts, revisit the `unique(role_id, performer_id)` constraint (likely `(role_id, performer_id, cast_id)`).
+- **Centralize role↔production tenancy** — add `assertRoleInProduction(productionId, roleId)` and use it in `addCastMember`/castings route (currently a casting can reference another production's role id — Minor, self-pollution only; final-review note). The role DELETE IDOR was already fixed (scoped `deleteRole(productionId, id)`). Consider a DB-level guarantee that `castings.production_id` matches `roles.production_id` / `performers.production_id`.
+- **CastBoard UX:** `removeCast` swallows DELETE failures silently (add an error path); add confirm dialogs for destructive role/cast deletion.
 - **Reuse an existing performer across roles** — currently each assignment creates a new person; cross-role reuse is out of scope here.
 - **Edit a role/performer name in place** — current UI is add/remove only.
 - Plus carry-overs: in/cm toggle + server-derived measurement unit; measurement-clear path; org name from Clerk; `updated_at` trigger; per-production roles (owner/editor/viewer); `assertWithinPlanLimits`.

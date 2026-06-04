@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-context";
 import { assertProductionInOrg } from "@/lib/data/production-access";
+import { listRoles } from "@/lib/data/roles";
+import { listCastings } from "@/lib/data/castings";
 import { listPerformers } from "@/lib/data/performers";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate } from "@/lib/countdown";
-import { PerformerList } from "@/components/PerformerList";
+import { CastBoard, type RoleWithCast } from "@/components/CastBoard";
 
 export default async function ProductionDetailPage({
   params,
@@ -24,7 +26,27 @@ export default async function ProductionDetailPage({
     throw err;
   }
 
-  const performers = await listPerformers(id);
+  const [roles, castings, performers] = await Promise.all([
+    listRoles(id),
+    listCastings(id),
+    listPerformers(id),
+  ]);
+
+  const nameById = new Map(performers.map((p) => [p.id, p.label]));
+  const rolesWithCast: RoleWithCast[] = roles.map((role) => {
+    const forRole = castings.filter((c) => c.role_id === role.id);
+    const primaryCasting = forRole.find((c) => c.assignment === "primary");
+    return {
+      roleId: role.id,
+      roleName: role.name,
+      primary: primaryCasting
+        ? { performerId: primaryCasting.performer_id, name: nameById.get(primaryCasting.performer_id) ?? "" }
+        : null,
+      understudies: forRole
+        .filter((c) => c.assignment === "understudy")
+        .map((c) => ({ performerId: c.performer_id, name: nameById.get(c.performer_id) ?? "" })),
+    };
+  });
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -42,8 +64,8 @@ export default async function ProductionDetailPage({
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Cast</h2>
-        <PerformerList productionId={id} initialPerformers={performers} />
+        <h2 className="mb-3 text-lg font-semibold">Roles &amp; cast</h2>
+        <CastBoard productionId={id} initialRoles={rolesWithCast} />
       </section>
     </main>
   );
