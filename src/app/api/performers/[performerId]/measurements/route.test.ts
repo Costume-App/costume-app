@@ -13,10 +13,16 @@ vi.mock("@/lib/data/performers", () => ({
   upsertMeasurement: (...a: unknown[]) => upsertMeasurement(...a),
 }));
 
+const assertPerformerInOrg = vi.fn();
+vi.mock("@/lib/data/production-access", () => ({
+  assertPerformerInOrg: (...a: unknown[]) => assertPerformerInOrg(...a),
+}));
+
 import { GET, PUT } from "@/app/api/performers/[performerId]/measurements/route";
 
 beforeEach(() => {
-  [getAuthContext, getMeasurements, upsertMeasurement].forEach((m) => m.mockReset());
+  [getAuthContext, getMeasurements, upsertMeasurement, assertPerformerInOrg].forEach((m) => m.mockReset());
+  assertPerformerInOrg.mockResolvedValue(undefined);
 });
 
 const ctx = (performerId: string) => ({ params: Promise.resolve({ performerId }) });
@@ -64,4 +70,12 @@ test("PUT 400 on a non-numeric value", async () => {
   upsertMeasurement.mockRejectedValue(new ValidationError("Measurement must be a number"));
   const res = await PUT(putReq({ measurementKey: "waist", valueNumeric: "x", unit: "in" }), ctx("pf1"));
   expect(res.status).toBe(400);
+});
+
+test("GET 404 when the performer is not in the caller's org", async () => {
+  const { NotFoundError } = await import("@/lib/errors");
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertPerformerInOrg.mockRejectedValue(new NotFoundError("Performer not found"));
+  const res = await GET(new Request("http://test"), ctx("pf1"));
+  expect(res.status).toBe(404);
 });

@@ -48,6 +48,16 @@ export async function deletePerformer(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function getPerformerProductionId(id: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin
+    .from("performers")
+    .select("production_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.production_id as string) ?? null;
+}
+
 export async function getMeasurements(performerId: string): Promise<PerformerMeasurement[]> {
   const { data, error } = await supabaseAdmin
     .from("performer_measurements")

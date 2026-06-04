@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAuthContext } from "@/lib/auth-context";
-import { assertProductionInOrg } from "@/lib/data/production-access";
+import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/production-access";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
 import { getMeasurements } from "@/lib/data/performers";
 import { MeasurementForm } from "@/components/MeasurementForm";
@@ -13,6 +13,7 @@ export default async function MeasurementPage({
   const { orgId } = await getAuthContext();
   const { id, performerId } = await params;
   await assertProductionInOrg(orgId, id);
+  await assertPerformerInOrg(orgId, performerId);
 
   const [definitions, measurements] = await Promise.all([
     listMeasurementDefinitions(),
