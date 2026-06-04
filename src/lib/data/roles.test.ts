@@ -7,8 +7,9 @@ const listEq = vi.fn(() => ({ order: order1 }));
 const insertSingle = vi.fn();
 const insertSelect = vi.fn(() => ({ single: insertSingle }));
 const insert = vi.fn(() => ({ select: insertSelect }));
-const deleteEq = vi.fn();
-const del = vi.fn(() => ({ eq: deleteEq }));
+const deleteEqProd = vi.fn();
+const deleteEqId = vi.fn(() => ({ eq: deleteEqProd }));
+const del = vi.fn(() => ({ eq: deleteEqId }));
 const select = vi.fn((_cols: string) => ({ eq: listEq }));
 const from = vi.fn((_table: string) => ({ select, insert, delete: del }));
 
@@ -17,14 +18,15 @@ vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) 
 import { listRoles, createRole, deleteRole } from "@/lib/data/roles";
 
 beforeEach(() => {
-  [order2, order1, listEq, insertSingle, insertSelect, insert, deleteEq, del, select, from].forEach((m) =>
-    m.mockReset(),
+  [order2, order1, listEq, insertSingle, insertSelect, insert, deleteEqProd, deleteEqId, del, select, from].forEach(
+    (m) => m.mockReset(),
   );
   order1.mockReturnValue({ order: order2 });
   listEq.mockReturnValue({ order: order1 });
   insertSelect.mockReturnValue({ single: insertSingle });
   insert.mockReturnValue({ select: insertSelect });
-  del.mockReturnValue({ eq: deleteEq });
+  deleteEqId.mockReturnValue({ eq: deleteEqProd });
+  del.mockReturnValue({ eq: deleteEqId });
   select.mockReturnValue({ eq: listEq });
   from.mockReturnValue({ select, insert, delete: del });
 });
@@ -50,9 +52,10 @@ test("createRole rejects an empty name", async () => {
   await expect(createRole({ productionId: "p1", name: "  " })).rejects.toBeInstanceOf(ValidationError);
 });
 
-test("deleteRole deletes by id", async () => {
-  deleteEq.mockResolvedValue({ error: null });
-  await deleteRole("r1");
+test("deleteRole deletes by id scoped to the production", async () => {
+  deleteEqProd.mockResolvedValue({ error: null });
+  await deleteRole("p1", "r1");
   expect(del).toHaveBeenCalled();
-  expect(deleteEq).toHaveBeenCalledWith("id", "r1");
+  expect(deleteEqId).toHaveBeenCalledWith("id", "r1");
+  expect(deleteEqProd).toHaveBeenCalledWith("production_id", "p1");
 });

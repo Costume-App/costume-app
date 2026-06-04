@@ -11,7 +11,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id, roleId } = await params;
     await assertProductionInOrg(orgId, id);
-    await deleteRole(roleId);
+    await deleteRole(id, roleId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return errorResponse(err);

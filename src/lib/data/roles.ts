@@ -32,7 +32,11 @@ export async function createRole(input: { productionId: string; name: string }):
   return data as Role;
 }
 
-export async function deleteRole(id: string): Promise<void> {
-  const { error } = await supabaseAdmin.from("roles").delete().eq("id", id);
+export async function deleteRole(productionId: string, id: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("roles")
+    .delete()
+    .eq("id", id)
+    .eq("production_id", productionId);
   if (error) throw new Error(error.message);
 }
