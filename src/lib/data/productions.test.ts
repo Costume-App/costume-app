@@ -1,4 +1,5 @@
 import { expect, test, vi, beforeEach } from "vitest";
+import { ValidationError } from "@/lib/errors";
 
 const order = vi.fn();
 const eq = vi.fn(() => ({ order }));
@@ -54,10 +55,10 @@ test("createProduction inserts the row and returns it", async () => {
   expect(row).toEqual({ id: "p2", title: "Newsies" });
 });
 
-test("createProduction rejects an empty title", async () => {
+test("createProduction rejects an empty title with a ValidationError", async () => {
   await expect(
     createProduction({ orgId: "org_1", createdBy: "user_1", title: "  ", showDate: null, notes: null }),
-  ).rejects.toThrow("Title is required");
+  ).rejects.toBeInstanceOf(ValidationError);
 });
 
 test("createProduction throws on supabase error", async () => {

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { ValidationError } from "@/lib/errors";
 
 export interface Production {
   id: string;
@@ -31,7 +32,7 @@ export async function listProductions(orgId: string): Promise<Production[]> {
 
 export async function createProduction(input: CreateProductionInput): Promise<Production> {
   const title = input.title.trim();
-  if (!title) throw new Error("Title is required");
+  if (!title) throw new ValidationError("Title is required");
 
   const { data, error } = await supabaseAdmin
     .from("productions")
