@@ -16,6 +16,8 @@ export function errorResponse(err: unknown): NextResponse {
   if (err instanceof SyntaxError) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const message = err instanceof Error ? err.message : "Unexpected error";
-  return NextResponse.json({ error: message }, { status: 500 });
+  // Log the real error server-side, but don't leak internals (e.g. raw DB
+  // messages) to the client.
+  console.error("Unhandled API error:", err);
+  return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
 }

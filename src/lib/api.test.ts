@@ -25,6 +25,10 @@ test("SyntaxError (bad JSON) maps to 400", async () => {
   expect(errorResponse(new SyntaxError("Unexpected token")).status).toBe(400);
 });
 
-test("unknown error maps to 500", async () => {
-  expect(errorResponse(new Error("boom")).status).toBe(500);
+test("unknown error maps to 500 with a generic, non-leaky message", async () => {
+  const res = errorResponse(new Error("boom"));
+  expect(res.status).toBe(500);
+  const body = (await res.json()) as { error: string };
+  expect(body.error).not.toContain("boom");
+  expect(body.error).toBe("Something went wrong. Please try again.");
 });
