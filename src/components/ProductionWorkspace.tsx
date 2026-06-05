@@ -48,6 +48,13 @@ export function ProductionWorkspace({
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
   const [selectedCastId, setSelectedCastId] = useState<string>(initialCasts[0]?.id ?? "");
   const [tab, setTab] = useState<"roster" | "costumes">("roster");
+  // Shared workspace data lives here so both tabs (and cast switches) stay live
+  // without a reload — RosterTab and CostumesTab mutate these via the setters below.
+  const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [performers, setPerformers] = useState<Performer[]>(initialPerformers);
+  const [castings, setCastings] = useState<Casting[]>(initialCastings);
+  const [designs, setDesigns] = useState<CostumeDesign[]>(initialDesigns);
+  const [pieces, setPieces] = useState<CostumePiece[]>(initialPieces);
   const [newCast, setNewCast] = useState("");
   const [newCastColor, setNewCastColor] = useState(DEFAULT_CAST_COLOR);
   const [showAddCast, setShowAddCast] = useState(false);
@@ -243,9 +250,12 @@ export function ProductionWorkspace({
         <RosterTab
           productionId={productionId}
           selectedCastId={selectedCastId}
-          roles={initialRoles}
-          performers={initialPerformers}
-          castings={initialCastings}
+          roles={roles}
+          setRoles={setRoles}
+          performers={performers}
+          setPerformers={setPerformers}
+          castings={castings}
+          setCastings={setCastings}
           measurementStatus={measurementStatus}
           tint={tint}
           edge={edge}
@@ -254,12 +264,14 @@ export function ProductionWorkspace({
         <CostumesTab
           productionId={productionId}
           selectedCastId={selectedCastId}
-          roles={initialRoles}
-          castings={initialCastings}
-          performers={initialPerformers}
+          roles={roles}
+          castings={castings}
+          performers={performers}
           casts={casts}
-          initialDesigns={initialDesigns}
-          initialPieces={initialPieces}
+          designs={designs}
+          setDesigns={setDesigns}
+          pieces={pieces}
+          setPieces={setPieces}
           tint={tint}
           edge={edge}
         />

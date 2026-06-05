@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
 import { CollapsibleRole } from "@/components/CollapsibleRole";
 import type {
@@ -13,9 +14,12 @@ import type {
 export function RosterTab({
   productionId,
   selectedCastId,
-  roles: initialRoles,
-  performers: initialPerformers,
-  castings: initialCastings,
+  roles,
+  setRoles,
+  performers,
+  setPerformers,
+  castings,
+  setCastings,
   measurementStatus,
   tint,
   edge,
@@ -23,15 +27,15 @@ export function RosterTab({
   productionId: string;
   selectedCastId: string;
   roles: Role[];
+  setRoles: Dispatch<SetStateAction<Role[]>>;
   performers: Performer[];
+  setPerformers: Dispatch<SetStateAction<Performer[]>>;
   castings: Casting[];
+  setCastings: Dispatch<SetStateAction<Casting[]>>;
   measurementStatus: Record<string, MeasureStatus>;
   tint: string;
   edge: string;
 }) {
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
-  const [performers, setPerformers] = useState<Performer[]>(initialPerformers);
-  const [castings, setCastings] = useState<Casting[]>(initialCastings);
   const [newRole, setNewRole] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

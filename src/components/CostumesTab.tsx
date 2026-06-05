@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { CollapsibleRole } from "@/components/CollapsibleRole";
 import { COSTUME_SOURCES, DEFAULT_SOURCE } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceCountByRole, pieceKey } from "@/lib/costume-merge";
@@ -15,13 +16,14 @@ export function CostumesTab(props: {
   castings: Casting[];
   performers: Performer[];
   casts: Cast[];
-  initialDesigns: CostumeDesign[];
-  initialPieces: CostumePiece[];
+  designs: CostumeDesign[];
+  setDesigns: Dispatch<SetStateAction<CostumeDesign[]>>;
+  pieces: CostumePiece[];
+  setPieces: Dispatch<SetStateAction<CostumePiece[]>>;
   tint: string;
   edge: string;
 }) {
-  const [designs, setDesigns] = useState<CostumeDesign[]>(props.initialDesigns);
-  const [pieces, setPieces] = useState<CostumePiece[]>(props.initialPieces);
+  const { designs, setDesigns, pieces, setPieces } = props;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
