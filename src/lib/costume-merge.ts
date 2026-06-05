@@ -3,6 +3,7 @@ interface DesignLike {
   role_id: string;
 }
 interface PieceRowLike {
+  id?: string;
   costume_design_id: string;
   casting_id: string;
   source: "make" | "on_hand" | "shared";
