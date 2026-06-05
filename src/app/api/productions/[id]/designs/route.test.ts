@@ -15,6 +15,8 @@ vi.mock("@/lib/data/costume-designs", () => ({
   listCostumeDesigns: (...a: unknown[]) => listCostumeDesigns(...a),
   createCostumeDesign: (...a: unknown[]) => createCostumeDesign(...a),
 }));
+const listRoles = vi.fn();
+vi.mock("@/lib/data/roles", () => ({ listRoles: (...a: unknown[]) => listRoles(...a) }));
 
 import { GET, POST } from "@/app/api/productions/[id]/designs/route";
 
@@ -23,9 +25,10 @@ const post = (body: unknown) =>
   new Request("http://t", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, listCostumeDesigns, createCostumeDesign].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, listCostumeDesigns, createCostumeDesign, listRoles].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  listRoles.mockResolvedValue([{ id: "r1" }]);
 });
 
 test("GET lists designs (200)", async () => {
@@ -47,4 +50,11 @@ test("POST 404 when production not in org", async () => {
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
   const res = await POST(post({ roleId: "r1", name: "X" }), ctx("p1"));
   expect(res.status).toBe(404);
+});
+
+test("POST 404 when role not in production", async () => {
+  listRoles.mockResolvedValue([{ id: "rX" }]);
+  const res = await POST(post({ roleId: "r1", name: "Jacket" }), ctx("p1"));
+  expect(res.status).toBe(404);
+  expect(createCostumeDesign).not.toHaveBeenCalled();
 });

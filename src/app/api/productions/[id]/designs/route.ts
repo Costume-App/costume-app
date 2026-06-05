@@ -3,7 +3,8 @@ import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { listCostumeDesigns, createCostumeDesign } from "@/lib/data/costume-designs";
-import { ValidationError } from "@/lib/errors";
+import { listRoles } from "@/lib/data/roles";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -26,6 +27,10 @@ export async function POST(request: Request, { params }: Ctx) {
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as { roleId?: string; name?: string };
     if (typeof body.roleId !== "string" || !body.roleId) throw new ValidationError("roleId is required");
+    const roles = await listRoles(id);
+    if (!roles.some((r) => r.id === body.roleId)) {
+      throw new NotFoundError("Role not found in this production");
+    }
     const design = await createCostumeDesign({
       productionId: id,
       roleId: body.roleId,

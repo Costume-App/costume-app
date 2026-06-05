@@ -25,6 +25,10 @@ export function CostumesTab(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cells where the user picked "Shared" but hasn't chosen a target yet.
+  // Keyed by pieceKey(castingId, designId); value = chosen sharedWithCastingId ("" if none yet).
+  const [pendingShared, setPendingShared] = useState<Record<string, string>>({});
+
   const nameOf = (performerId: string) => props.performers.find((p) => p.id === performerId)?.name ?? "";
   const castNameOf = (castId: string) => props.casts.find((c) => c.id === castId)?.name ?? "";
   const sources = resolvePieceSources(pieces);
@@ -124,11 +128,14 @@ export function CostumesTab(props: {
                         <p className="text-sm muted">No pieces defined.</p>
                       ) : (
                         roleDesigns.map((d) => {
-                          const resolved = sources[pieceKey(casting.id, d.id)];
-                          const source = resolved?.source ?? DEFAULT_SOURCE;
-                          const sharedCastingId = resolved?.sharedWithPieceId
+                          const key = pieceKey(casting.id, d.id);
+                          const resolved = sources[key];
+                          const pending = key in pendingShared;
+                          const source = pending ? "shared" : resolved?.source ?? DEFAULT_SOURCE;
+                          const persistedShareCasting = resolved?.sharedWithPieceId
                             ? pieces.find((p) => p.id === resolved.sharedWithPieceId)?.casting_id ?? ""
                             : "";
+                          const sharedCastingId = pending ? pendingShared[key] : persistedShareCasting;
                           const shareCandidates = props.castings.filter((c) => c.roleId === r.id && c.id !== casting.id);
                           return (
                             <div key={d.id} className="flex flex-wrap items-center gap-2 py-1">
@@ -137,7 +144,20 @@ export function CostumesTab(props: {
                                 className="field !p-1.5 text-sm"
                                 value={source}
                                 disabled={busy}
-                                onChange={(e) => setSource(d.id, casting.id, e.target.value, null)}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  if (v === "shared") {
+                                    // reveal the picker; don't PUT until a target is chosen
+                                    setPendingShared((p) => ({ ...p, [key]: persistedShareCasting }));
+                                  } else {
+                                    setPendingShared((p) => {
+                                      const next = { ...p };
+                                      delete next[key];
+                                      return next;
+                                    });
+                                    setSource(d.id, casting.id, v, null);
+                                  }
+                                }}
                               >
                                 {COSTUME_SOURCES.map((s) => (
                                   <option key={s.token} value={s.token}>
@@ -150,7 +170,11 @@ export function CostumesTab(props: {
                                   className="field !p-1.5 text-sm"
                                   value={sharedCastingId}
                                   disabled={busy}
-                                  onChange={(e) => setSource(d.id, casting.id, "shared", e.target.value || null)}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setPendingShared((p) => ({ ...p, [key]: v }));
+                                    if (v) setSource(d.id, casting.id, "shared", v);
+                                  }}
                                 >
                                   <option value="">Whose?</option>
                                   {shareCandidates.map((c) => (
