@@ -38,12 +38,19 @@ export async function createCast(input: {
   return data as Cast;
 }
 
-export async function updateCast(productionId: string, id: string, name: string): Promise<Cast> {
+export async function updateCast(
+  productionId: string,
+  id: string,
+  name: string,
+  color?: string,
+): Promise<Cast> {
   const trimmed = name.trim();
   if (!trimmed) throw new ValidationError("Cast name is required");
+  const patch: { name: string; color?: string } = { name: trimmed };
+  if (color !== undefined) patch.color = color;
   const { data, error } = await supabaseAdmin
     .from("casts")
-    .update({ name: trimmed })
+    .update(patch)
     .eq("id", id)
     .eq("production_id", productionId)
     .select()

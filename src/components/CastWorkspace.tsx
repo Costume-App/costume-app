@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  CAST_COLORS,
+  castColorHex,
+  castColorTint,
+  castColorEdge,
+  DEFAULT_CAST_COLOR,
+} from "@/lib/cast-colors";
+
+type MeasureStatus = "none" | "partial" | "complete";
 
 interface Cast { id: string; name: string; color: string }
 interface Role { id: string; name: string }
@@ -20,12 +29,14 @@ export function CastWorkspace({
   initialRoles,
   initialPerformers,
   initialCastings,
+  measurementStatus,
 }: {
   productionId: string;
   initialCasts: Cast[];
   initialRoles: Role[];
   initialPerformers: Performer[];
   initialCastings: Casting[];
+  measurementStatus: Record<string, MeasureStatus>;
 }) {
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
   const [roles, setRoles] = useState<Role[]>(initialRoles);
@@ -34,13 +45,17 @@ export function CastWorkspace({
   const [selectedCastId, setSelectedCastId] = useState<string>(initialCasts[0]?.id ?? "");
   const [newRole, setNewRole] = useState("");
   const [newCast, setNewCast] = useState("");
+  const [newCastColor, setNewCastColor] = useState(DEFAULT_CAST_COLOR);
   const [showAddCast, setShowAddCast] = useState(false);
   const [showRenameCast, setShowRenameCast] = useState(false);
   const [renameValue, setRenameValue] = useState("");
+  const [renameColor, setRenameColor] = useState(DEFAULT_CAST_COLOR);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nameOf = (performerId: string) => performers.find((p) => p.id === performerId)?.name ?? "";
+  // Newly added members (this session) have no measurements yet → "none".
+  const statusOf = (performerId: string): MeasureStatus => measurementStatus[performerId] ?? "none";
 
   async function addCast(e: React.FormEvent) {
     e.preventDefault();
@@ -51,13 +66,14 @@ export function CastWorkspace({
       method: "POST",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ name: newCast }),
+      body: JSON.stringify({ name: newCast, color: newCastColor }),
     });
     if (res.ok) {
       const { cast } = (await res.json()) as { cast: Cast };
       setCasts((prev) => [...prev, cast]);
       setSelectedCastId(cast.id);
       setNewCast("");
+      setNewCastColor(DEFAULT_CAST_COLOR);
       setShowAddCast(false);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast");
@@ -74,11 +90,13 @@ export function CastWorkspace({
       method: "PATCH",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ name: renameValue }),
+      body: JSON.stringify({ name: renameValue, color: renameColor }),
     });
     if (res.ok) {
       const { cast } = (await res.json()) as { cast: Cast };
-      setCasts((prev) => prev.map((c) => (c.id === selectedCastId ? { ...c, name: cast.name } : c)));
+      setCasts((prev) =>
+        prev.map((c) => (c.id === selectedCastId ? { ...c, name: cast.name, color: cast.color } : c)),
+      );
       setShowRenameCast(false);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't rename cast");
@@ -168,6 +186,10 @@ export function CastWorkspace({
   }
 
   async function removeCastMember(performerId: string) {
+    const who = nameOf(performerId);
+    if (!confirm(`Remove ${who || "this cast member"}? This also deletes their measurements and can't be undone.`)) {
+      return;
+    }
     setBusy(true);
     const res = await fetch(`/api/performers/${performerId}`, { method: "DELETE", credentials: "include" });
     if (res.ok) {
@@ -179,6 +201,7 @@ export function CastWorkspace({
   }
 
   const inSelectedCast = castings.filter((c) => c.castId === selectedCastId);
+  const selectedColor = casts.find((c) => c.id === selectedCastId)?.color ?? DEFAULT_CAST_COLOR;
 
   return (
     <div className="space-y-5">
@@ -188,37 +211,40 @@ export function CastWorkspace({
           const selected = c.id === selectedCastId;
           if (selected && showRenameCast) {
             return (
-              <form key={c.id} onSubmit={renameCast} className="flex items-center gap-1">
-                <input
-                  autoFocus
-                  className="field w-28 !p-1.5 text-sm"
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  placeholder="Cast name"
-                />
-                <button type="submit" disabled={busy} className="btn-ghost text-sm">
-                  Save
-                </button>
-                <button type="button" onClick={() => setShowRenameCast(false)} className="link-muted text-sm">
-                  Cancel
-                </button>
-                {casts.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => deleteCast(c.id)}
-                    disabled={busy}
-                    className="text-sm text-[var(--red)] hover:underline disabled:opacity-50"
-                  >
-                    Delete
+              <form key={c.id} onSubmit={renameCast} className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    className="field w-28 !p-1.5 text-sm"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    placeholder="Cast name"
+                  />
+                  <button type="submit" disabled={busy} className="btn-ghost text-sm">
+                    Save
                   </button>
-                )}
+                  <button type="button" onClick={() => setShowRenameCast(false)} className="link-muted text-sm">
+                    Cancel
+                  </button>
+                  {casts.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => deleteCast(c.id)}
+                      disabled={busy}
+                      className="text-sm text-[var(--red)] hover:underline disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+                <ColorSwatches value={renameColor} onChange={setRenameColor} />
               </form>
             );
           }
           return (
             <span key={c.id} className={`chip ${selected ? "chip-selected" : ""}`}>
               <button type="button" onClick={() => setSelectedCastId(c.id)} className="flex items-center gap-2">
-                <span className={`dot ${selected ? "dot-selected" : ""}`} />
+                <span className="dot" style={{ background: castColorHex(c.color) }} />
                 {c.name}
               </button>
               {selected && (
@@ -228,6 +254,7 @@ export function CastWorkspace({
                   title="Rename cast"
                   onClick={() => {
                     setRenameValue(c.name);
+                    setRenameColor(c.color);
                     setShowRenameCast(true);
                   }}
                   className="ml-0.5 opacity-60 hover:opacity-100"
@@ -240,27 +267,31 @@ export function CastWorkspace({
         })}
 
         {showAddCast ? (
-          <form onSubmit={addCast} className="flex items-center gap-1">
-            <input
-              autoFocus
-              className="field w-28 !p-1.5 text-sm"
-              value={newCast}
-              onChange={(e) => setNewCast(e.target.value)}
-              placeholder="Cast name"
-            />
-            <button type="submit" disabled={busy} className="btn-ghost text-sm">
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddCast(false);
-                setNewCast("");
-              }}
-              className="link-muted text-sm"
-            >
-              Cancel
-            </button>
+          <form onSubmit={addCast} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                className="field w-28 !p-1.5 text-sm"
+                value={newCast}
+                onChange={(e) => setNewCast(e.target.value)}
+                placeholder="Cast name"
+              />
+              <button type="submit" disabled={busy} className="btn-ghost text-sm">
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddCast(false);
+                  setNewCast("");
+                  setNewCastColor(DEFAULT_CAST_COLOR);
+                }}
+                className="link-muted text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+            <ColorSwatches value={newCastColor} onChange={setNewCastColor} />
           </form>
         ) : (
           <button
@@ -277,7 +308,7 @@ export function CastWorkspace({
 
       {/* Roles for the selected cast */}
       <section>
-        <h2 className="font-display mb-3 text-xl font-semibold">Roles &amp; cast</h2>
+        <h2 className="font-display mb-3 text-xl font-semibold">Roles &amp; Cast</h2>
         {roles.length === 0 ? (
           <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
             No roles yet. Add the first character below.
@@ -289,16 +320,23 @@ export function CastWorkspace({
               const primary = forRole.find((c) => c.assignment === "primary");
               const understudies = forRole.filter((c) => c.assignment === "understudy");
               return (
-                <li key={r.id} className="surface p-4">
-                  <div className="font-display mb-2 text-xl font-semibold">{r.name}</div>
+                <li
+                  key={r.id}
+                  className="surface space-y-2 p-3"
+                  style={{
+                    backgroundColor: castColorTint(selectedColor),
+                    borderColor: castColorEdge(selectedColor),
+                  }}
+                >
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <span className="font-display min-w-[7rem] text-lg font-semibold">{r.name}</span>
 
-                  <div className="mt-1">
-                    <span className="lbl mr-2">Primary</span>
                     {primary ? (
                       <CastLink
                         productionId={productionId}
                         performerId={primary.performerId}
                         name={nameOf(primary.performerId)}
+                        status={statusOf(primary.performerId)}
                         onRemove={() => removeCastMember(primary.performerId)}
                         busy={busy}
                       />
@@ -307,19 +345,31 @@ export function CastWorkspace({
                     )}
                   </div>
 
-                  <div className="mt-3">
-                    <span className="lbl">Understudies</span>
-                    {understudies.map((u) => (
-                      <CastLink
-                        key={u.performerId}
-                        productionId={productionId}
-                        performerId={u.performerId}
-                        name={nameOf(u.performerId)}
-                        onRemove={() => removeCastMember(u.performerId)}
+                  <div>
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="lbl">Understudies</span>
+                      <AddName
+                        placeholder="Add understudy"
+                        addLabel="Add"
+                        block
+                        onAdd={(n) => addCastMember(r.id, n, "understudy")}
                         busy={busy}
                       />
-                    ))}
-                    <AddName placeholder="Add understudy" onAdd={(n) => addCastMember(r.id, n, "understudy")} busy={busy} />
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      {understudies.map((u, i) => (
+                        <CastLink
+                          key={u.performerId}
+                          order={i + 1}
+                          productionId={productionId}
+                          performerId={u.performerId}
+                          name={nameOf(u.performerId)}
+                          status={statusOf(u.performerId)}
+                          onRemove={() => removeCastMember(u.performerId)}
+                          busy={busy}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </li>
               );
@@ -344,6 +394,27 @@ export function CastWorkspace({
   );
 }
 
+function ColorSwatches({ value, onChange }: { value: string; onChange: (token: string) => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {CAST_COLORS.map((c) => (
+        <button
+          key={c.token}
+          type="button"
+          aria-label={c.label}
+          aria-pressed={value === c.token}
+          title={c.label}
+          onClick={() => onChange(c.token)}
+          className={`h-5 w-5 rounded-full border border-black/10 ${
+            value === c.token ? "outline outline-2 outline-offset-1 outline-[var(--ink)]" : ""
+          }`}
+          style={{ background: c.hex }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function PencilIcon() {
   return (
     <svg
@@ -363,21 +434,54 @@ function PencilIcon() {
   );
 }
 
+function MeasurementDot({ status }: { status: MeasureStatus }) {
+  const label =
+    status === "complete"
+      ? "Measurements complete"
+      : status === "partial"
+        ? "Measurements in progress"
+        : "No measurements yet";
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 12 12"
+      role="img"
+      aria-label={label}
+      className="shrink-0"
+    >
+      <title>{label}</title>
+      {/* outline ring (always) */}
+      <circle cx="6" cy="6" r="5" fill="none" stroke="var(--muted)" strokeWidth="1.5" />
+      {/* left half filled = in progress */}
+      {status === "partial" && <path d="M6 1 A5 5 0 0 0 6 11 Z" fill="var(--red)" />}
+      {/* whole circle filled = complete */}
+      {status === "complete" && <circle cx="6" cy="6" r="5" fill="var(--red)" stroke="var(--red)" strokeWidth="1.5" />}
+    </svg>
+  );
+}
+
 function CastLink({
   productionId,
   performerId,
   name,
   onRemove,
   busy,
+  order,
+  status,
 }: {
   productionId: string;
   performerId: string;
   name: string;
   onRemove: () => void;
   busy: boolean;
+  order?: number;
+  status?: MeasureStatus;
 }) {
   return (
-    <div className="mt-1 flex items-center justify-between gap-3">
+    <span className="inline-flex items-center gap-1">
+      {order != null && <span className="muted text-sm">{order}.</span>}
+      {status && <MeasurementDot status={status} />}
       <Link
         href={`/productions/${productionId}/performers/${performerId}`}
         className="font-medium hover:underline"
@@ -387,30 +491,36 @@ function CastLink({
       <button
         onClick={onRemove}
         disabled={busy}
-        className="text-sm text-[var(--red)] hover:underline disabled:opacity-50"
+        aria-label={`Remove ${name}`}
+        title={`Remove ${name}`}
+        className="text-base leading-none text-[var(--red)] hover:opacity-70 disabled:opacity-50"
       >
-        Remove
+        ×
       </button>
-    </div>
+    </span>
   );
 }
 
 function AddName({
   placeholder,
+  addLabel,
   onAdd,
   busy,
+  block,
 }: {
   placeholder: string;
+  addLabel?: string;
   onAdd: (name: string) => void;
   busy: boolean;
+  block?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="link-muted mt-1 block text-sm">
-        + {placeholder}
+      <button type="button" onClick={() => setOpen(true)} className="link-muted text-sm">
+        + {addLabel ?? placeholder}
       </button>
     );
   }
@@ -423,11 +533,11 @@ function AddName({
         setName("");
         setOpen(false);
       }}
-      className="mt-1 flex gap-2"
+      className={`${block ? "flex w-full flex-wrap" : "inline-flex"} items-center gap-1.5`}
     >
       <input
         autoFocus
-        className="field flex-1 !p-2 text-sm"
+        className="field w-28 !p-1.5 text-sm"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={placeholder}

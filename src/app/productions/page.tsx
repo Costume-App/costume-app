@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
+import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { listProductions } from "@/lib/data/productions";
 import { CountdownBadge } from "@/components/CountdownBadge";
@@ -6,10 +8,28 @@ import { formatShowDate } from "@/lib/countdown";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
-  const productions = await listProductions(orgId);
+  const [productions, user, org] = await Promise.all([
+    listProductions(orgId),
+    currentUser(),
+    clerkClient().then((c) => c.organizations.getOrganization({ organizationId: orgId })),
+  ]);
+
+  const userName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.username ||
+    user?.emailAddresses?.[0]?.emailAddress ||
+    "";
 
   return (
     <main className="mx-auto max-w-2xl p-6">
+      <div className="mb-5 flex items-center justify-between gap-3 border-b border-[var(--field-line)] pb-3">
+        <span className="lbl">{org.name}</span>
+        <div className="flex items-center gap-2.5">
+          {userName && <span className="text-sm muted">{userName}</span>}
+          <UserButton />
+        </div>
+      </div>
+
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-semibold">Productions</h1>
         <Link href="/productions/new" className="btn-primary shrink-0 text-sm">

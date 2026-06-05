@@ -36,7 +36,7 @@ export default async function MeasurementPage({
   for (const m of measurements) initial[m.measurement_key] = m.value_numeric;
 
   return (
-    <main className="mx-auto max-w-md p-6">
+    <main className="mx-auto max-w-lg p-6">
       <Link href={`/productions/${id}`} className="link-muted text-sm">
         ← Cast
       </Link>
@@ -46,9 +46,11 @@ export default async function MeasurementPage({
           {cast ? ` · ${cast.name}` : ""}
         </p>
         <h1 className="font-display text-3xl font-semibold">{role?.name ?? "Measurements"}</h1>
-        <p className="muted">
+        <p className="text-xl font-medium">
           {performer?.label ?? "Performer"}
-          {casting?.assignment === "understudy" ? " · Understudy" : ""}
+          {casting?.assignment === "understudy" ? (
+            <span className="muted text-base"> · Understudy</span>
+          ) : null}
         </p>
       </div>
       <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
