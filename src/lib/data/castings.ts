@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ValidationError } from "@/lib/errors";
-import { createPerformer, type Performer } from "@/lib/data/performers";
+import { createPerformer, deletePerformer, type Performer } from "@/lib/data/performers";
 
 export type Assignment = "primary" | "understudy";
 
@@ -46,6 +46,14 @@ export async function addCastMember(input: {
     })
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    // The casting failed, so the performer we just created would be orphaned — roll it back.
+    await deletePerformer(performer.id);
+    // 23505 = unique violation: a primary already exists for this cast + role.
+    if (error.code === "23505") {
+      throw new ValidationError("This role already has a primary for this cast.");
+    }
+    throw new Error(error.message);
+  }
   return { performer, casting: data as Casting };
 }

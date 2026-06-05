@@ -1,4 +1,5 @@
 import { expect, test, vi, beforeEach } from "vitest";
+import { ValidationError } from "@/lib/errors";
 
 const order = vi.fn();
 const listEq = vi.fn(() => ({ order }));
@@ -11,14 +12,16 @@ const from = vi.fn((_table: string) => ({ select, insert }));
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) => from(table) } }));
 
 const createPerformer = vi.fn();
+const deletePerformer = vi.fn();
 vi.mock("@/lib/data/performers", () => ({
   createPerformer: (...a: unknown[]) => createPerformer(...a),
+  deletePerformer: (...a: unknown[]) => deletePerformer(...a),
 }));
 
 import { listCastings, addCastMember } from "@/lib/data/castings";
 
 beforeEach(() => {
-  [order, listEq, insertSingle, insertSelect, insert, select, from, createPerformer].forEach((m) =>
+  [order, listEq, insertSingle, insertSelect, insert, select, from, createPerformer, deletePerformer].forEach((m) =>
     m.mockReset(),
   );
   listEq.mockReturnValue({ order });
@@ -73,4 +76,14 @@ test("addCastMember rejects an invalid assignment", async () => {
     addCastMember({ productionId: "p1", castId: "ct1", roleId: "r1", name: "Ava", assignment: "lead" }),
   ).rejects.toThrow("assignment");
   expect(createPerformer).not.toHaveBeenCalled();
+});
+
+test("addCastMember maps a duplicate (23505) to ValidationError and rolls back the performer", async () => {
+  createPerformer.mockResolvedValue({ id: "pf9", label: "Ava" });
+  insertSingle.mockResolvedValue({ data: null, error: { code: "23505", message: "duplicate key value" } });
+  deletePerformer.mockResolvedValue(undefined);
+  await expect(
+    addCastMember({ productionId: "p1", castId: "ct1", roleId: "r1", name: "Ava", assignment: "primary" }),
+  ).rejects.toBeInstanceOf(ValidationError);
+  expect(deletePerformer).toHaveBeenCalledWith("pf9");
 });
