@@ -10,7 +10,7 @@ import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate } from "@/lib/countdown";
-import { CastWorkspace } from "@/components/CastWorkspace";
+import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 
 export default async function ProductionDetailPage({
   params,
@@ -61,7 +61,7 @@ export default async function ProductionDetailPage({
         </div>
       </div>
 
-      <CastWorkspace
+      <ProductionWorkspace
         productionId={id}
         initialCasts={casts.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
         initialRoles={roles.map((r) => ({ id: r.id, name: r.name }))}
