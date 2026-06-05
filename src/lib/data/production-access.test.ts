@@ -1,6 +1,20 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { NotFoundError } from "@/lib/errors";
 
+vi.mock("@/lib/supabase-admin", () => ({
+  supabaseAdmin: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(),
+          })),
+        })),
+      })),
+    })),
+  },
+}));
+
 const getProduction = vi.fn();
 vi.mock("@/lib/data/productions", () => ({
   getProduction: (...a: unknown[]) => getProduction(...a),
