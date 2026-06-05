@@ -10,6 +10,9 @@ import {
 } from "@/lib/cast-colors";
 import { Tabs } from "@/components/Tabs";
 import { RosterTab } from "@/components/RosterTab";
+import { CostumesTab } from "@/components/CostumesTab";
+import type { CostumeDesign } from "@/lib/data/costume-designs";
+import type { CostumePiece } from "@/lib/data/costume-pieces";
 
 export type MeasureStatus = "none" | "partial" | "complete";
 export interface Cast { id: string; name: string; color: string }
@@ -30,6 +33,8 @@ export function ProductionWorkspace({
   initialPerformers,
   initialCastings,
   measurementStatus,
+  initialDesigns,
+  initialPieces,
 }: {
   productionId: string;
   initialCasts: Cast[];
@@ -37,6 +42,8 @@ export function ProductionWorkspace({
   initialPerformers: Performer[];
   initialCastings: Casting[];
   measurementStatus: Record<string, MeasureStatus>;
+  initialDesigns: CostumeDesign[];
+  initialPieces: CostumePiece[];
 }) {
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
   const [selectedCastId, setSelectedCastId] = useState<string>(initialCasts[0]?.id ?? "");
@@ -244,7 +251,18 @@ export function ProductionWorkspace({
           edge={edge}
         />
       ) : (
-        <p className="muted">Costumes — coming next.</p>
+        <CostumesTab
+          productionId={productionId}
+          selectedCastId={selectedCastId}
+          roles={initialRoles}
+          castings={initialCastings}
+          performers={initialPerformers}
+          casts={casts}
+          initialDesigns={initialDesigns}
+          initialPieces={initialPieces}
+          tint={tint}
+          edge={edge}
+        />
       )}
 
       {error && <p className="text-[var(--red)]">{error}</p>}

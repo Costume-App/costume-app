@@ -7,6 +7,8 @@ import { listCasts } from "@/lib/data/casts";
 import { listCastings } from "@/lib/data/castings";
 import { listPerformers, getFilledMeasurementCounts } from "@/lib/data/performers";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
+import { listCostumeDesigns } from "@/lib/data/costume-designs";
+import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate } from "@/lib/countdown";
@@ -46,6 +48,9 @@ export default async function ProductionDetailPage({
       filled === 0 ? "none" : totalFields > 0 && filled >= totalFields ? "complete" : "partial";
   }
 
+  const designs = await listCostumeDesigns(id);
+  const pieces = await listCostumePieces(designs.map((d) => d.id));
+
   return (
     <main className="mx-auto max-w-2xl p-6">
       <Link href="/productions" className="link-muted text-sm">
@@ -74,6 +79,8 @@ export default async function ProductionDetailPage({
           assignment: c.assignment,
         }))}
         measurementStatus={measurementStatus}
+        initialDesigns={designs}
+        initialPieces={pieces}
       />
     </main>
   );
