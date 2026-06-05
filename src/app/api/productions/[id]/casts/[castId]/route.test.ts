@@ -41,7 +41,14 @@ test("PATCH renames a cast (200)", async () => {
   const res = await PATCH(patchReq({ name: "Gold Cast" }), ctx("p1", "ct1"));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ cast: { id: "ct1", name: "Gold Cast" } });
-  expect(updateCast).toHaveBeenCalledWith("p1", "ct1", "Gold Cast");
+  expect(updateCast).toHaveBeenCalledWith("p1", "ct1", "Gold Cast", undefined);
+});
+
+test("PATCH forwards a color when provided", async () => {
+  updateCast.mockResolvedValue({ id: "ct1", name: "Gold Cast", color: "gold" });
+  const res = await PATCH(patchReq({ name: "Gold Cast", color: "gold" }), ctx("p1", "ct1"));
+  expect(res.status).toBe(200);
+  expect(updateCast).toHaveBeenCalledWith("p1", "ct1", "Gold Cast", "gold");
 });
 
 test("PATCH 400 on empty name", async () => {

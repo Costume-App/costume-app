@@ -12,8 +12,13 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id, castId } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { name?: string };
-    const cast = await updateCast(id, castId, typeof body.name === "string" ? body.name : "");
+    const body = (await request.json()) as { name?: string; color?: string };
+    const cast = await updateCast(
+      id,
+      castId,
+      typeof body.name === "string" ? body.name : "",
+      typeof body.color === "string" ? body.color : undefined,
+    );
     return NextResponse.json({ cast });
   } catch (err) {
     return errorResponse(err);

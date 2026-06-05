@@ -1,68 +1,64 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 
-export interface Cast {
+export interface CostumeDesign {
   id: string;
   production_id: string;
+  role_id: string;
   name: string;
-  color: string;
-  is_default: boolean;
   display_order: number;
   created_at: string;
 }
 
-export async function listCasts(productionId: string): Promise<Cast[]> {
+export async function listCostumeDesigns(productionId: string): Promise<CostumeDesign[]> {
   const { data, error } = await supabaseAdmin
-    .from("casts")
+    .from("costume_designs")
     .select("*")
     .eq("production_id", productionId)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  return (data ?? []) as Cast[];
+  return (data ?? []) as CostumeDesign[];
 }
 
-export async function createCast(input: {
+export async function createCostumeDesign(input: {
   productionId: string;
+  roleId: string;
   name: string;
-  color?: string;
-}): Promise<Cast> {
+}): Promise<CostumeDesign> {
   const name = input.name.trim();
-  if (!name) throw new ValidationError("Cast name is required");
+  if (!name) throw new ValidationError("Piece name is required");
   const { data, error } = await supabaseAdmin
-    .from("casts")
-    .insert({ production_id: input.productionId, name, color: input.color ?? "slate" })
+    .from("costume_designs")
+    .insert({ production_id: input.productionId, role_id: input.roleId, name })
     .select()
     .single();
   if (error) throw new Error(error.message);
-  return data as Cast;
+  return data as CostumeDesign;
 }
 
-export async function updateCast(
+export async function updateCostumeDesign(
   productionId: string,
   id: string,
   name: string,
-  color?: string,
-): Promise<Cast> {
+): Promise<CostumeDesign> {
   const trimmed = name.trim();
-  if (!trimmed) throw new ValidationError("Cast name is required");
-  const patch: { name: string; color?: string } = { name: trimmed };
-  if (color !== undefined) patch.color = color;
+  if (!trimmed) throw new ValidationError("Piece name is required");
   const { data, error } = await supabaseAdmin
-    .from("casts")
-    .update(patch)
+    .from("costume_designs")
+    .update({ name: trimmed })
     .eq("id", id)
     .eq("production_id", productionId)
     .select()
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new NotFoundError("Cast not found");
-  return data as Cast;
+  if (!data) throw new NotFoundError("Costume piece not found");
+  return data as CostumeDesign;
 }
 
-export async function deleteCast(productionId: string, id: string): Promise<void> {
+export async function deleteCostumeDesign(productionId: string, id: string): Promise<void> {
   const { error } = await supabaseAdmin
-    .from("casts")
+    .from("costume_designs")
     .delete()
     .eq("id", id)
     .eq("production_id", productionId);

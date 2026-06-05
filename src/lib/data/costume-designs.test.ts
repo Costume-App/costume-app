@@ -1,0 +1,60 @@
+import { expect, test, vi, beforeEach } from "vitest";
+import { ValidationError } from "@/lib/errors";
+
+const order2 = vi.fn();
+const order1 = vi.fn(() => ({ order: order2 }));
+const listEq = vi.fn(() => ({ order: order1 }));
+const insertSingle = vi.fn();
+const insertSelect = vi.fn(() => ({ single: insertSingle }));
+const insert = vi.fn(() => ({ select: insertSelect }));
+const deleteEqProd = vi.fn();
+const deleteEqId = vi.fn(() => ({ eq: deleteEqProd }));
+const del = vi.fn(() => ({ eq: deleteEqId }));
+const updateMaybeSingle = vi.fn();
+const updateSelect = vi.fn(() => ({ maybeSingle: updateMaybeSingle }));
+const updateEqProd = vi.fn(() => ({ select: updateSelect }));
+const updateEqId = vi.fn(() => ({ eq: updateEqProd }));
+const update = vi.fn(() => ({ eq: updateEqId }));
+const select = vi.fn(() => ({ eq: listEq }));
+const from = vi.fn(() => ({ select, insert, delete: del, update }));
+vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: () => from() } }));
+
+import { listCostumeDesigns, createCostumeDesign, deleteCostumeDesign } from "@/lib/data/costume-designs";
+
+beforeEach(() => {
+  [order2, order1, listEq, insertSingle, insertSelect, insert, deleteEqProd, deleteEqId, del,
+    updateMaybeSingle, updateSelect, updateEqProd, updateEqId, update, select, from].forEach((m) => m.mockReset());
+  order1.mockReturnValue({ order: order2 });
+  listEq.mockReturnValue({ order: order1 });
+  insertSelect.mockReturnValue({ single: insertSingle });
+  insert.mockReturnValue({ select: insertSelect });
+  deleteEqId.mockReturnValue({ eq: deleteEqProd });
+  del.mockReturnValue({ eq: deleteEqId });
+  updateSelect.mockReturnValue({ maybeSingle: updateMaybeSingle });
+  updateEqProd.mockReturnValue({ select: updateSelect });
+  updateEqId.mockReturnValue({ eq: updateEqProd });
+  update.mockReturnValue({ eq: updateEqId });
+  select.mockReturnValue({ eq: listEq });
+  from.mockReturnValue({ select, insert, delete: del, update });
+});
+
+test("listCostumeDesigns returns rows for a production", async () => {
+  order2.mockResolvedValue({ data: [{ id: "d1" }], error: null });
+  expect(await listCostumeDesigns("p1")).toEqual([{ id: "d1" }]);
+});
+
+test("createCostumeDesign trims and requires a name", async () => {
+  await expect(createCostumeDesign({ productionId: "p1", roleId: "r1", name: "  " }))
+    .rejects.toBeInstanceOf(ValidationError);
+  insertSingle.mockResolvedValue({ data: { id: "d1", name: "Jacket" }, error: null });
+  const row = await createCostumeDesign({ productionId: "p1", roleId: "r1", name: "  Jacket  " });
+  expect(row).toEqual({ id: "d1", name: "Jacket" });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", role_id: "r1", name: "Jacket" });
+});
+
+test("deleteCostumeDesign is scoped to the production", async () => {
+  deleteEqProd.mockResolvedValue({ error: null });
+  await deleteCostumeDesign("p1", "d1");
+  expect(deleteEqId).toHaveBeenCalledWith("id", "d1");
+  expect(deleteEqProd).toHaveBeenCalledWith("production_id", "p1");
+});
