@@ -92,6 +92,8 @@ export function MakePieceRow({
     save(next);
   }
 
+  const fabricLabel = [item.fabric.color, item.fabric.type].filter(Boolean).join(" ");
+
   return (
     <li className="rounded-lg border border-[var(--field-line)]">
       <div className="flex items-center gap-2 px-3 py-2">
@@ -112,7 +114,7 @@ export function MakePieceRow({
             {item.castName}
             {item.assignment === "understudy" ? " · u/s" : ""}
           </span>
-          {item.fabric.type && <span className="ml-auto text-xs muted">{item.fabric.type}</span>}
+          {fabricLabel && <span className="ml-auto text-xs muted">{fabricLabel}</span>}
           <span className="text-[var(--muted)]">{open ? "▾" : "▸"}</span>
         </button>
         {busy && <span className="text-xs muted">Saving…</span>}
