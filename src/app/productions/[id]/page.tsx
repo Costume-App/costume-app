@@ -17,7 +17,6 @@ import { listShowDates } from "@/lib/data/show-dates";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
 import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 import { classifyProduction } from "@/lib/production-status";
-import { ToggleProductionActiveButton } from "@/components/ToggleProductionActiveButton";
 
 export default async function ProductionDetailPage({
   params,
@@ -72,6 +71,7 @@ export default async function ProductionDetailPage({
           productionId={id}
           title={production.title}
           showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date }))}
+          isActive={production.is_active}
         />
         <div className="flex flex-col items-end gap-1">
           {statusLabel && (
@@ -100,8 +100,7 @@ export default async function ProductionDetailPage({
         initialDesigns={designs}
         initialPieces={pieces}
       />
-      <div className="mt-8 space-y-4 border-t border-[var(--field-line)] pt-4">
-        <ToggleProductionActiveButton productionId={id} isActive={production.is_active} />
+      <div className="mt-8 border-t border-[var(--field-line)] pt-4">
         <DeleteProductionButton productionId={id} />
       </div>
     </main>

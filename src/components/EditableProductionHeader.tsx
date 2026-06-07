@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatShowDate } from "@/lib/countdown";
+import { ToggleProductionActiveButton } from "@/components/ToggleProductionActiveButton";
 
 interface ShowDateItem {
   id: string;
@@ -13,10 +14,12 @@ export function EditableProductionHeader({
   productionId,
   title,
   showDates,
+  isActive,
 }: {
   productionId: string;
   title: string;
   showDates: ShowDateItem[];
+  isActive: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -120,6 +123,10 @@ export function EditableProductionHeader({
             Add date
           </button>
         </div>
+      </div>
+      <div className="border-t border-[var(--field-line)] pt-3">
+        <span className="lbl mb-1 block">Status</span>
+        <ToggleProductionActiveButton productionId={productionId} isActive={isActive} />
       </div>
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
       <button
