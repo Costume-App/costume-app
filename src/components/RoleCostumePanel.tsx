@@ -110,7 +110,11 @@ export function RoleCostumePanel({
       {ordered.length === 0 ? (
         <p className="text-sm muted">No one cast in this role yet.</p>
       ) : (
-        ordered.map((casting) => (
+        ordered.map((casting) => {
+          const makeCount = roleDesigns.filter(
+            (d) => (sources[pieceKey(casting.id, d.id)]?.source ?? DEFAULT_SOURCE) === "make",
+          ).length;
+          return (
           <div key={casting.id} className="surface !shadow-none p-3">
             <button
               type="button"
@@ -124,6 +128,11 @@ export function RoleCostumePanel({
                   <span className="muted text-sm font-normal"> · Understudy</span>
                 )}
               </span>
+              {collapsed[casting.id] && (
+                <span className="ml-auto text-sm font-normal muted">
+                  (Make {makeCount} {makeCount === 1 ? "item" : "items"})
+                </span>
+              )}
             </button>
             {!collapsed[casting.id] &&
               (roleDesigns.length === 0 ? (
@@ -195,7 +204,8 @@ export function RoleCostumePanel({
               })
               ))}
           </div>
-        ))
+          );
+        })
       )}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
     </div>
