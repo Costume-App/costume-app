@@ -82,6 +82,19 @@ export async function getMeasurements(performerId: string): Promise<PerformerMea
   return (data ?? []) as PerformerMeasurement[];
 }
 
+// All measurement rows for the given performers (one query).
+export async function getMeasurementsForPerformers(
+  performerIds: string[],
+): Promise<PerformerMeasurement[]> {
+  if (performerIds.length === 0) return [];
+  const { data, error } = await supabaseAdmin
+    .from("performer_measurements")
+    .select("*")
+    .in("performer_id", performerIds);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PerformerMeasurement[];
+}
+
 // How many measurement fields each performer has filled in, keyed by performer id.
 // Each (performer_id, measurement_key) row is unique, so a row count == filled-field count.
 export async function getFilledMeasurementCounts(

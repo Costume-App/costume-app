@@ -48,7 +48,16 @@ test("on_hand upserts a row", async () => {
   const row = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "on_hand", sourceNote: "closet" });
   expect(row).toEqual({ id: "p1", source: "on_hand" });
   expect(upsert).toHaveBeenCalledWith(
-    { costume_design_id: "d1", casting_id: "c1", source: "on_hand", shared_with_piece_id: null, source_note: "closet", updated_at: expect.any(String) },
+    expect.objectContaining({
+      costume_design_id: "d1",
+      casting_id: "c1",
+      source: "on_hand",
+      shared_with_piece_id: null,
+      source_note: "closet",
+      made: false,
+      made_at: null,
+      updated_at: expect.any(String),
+    }),
     { onConflict: "costume_design_id,casting_id" },
   );
 });

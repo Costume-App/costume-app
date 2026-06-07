@@ -80,11 +80,29 @@ export function RoleCostumePanel({
   async function setSource(designId: string, castingId: string, source: string, sharedWithCastingId: string | null) {
     setBusy(true);
     setError(null);
+    // Preserve any fabric details + made flag already recorded for this piece
+    // (e.g. from the Tailor's summary page) — changing only the source must not
+    // wipe them. The empty-make-row delete still applies when nothing else is set.
+    const existing = pieces.find(
+      (p) => p.costume_design_id === designId && p.casting_id === castingId,
+    );
     const res = await fetch(`/api/productions/${productionId}/pieces`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ designId, castingId, source, sharedWithCastingId }),
+      body: JSON.stringify({
+        designId,
+        castingId,
+        source,
+        sharedWithCastingId,
+        fabricType: existing?.fabric_type ?? null,
+        fabricColor: existing?.fabric_color ?? null,
+        fabricWidth: existing?.fabric_width ?? null,
+        fabricSupplier: existing?.fabric_supplier ?? null,
+        fabricYardage: existing?.fabric_yardage ?? null,
+        fabricUnitCost: existing?.fabric_unit_cost ?? null,
+        made: existing?.made ?? false,
+      }),
     });
     if (res.ok) {
       const { piece } = (await res.json()) as { piece: CostumePiece | null };

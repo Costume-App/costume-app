@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ValidationError } from "@/lib/errors";
 import type { CostumeSource } from "@/lib/costume-sources";
+import { pieceRowIsEmpty } from "@/lib/costume-merge";
 
 export interface CostumePiece {
   id: string;
@@ -9,6 +10,14 @@ export interface CostumePiece {
   source: CostumeSource;
   shared_with_piece_id: string | null;
   source_note: string | null;
+  fabric_type: string | null;
+  fabric_color: string | null;
+  fabric_width: string | null;
+  fabric_supplier: string | null;
+  fabric_yardage: number | null;
+  fabric_unit_cost: number | null;
+  made: boolean;
+  made_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -48,8 +57,8 @@ async function ensureShareTarget(designId: string, targetCastingId: string): Pro
   return (created as { id: string }).id;
 }
 
-// Upsert a performer's source for a design. `make` with no note clears the row
-// (lazy default). For `shared`, references the borrowed *performer* (casting).
+// Upsert a performer's piece (source + fabric + made). A fully-empty make row is
+// deleted (lazy default). For `shared`, references the borrowed *performer* (casting).
 // Returns the row, or null when cleared.
 export async function upsertPieceSource(input: {
   designId: string;
@@ -57,10 +66,40 @@ export async function upsertPieceSource(input: {
   source: CostumeSource;
   sharedWithCastingId?: string | null;
   sourceNote?: string | null;
+  fabricType?: string | null;
+  fabricColor?: string | null;
+  fabricWidth?: string | null;
+  fabricSupplier?: string | null;
+  fabricYardage?: number | null;
+  fabricUnitCost?: number | null;
+  made?: boolean;
 }): Promise<CostumePiece | null> {
-  const note = input.sourceNote?.trim() ? input.sourceNote.trim() : null;
+  const clean = (s?: string | null) => (s && s.trim() ? s.trim() : null);
+  const num = (n?: number | null) =>
+    typeof n === "number" && Number.isFinite(n) ? n : null;
 
-  if (input.source === "make" && !note) {
+  const note = clean(input.sourceNote);
+  const fabricType = clean(input.fabricType);
+  const fabricColor = clean(input.fabricColor);
+  const fabricWidth = clean(input.fabricWidth);
+  const fabricSupplier = clean(input.fabricSupplier);
+  const fabricYardage = num(input.fabricYardage);
+  const fabricUnitCost = num(input.fabricUnitCost);
+  const made = input.made ?? false;
+
+  if (
+    pieceRowIsEmpty({
+      source: input.source,
+      sourceNote: note,
+      fabricType,
+      fabricColor,
+      fabricWidth,
+      fabricSupplier,
+      fabricYardage,
+      fabricUnitCost,
+      made,
+    })
+  ) {
     const { error } = await supabaseAdmin
       .from("costume_pieces")
       .delete()
@@ -88,6 +127,14 @@ export async function upsertPieceSource(input: {
         source: input.source,
         shared_with_piece_id: sharedWith,
         source_note: note,
+        fabric_type: fabricType,
+        fabric_color: fabricColor,
+        fabric_width: fabricWidth,
+        fabric_supplier: fabricSupplier,
+        fabric_yardage: fabricYardage,
+        fabric_unit_cost: fabricUnitCost,
+        made,
+        made_at: made ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "costume_design_id,casting_id" },
