@@ -9,6 +9,7 @@ import {
   DEFAULT_CAST_COLOR,
 } from "@/lib/cast-colors";
 import { RoleCard } from "@/components/RoleCard";
+import { RoleIconLegend } from "@/components/RoleIconLegend";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
@@ -32,6 +33,7 @@ export function ProductionWorkspace({
   initialPerformers,
   initialCastings,
   measurementStatus,
+  imageRoleIds,
   initialDesigns,
   initialPieces,
 }: {
@@ -41,9 +43,11 @@ export function ProductionWorkspace({
   initialPerformers: Performer[];
   initialCastings: Casting[];
   measurementStatus: Record<string, MeasureStatus>;
+  imageRoleIds: string[];
   initialDesigns: CostumeDesign[];
   initialPieces: CostumePiece[];
 }) {
+  const imageRoleIdSet = new Set(imageRoleIds);
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
   const [selectedCastId, setSelectedCastId] = usePersistentState<string>(
     `nada:prod:${productionId}:cast`,
@@ -266,6 +270,9 @@ export function ProductionWorkspace({
         </p>
       ) : (
         <ul className="space-y-3">
+          <li>
+            <RoleIconLegend />
+          </li>
           {roles.map((r) => (
             <RoleCard
               key={r.id}
@@ -280,6 +287,7 @@ export function ProductionWorkspace({
               castings={castings}
               setCastings={setCastings}
               measurementStatus={measurementStatus}
+              hasImages={imageRoleIdSet.has(r.id)}
               casts={casts}
               designs={designs}
               setDesigns={setDesigns}

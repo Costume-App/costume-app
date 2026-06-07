@@ -14,6 +14,7 @@ import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate, formatShowTime, todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
+import { roleIdsWithImages } from "@/lib/data/role-images";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
 import { ShowingsList } from "@/components/ShowingsList";
 import { ProductionNotes } from "@/components/ProductionNotes";
@@ -44,6 +45,8 @@ export default async function ProductionDetailPage({
     listPerformers(id),
     listMeasurementDefinitions(),
   ]);
+
+  const imageRoleIds = await roleIdsWithImages(roles.map((r) => r.id));
 
   const status = classifyProduction(production.is_active, showDates.map((d) => d.show_date), todayIso());
   const statusLabel = status === "inactive" ? "Inactive" : null;
@@ -117,6 +120,7 @@ export default async function ProductionDetailPage({
           assignment: c.assignment,
         }))}
         measurementStatus={measurementStatus}
+        imageRoleIds={imageRoleIds}
         initialDesigns={designs}
         initialPieces={pieces}
       />

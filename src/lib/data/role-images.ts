@@ -17,6 +17,17 @@ export async function listRoleImages(roleId: string): Promise<RoleImage[]> {
   return (data ?? []) as RoleImage[];
 }
 
+// Distinct role ids (among the given roles) that have at least one image.
+export async function roleIdsWithImages(roleIds: string[]): Promise<string[]> {
+  if (roleIds.length === 0) return [];
+  const { data, error } = await supabaseAdmin
+    .from("role_images")
+    .select("role_id")
+    .in("role_id", roleIds);
+  if (error) throw new Error(error.message);
+  return [...new Set((data ?? []).map((r) => (r as { role_id: string }).role_id))];
+}
+
 export async function countRoleImages(roleId: string): Promise<number> {
   const { count, error } = await supabaseAdmin
     .from("role_images")
