@@ -124,24 +124,23 @@ export function EditableProductionHeader({
           </button>
         </div>
       </div>
-      <div className="border-t border-[var(--field-line)] pt-3">
-        <span className="lbl mb-1 block">Status</span>
-        <ToggleProductionActiveButton productionId={productionId} isActive={isActive} />
-      </div>
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
-      <button
-        type="button"
-        onClick={() => {
-          setEditing(false);
-          setName(title);
-          setNewDate("");
-          setError(null);
-        }}
-        disabled={busy}
-        className="link-muted text-sm"
-      >
-        Done
-      </button>
+      <div className="flex items-center justify-between gap-3 border-t border-[var(--field-line)] pt-3">
+        <ToggleProductionActiveButton productionId={productionId} isActive={isActive} />
+        <button
+          type="button"
+          onClick={() => {
+            setEditing(false);
+            setName(title);
+            setNewDate("");
+            setError(null);
+          }}
+          disabled={busy}
+          className="btn-primary"
+        >
+          Done
+        </button>
+      </div>
     </div>
   );
 }
