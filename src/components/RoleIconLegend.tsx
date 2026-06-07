@@ -26,12 +26,12 @@ export function RoleIconLegend() {
       </div>
       <ul className="space-y-1.5">
         <li className="flex items-center gap-2">
-          <NoteIcon />
-          <span>Role has notes</span>
-        </li>
-        <li className="flex items-center gap-2">
           <ImageIcon />
           <span>Role has photos</span>
+        </li>
+        <li className="flex items-center gap-2">
+          <NoteIcon />
+          <span>Role has notes</span>
         </li>
         <li className="flex items-center gap-2">
           <MeasurementDot status="none" />
