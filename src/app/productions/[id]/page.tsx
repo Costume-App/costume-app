@@ -104,7 +104,8 @@ export default async function ProductionDetailPage({
       )}
 
       <div className="mb-6">
-        <div className="mb-1 flex justify-end">
+        <ProductionNotes productionId={id} notes={production.notes} />
+        <div className="mt-1 flex justify-end">
           <Link
             href={`/productions/${id}/summary`}
             className="link-muted whitespace-nowrap text-sm"
@@ -112,7 +113,6 @@ export default async function ProductionDetailPage({
             Tailor&apos;s summary →
           </Link>
         </div>
-        <ProductionNotes productionId={id} notes={production.notes} />
       </div>
 
       <ProductionWorkspace
