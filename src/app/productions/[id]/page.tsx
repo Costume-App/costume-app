@@ -11,7 +11,7 @@ import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate, nextUpcomingDate, todayIso } from "@/lib/countdown";
+import { formatShowDate, latestDate, nextUpcomingDate, todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
@@ -46,7 +46,10 @@ export default async function ProductionDetailPage({
   const nextUpcoming = nextUpcomingDate(showDates.map((d) => d.show_date), todayIso());
 
   const status = classifyProduction(production.is_active, showDates.map((d) => d.show_date), todayIso());
-  const statusLabel = status === "inactive" ? "Inactive" : status === "past" ? "Past" : null;
+  const statusLabel = status === "inactive" ? "Inactive" : null;
+  // For past productions there is no upcoming date — fall back to the most recent
+  // (past) show date so the header shows the date rather than the word "Past".
+  const displayDate = nextUpcoming ?? latestDate(showDates.map((d) => d.show_date));
 
   // Per-performer measurement progress for the cast-list indicators.
   const filledCounts = await getFilledMeasurementCounts(performers.map((p) => p.id));
@@ -79,8 +82,8 @@ export default async function ProductionDetailPage({
               {statusLabel}
             </span>
           )}
-          {nextUpcoming && <span className="text-sm muted">{formatShowDate(nextUpcoming)}</span>}
-          <CountdownBadge showDate={nextUpcoming} />
+          {displayDate && <span className="text-sm muted">{formatShowDate(displayDate)}</span>}
+          <CountdownBadge showDate={displayDate} />
         </div>
       </div>
 
