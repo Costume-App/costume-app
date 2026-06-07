@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import { COSTUME_SOURCES, DEFAULT_SOURCE } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
@@ -34,6 +35,11 @@ export function RoleCostumePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingShared, setPendingShared] = useState<Record<string, string>>({});
+  // Per-cast-member collapse on the Costume tab, persisted per role. Absent = expanded.
+  const [collapsed, setCollapsed] = usePersistentState<Record<string, boolean>>(
+    `nada:prod:${productionId}:role:${role.id}:costcollapsed`,
+    {},
+  );
 
   const nameOf = (performerId: string) => performers.find((p) => p.id === performerId)?.name ?? "";
   const castNameOf = (castId: string) => casts.find((c) => c.id === castId)?.name ?? "";
@@ -106,15 +112,23 @@ export function RoleCostumePanel({
       ) : (
         ordered.map((casting) => (
           <div key={casting.id} className="surface !shadow-none p-3">
-            <div className="-mx-3 -mt-3 mb-2 rounded-t-[14px] border-b border-[var(--field-line)] bg-[var(--bg)] px-3 py-2 text-lg font-semibold">
-              {nameOf(casting.performerId)}
-              {casting.assignment === "understudy" && (
-                <span className="muted text-sm font-normal"> · Understudy</span>
-              )}
-            </div>
-            {roleDesigns.length === 0 ? (
-              <p className="text-sm muted">No pieces defined.</p>
-            ) : (
+            <button
+              type="button"
+              onClick={() => setCollapsed((m) => ({ ...m, [casting.id]: !m[casting.id] }))}
+              className="-mx-3 -mt-3 mb-2 flex w-full items-center gap-2 rounded-t-[14px] border-b border-[var(--field-line)] bg-[var(--bg)] px-3 py-2 text-left text-lg font-semibold"
+            >
+              <span className="text-sm text-[var(--muted)]">{collapsed[casting.id] ? "▸" : "▾"}</span>
+              <span>
+                {nameOf(casting.performerId)}
+                {casting.assignment === "understudy" && (
+                  <span className="muted text-sm font-normal"> · Understudy</span>
+                )}
+              </span>
+            </button>
+            {!collapsed[casting.id] &&
+              (roleDesigns.length === 0 ? (
+                <p className="text-sm muted">No pieces defined.</p>
+              ) : (
               roleDesigns.map((d) => {
                 const key = pieceKey(casting.id, d.id);
                 const resolved = sources[key];
@@ -179,7 +193,7 @@ export function RoleCostumePanel({
                   </div>
                 );
               })
-            )}
+              ))}
           </div>
         ))
       )}
