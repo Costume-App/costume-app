@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatShowDate } from "@/lib/countdown";
+import { formatShowDate, latestDate, todayIso } from "@/lib/countdown";
 import { ToggleProductionActiveButton } from "@/components/ToggleProductionActiveButton";
 
 interface ShowDateItem {
@@ -79,6 +79,9 @@ export function EditableProductionHeader({
     );
   }
 
+  const last = latestDate(showDates.map((d) => d.show_date));
+  const isPast = last !== null && last < todayIso();
+
   if (!editing) {
     return (
       <div>
@@ -126,7 +129,11 @@ export function EditableProductionHeader({
       </div>
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
       <div className="flex items-center justify-between gap-3 border-t border-[var(--field-line)] pt-3">
-        <ToggleProductionActiveButton productionId={productionId} isActive={isActive} />
+        {isActive && isPast ? (
+          <span className="text-sm muted">Add a future show date above to make this active again.</span>
+        ) : (
+          <ToggleProductionActiveButton productionId={productionId} isActive={isActive} />
+        )}
         <button
           type="button"
           onClick={() => {
@@ -136,7 +143,7 @@ export function EditableProductionHeader({
             setError(null);
           }}
           disabled={busy}
-          className="btn-primary"
+          className="btn-primary shrink-0"
         >
           Done
         </button>
