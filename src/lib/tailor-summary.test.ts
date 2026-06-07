@@ -96,7 +96,7 @@ test("buildMakeWorklist: garment with zero make items is omitted", () => {
   expect(wl.roles.map((r) => r.roleName)).toEqual(["Wizard"]);
 });
 
-test("buildFabricPurchaseList: groups by type+color+width+supplier and sums", () => {
+test("buildFabricPurchaseList: identical fabric merges into one line, grouped by type+color", () => {
   const pieces = [
     row({ costume_design_id: "d1", casting_id: "c1", fabric_type: "wool", fabric_color: "navy", fabric_width: '60"', fabric_supplier: "Mood", fabric_yardage: 2, fabric_unit_cost: 10 }),
     row({ costume_design_id: "d1", casting_id: "c2", fabric_type: "wool", fabric_color: "navy", fabric_width: '60"', fabric_supplier: "Mood", fabric_yardage: 2.5, fabric_unit_cost: 10 }),
@@ -105,12 +105,30 @@ test("buildFabricPurchaseList: groups by type+color+width+supplier and sums", ()
   const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
   const items = wl.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
   const pl = buildFabricPurchaseList(items);
-  const wool = pl.lines.find((l) => l.type === "wool")!;
+  const wool = pl.groups.find((g) => g.type === "wool")!;
+  expect(wool.lines).toHaveLength(1); // same width+supplier → one detail line
+  expect(wool.lines[0].pieceCount).toBe(2);
   expect(wool.totalYardage).toBe(4.5);
   expect(wool.estCost).toBe(45);
-  expect(wool.pieceCount).toBe(2);
   expect(pl.totalYardage).toBe(5.5);
   expect(pl.totalCost).toBe(49);
+});
+
+test("buildFabricPurchaseList: same type+color but different width/supplier → one group, two lines, subtotaled", () => {
+  const pieces = [
+    row({ costume_design_id: "d1", casting_id: "c1", fabric_type: "wool", fabric_color: "navy", fabric_width: '60"', fabric_supplier: "Mood", fabric_yardage: 2, fabric_unit_cost: 10 }),
+    row({ costume_design_id: "d1", casting_id: "c2", fabric_type: "wool", fabric_color: "navy", fabric_width: '45"', fabric_supplier: "JoAnn", fabric_yardage: 3, fabric_unit_cost: 8 }),
+  ];
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
+  const items = wl.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
+  const pl = buildFabricPurchaseList(items);
+  expect(pl.groups).toHaveLength(1);
+  const wool = pl.groups[0];
+  expect(wool.type).toBe("wool");
+  expect(wool.color).toBe("navy");
+  expect(wool.lines).toHaveLength(2); // split by width/supplier
+  expect(wool.totalYardage).toBe(5); // 2 + 3 subtotaled
+  expect(wool.estCost).toBe(44); // 2*10 + 3*8
 });
 
 test("buildFabricPurchaseList: pieces without a fabric type go to unspecified", () => {
@@ -120,6 +138,6 @@ test("buildFabricPurchaseList: pieces without a fabric type go to unspecified", 
   const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
   const items = wl.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
   const pl = buildFabricPurchaseList(items);
-  expect(pl.lines).toHaveLength(0);
+  expect(pl.groups).toHaveLength(0);
   expect(pl.unspecified).toHaveLength(items.length);
 });

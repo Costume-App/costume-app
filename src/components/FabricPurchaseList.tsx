@@ -1,13 +1,18 @@
 "use client";
 
+import { Fragment } from "react";
 import type { PurchaseList } from "@/lib/tailor-summary";
 
 function formatYards(n: number): string {
   return n % 1 === 0 ? String(n) : n.toFixed(2);
 }
 
+function money(n: number): string {
+  return n > 0 ? `$${n.toFixed(2)}` : "—";
+}
+
 export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
-  if (purchase.lines.length === 0 && purchase.unspecified.length === 0) {
+  if (purchase.groups.length === 0 && purchase.unspecified.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
         No fabric to buy yet.
@@ -16,7 +21,7 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
   }
   return (
     <div className="space-y-4">
-      {purchase.lines.length > 0 && (
+      {purchase.groups.length > 0 && (
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left muted">
@@ -29,15 +34,30 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
             </tr>
           </thead>
           <tbody>
-            {purchase.lines.map((l, i) => (
-              <tr key={i} className="border-t border-[var(--field-line)]">
-                <td className="py-1.5">{l.type}</td>
-                <td className="py-1.5">{l.color ?? "—"}</td>
-                <td className="py-1.5">{l.width ?? "—"}</td>
-                <td className="py-1.5 pr-4 text-right">{formatYards(l.totalYardage)}</td>
-                <td className="py-1.5 pr-6 text-right">{l.estCost > 0 ? `$${l.estCost.toFixed(2)}` : "—"}</td>
-                <td className="py-1.5">{l.supplier ?? "—"}</td>
-              </tr>
+            {purchase.groups.map((g, gi) => (
+              <Fragment key={gi}>
+                {g.lines.map((l, i) => (
+                  <tr key={i} className="border-t border-[var(--field-line)]">
+                    <td className="py-1.5">{l.type}</td>
+                    <td className="py-1.5">{l.color ?? "—"}</td>
+                    <td className="py-1.5">{l.width ?? "—"}</td>
+                    <td className="py-1.5 pr-4 text-right">{formatYards(l.totalYardage)}</td>
+                    <td className="py-1.5 pr-6 text-right">{money(l.estCost)}</td>
+                    <td className="py-1.5">{l.supplier ?? "—"}</td>
+                  </tr>
+                ))}
+                {g.lines.length > 1 && (
+                  <tr className="font-medium">
+                    <td className="py-1 text-[var(--muted)]" colSpan={3}>
+                      Subtotal · {g.type}
+                      {g.color ? ` ${g.color}` : ""}
+                    </td>
+                    <td className="py-1 pr-4 text-right">{formatYards(g.totalYardage)}</td>
+                    <td className="py-1 pr-6 text-right">{money(g.estCost)}</td>
+                    <td />
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
           <tfoot>
@@ -46,9 +66,7 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
                 Total
               </td>
               <td className="py-1.5 pr-4 text-right">{formatYards(purchase.totalYardage)}</td>
-              <td className="py-1.5 pr-6 text-right">
-                {purchase.totalCost > 0 ? `$${purchase.totalCost.toFixed(2)}` : "—"}
-              </td>
+              <td className="py-1.5 pr-6 text-right">{money(purchase.totalCost)}</td>
               <td />
             </tr>
           </tfoot>

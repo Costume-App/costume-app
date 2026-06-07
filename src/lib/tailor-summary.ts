@@ -62,8 +62,17 @@ export interface FabricLine {
   pieceCount: number;
 }
 
-export interface PurchaseList {
+// A type+color group: its detail lines (split by width/supplier) plus a subtotal.
+export interface FabricGroup {
+  type: string;
+  color: string | null;
   lines: FabricLine[];
+  totalYardage: number;
+  estCost: number;
+}
+
+export interface PurchaseList {
+  groups: FabricGroup[];
   unspecified: MakeItem[];
   totalYardage: number;
   totalCost: number;
@@ -194,10 +203,11 @@ function norm(s: string | null): string {
   return (s ?? "").trim();
 }
 
-// Aggregate make-items into a fabric shopping list, grouped by
-// type+color+width+supplier. Items without a fabric type are "unspecified".
+// Aggregate make-items into a fabric shopping list. Detail lines are grouped by
+// type+color+width+supplier; those lines are then grouped (and subtotaled) by
+// type+color. Items without a fabric type are "unspecified".
 export function buildFabricPurchaseList(items: MakeItem[]): PurchaseList {
-  const groups = new Map<string, FabricLine>();
+  const lines = new Map<string, FabricLine>();
   const unspecified: MakeItem[] = [];
   let totalYardage = 0;
   let totalCost = 0;
@@ -215,13 +225,13 @@ export function buildFabricPurchaseList(items: MakeItem[]): PurchaseList {
     const yardage = item.fabric.yardage ?? 0;
     const cost = yardage * (item.fabric.unitCost ?? 0);
 
-    const existing = groups.get(key);
+    const existing = lines.get(key);
     if (existing) {
       existing.totalYardage += yardage;
       existing.estCost += cost;
       existing.pieceCount += 1;
     } else {
-      groups.set(key, {
+      lines.set(key, {
         type,
         color: color || null,
         width: width || null,
@@ -235,5 +245,25 @@ export function buildFabricPurchaseList(items: MakeItem[]): PurchaseList {
     totalCost += cost;
   }
 
-  return { lines: [...groups.values()], unspecified, totalYardage, totalCost };
+  // Group the detail lines (and subtotal) by type+color.
+  const groups = new Map<string, FabricGroup>();
+  for (const line of lines.values()) {
+    const gkey = [line.type, line.color ?? ""].join("|");
+    const group = groups.get(gkey);
+    if (group) {
+      group.lines.push(line);
+      group.totalYardage += line.totalYardage;
+      group.estCost += line.estCost;
+    } else {
+      groups.set(gkey, {
+        type: line.type,
+        color: line.color,
+        lines: [line],
+        totalYardage: line.totalYardage,
+        estCost: line.estCost,
+      });
+    }
+  }
+
+  return { groups: [...groups.values()], unspecified, totalYardage, totalCost };
 }
