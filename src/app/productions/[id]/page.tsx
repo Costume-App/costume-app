@@ -16,6 +16,8 @@ import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
 import { DeleteProductionButton } from "@/components/DeleteProductionButton";
+import { classifyProduction } from "@/lib/production-status";
+import { ToggleProductionActiveButton } from "@/components/ToggleProductionActiveButton";
 
 export default async function ProductionDetailPage({
   params,
@@ -44,6 +46,9 @@ export default async function ProductionDetailPage({
 
   const nextUpcoming = nextUpcomingDate(showDates.map((d) => d.show_date), todayIso());
 
+  const status = classifyProduction(production.is_active, showDates.map((d) => d.show_date), todayIso());
+  const statusLabel = status === "inactive" ? "Inactive" : status === "past" ? "Past" : null;
+
   // Per-performer measurement progress for the cast-list indicators.
   const filledCounts = await getFilledMeasurementCounts(performers.map((p) => p.id));
   const totalFields = definitions.length;
@@ -59,12 +64,9 @@ export default async function ProductionDetailPage({
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <div className="flex items-center justify-between">
-        <Link href="/productions" className="link-muted text-sm">
-          ← Productions
-        </Link>
-        <DeleteProductionButton productionId={id} />
-      </div>
+      <Link href="/productions" className="link-muted text-sm">
+        ← Productions
+      </Link>
       <div className="mt-2 mb-6 flex items-start justify-between gap-3">
         <EditableProductionHeader
           productionId={id}
@@ -72,6 +74,7 @@ export default async function ProductionDetailPage({
           showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date }))}
         />
         <div className="flex flex-col items-end gap-1">
+          {statusLabel && <span className="chip">{statusLabel}</span>}
           {nextUpcoming && <span className="text-sm muted">{formatShowDate(nextUpcoming)}</span>}
           <CountdownBadge showDate={nextUpcoming} />
         </div>
@@ -93,6 +96,10 @@ export default async function ProductionDetailPage({
         initialDesigns={designs}
         initialPieces={pieces}
       />
+      <div className="mt-8 space-y-4 border-t border-[var(--field-line)] pt-4">
+        <ToggleProductionActiveButton productionId={id} isActive={production.is_active} />
+        <DeleteProductionButton productionId={id} />
+      </div>
     </main>
   );
 }
