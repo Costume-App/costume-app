@@ -45,14 +45,12 @@ test("createProduction inserts the row and returns it", async () => {
     orgId: "org_1",
     createdBy: "user_1",
     title: "Newsies",
-    showDate: "2026-11-01",
     notes: null,
   });
   expect(insert).toHaveBeenCalledWith({
     org_id: "org_1",
     created_by: "user_1",
     title: "Newsies",
-    show_date: "2026-11-01",
     notes: null,
   });
   expect(row).toEqual({ id: "p2", title: "Newsies" });
@@ -60,13 +58,13 @@ test("createProduction inserts the row and returns it", async () => {
 
 test("createProduction rejects an empty title with a ValidationError", async () => {
   await expect(
-    createProduction({ orgId: "org_1", createdBy: "user_1", title: "  ", showDate: null, notes: null }),
+    createProduction({ orgId: "org_1", createdBy: "user_1", title: "  ", notes: null }),
   ).rejects.toBeInstanceOf(ValidationError);
 });
 
 test("createProduction throws on supabase error", async () => {
   single.mockResolvedValue({ data: null, error: { message: "insert failed" } });
   await expect(
-    createProduction({ orgId: "org_1", createdBy: "user_1", title: "Cats", showDate: null, notes: null }),
+    createProduction({ orgId: "org_1", createdBy: "user_1", title: "Cats", notes: null }),
   ).rejects.toThrow("insert failed");
 });
