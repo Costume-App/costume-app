@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import { aggregateMeasureStatus } from "@/lib/measurement-aggregate";
+import { MeasurementDot } from "@/components/MeasurementDot";
 import { Tabs } from "@/components/Tabs";
 import { RoleNotesPanel } from "@/components/RoleNotesPanel";
 import { RoleCastPanel } from "@/components/RoleCastPanel";
@@ -63,6 +65,15 @@ export function RoleCard({
     (c) => c.castId === selectedCastId && c.roleId === role.id && c.assignment === "primary",
   );
   const summary = primary ? performers.find((p) => p.id === primary.performerId)?.name ?? "—" : "—";
+
+  // Collapsed-row indicators.
+  const measureAgg = aggregateMeasureStatus(
+    castings
+      .filter((c) => c.castId === selectedCastId && c.roleId === role.id)
+      .map((c) => measurementStatus[c.performerId] ?? "none"),
+  );
+  const hasNotes = !!role.notes && role.notes.trim().length > 0;
+  const hasPieces = designs.some((d) => d.role_id === role.id);
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -168,7 +179,14 @@ export function RoleCard({
             >
               <span className="text-[var(--muted)]">{open ? "▾" : "▸"}</span>
               <span className="font-display text-lg font-semibold">{role.name}</span>
-              {!open && <span className="ml-auto text-xs muted">{summary}</span>}
+              {!open && (
+                <span className="ml-auto flex items-center gap-1.5 text-xs muted">
+                  {hasNotes && <NoteIcon />}
+                  <MeasurementDot status={measureAgg} />
+                  {hasPieces && <HangerIcon />}
+                  <span className="ml-0.5">{summary}</span>
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -258,6 +276,50 @@ function PencilIcon() {
     >
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function NoteIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label="Has notes"
+    >
+      <title>Has notes</title>
+      <path d="M5 3h10l4 4v14H5z" />
+      <path d="M9 9h6" />
+      <path d="M9 13h6" />
+      <path d="M9 17h4" />
+    </svg>
+  );
+}
+
+function HangerIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label="Has costume pieces"
+    >
+      <title>Has costume pieces</title>
+      <path d="M12 8a2 2 0 1 1 2 2c-1.1 0-2 .9-2 2" />
+      <path d="M12 12 4 17.5h16L12 12Z" />
     </svg>
   );
 }
