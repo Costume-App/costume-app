@@ -58,7 +58,7 @@ export function RoleCard({
       <Tabs
         tabs={[
           { id: "ideas", label: "Ideas & Notes" },
-          { id: "cast", label: "Cast & Measurements" },
+          { id: "cast", label: "Cast & Measure" },
           { id: "costume", label: "Costume" },
         ]}
         active={activeTab}
