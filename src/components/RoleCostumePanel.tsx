@@ -106,7 +106,7 @@ export function RoleCostumePanel({
       ) : (
         ordered.map((casting) => (
           <div key={casting.id} className="surface !shadow-none p-3">
-            <div className="mb-1 text-lg font-semibold">
+            <div className="-mx-3 -mt-3 mb-2 rounded-t-[14px] border-b border-[var(--field-line)] bg-[var(--bg)] px-3 py-2 text-lg font-semibold">
               {nameOf(casting.performerId)}
               {casting.assignment === "understudy" && (
                 <span className="muted text-sm font-normal"> · Understudy</span>
