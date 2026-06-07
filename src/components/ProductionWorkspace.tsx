@@ -33,6 +33,7 @@ export function ProductionWorkspace({
   initialPerformers,
   initialCastings,
   measurementStatus,
+  imageRoleIds,
   initialDesigns,
   initialPieces,
 }: {
@@ -42,9 +43,11 @@ export function ProductionWorkspace({
   initialPerformers: Performer[];
   initialCastings: Casting[];
   measurementStatus: Record<string, MeasureStatus>;
+  imageRoleIds: string[];
   initialDesigns: CostumeDesign[];
   initialPieces: CostumePiece[];
 }) {
+  const imageRoleIdSet = new Set(imageRoleIds);
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
   const [selectedCastId, setSelectedCastId] = usePersistentState<string>(
     `nada:prod:${productionId}:cast`,
@@ -284,6 +287,7 @@ export function ProductionWorkspace({
               castings={castings}
               setCastings={setCastings}
               measurementStatus={measurementStatus}
+              hasImages={imageRoleIdSet.has(r.id)}
               casts={casts}
               designs={designs}
               setDesigns={setDesigns}

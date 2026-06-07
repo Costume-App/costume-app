@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MeasurementDot } from "@/components/MeasurementDot";
-import { NoteIcon, ShirtIcon } from "@/components/role-icons";
+import { NoteIcon, ImageIcon, ShirtIcon } from "@/components/role-icons";
 
 // Collapsible key explaining the indicator icons on each collapsed role card row.
 export function RoleIconLegend() {
@@ -28,6 +28,10 @@ export function RoleIconLegend() {
         <li className="flex items-center gap-2">
           <NoteIcon />
           <span>Role has notes</span>
+        </li>
+        <li className="flex items-center gap-2">
+          <ImageIcon />
+          <span>Role has photos</span>
         </li>
         <li className="flex items-center gap-2">
           <MeasurementDot status="none" />

@@ -24,6 +24,28 @@ export function NoteIcon() {
   );
 }
 
+export function ImageIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label="Has photos"
+    >
+      <title>Has photos</title>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="M21 16l-5-5L5 20" />
+    </svg>
+  );
+}
+
 export function ShirtIcon({ done }: { done: boolean }) {
   // A short-sleeved shirt with a square collar notch.
   // Filled = nothing left to make; outline = pieces still to make.

@@ -7,7 +7,7 @@ import { aggregateMeasureStatus } from "@/lib/measurement-aggregate";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
 import { DEFAULT_SOURCE } from "@/lib/costume-sources";
 import { MeasurementDot } from "@/components/MeasurementDot";
-import { NoteIcon, ShirtIcon } from "@/components/role-icons";
+import { NoteIcon, ImageIcon, ShirtIcon } from "@/components/role-icons";
 import { Tabs } from "@/components/Tabs";
 import { RoleNotesPanel } from "@/components/RoleNotesPanel";
 import { RoleCastPanel } from "@/components/RoleCastPanel";
@@ -30,6 +30,7 @@ export function RoleCard({
   castings,
   setCastings,
   measurementStatus,
+  hasImages,
   casts,
   designs,
   setDesigns,
@@ -42,6 +43,7 @@ export function RoleCard({
   tint: string;
   edge: string;
   setRoles: Dispatch<SetStateAction<Role[]>>;
+  hasImages: boolean;
   performers: Performer[];
   setPerformers: Dispatch<SetStateAction<Performer[]>>;
   castings: Casting[];
@@ -192,6 +194,7 @@ export function RoleCard({
               {!open && (
                 <span className="ml-auto flex items-center gap-1.5 text-xs muted">
                   {hasNotes && <NoteIcon />}
+                  {hasImages && <ImageIcon />}
                   <MeasurementDot status={measureAgg} />
                   {hasPieces && <ShirtIcon done={!needsMake} />}
                   <span className="ml-0.5">{summary}</span>
