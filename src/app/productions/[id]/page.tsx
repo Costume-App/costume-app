@@ -13,6 +13,7 @@ import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
+import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 
 export default async function ProductionDetailPage({
   params,
@@ -53,9 +54,12 @@ export default async function ProductionDetailPage({
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <Link href="/productions" className="link-muted text-sm">
-        ← Productions
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/productions" className="link-muted text-sm">
+          ← Productions
+        </Link>
+        <DeleteProductionButton productionId={id} />
+      </div>
       <div className="mt-2 mb-6 flex items-end justify-between gap-3">
         <h1 className="font-display text-3xl font-semibold leading-none">{production.title}</h1>
         <div className="flex flex-col items-end gap-1">

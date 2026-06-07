@@ -63,3 +63,12 @@ export async function createProduction(input: CreateProductionInput): Promise<Pr
   if (error) throw new Error(error.message);
   return data as Production;
 }
+
+export async function deleteProduction(orgId: string, productionId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("productions")
+    .delete()
+    .eq("id", productionId)
+    .eq("org_id", orgId);
+  if (error) throw new Error(error.message);
+}
