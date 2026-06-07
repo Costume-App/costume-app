@@ -94,8 +94,7 @@ export default async function ProductionDetailPage({
       </div>
 
       {showDates.length > 0 && (
-        <div className="mb-6 space-y-1">
-          <span className="lbl block">Showings</span>
+        <div className="mb-6">
           <ShowingsList showings={showDates} />
         </div>
       )}

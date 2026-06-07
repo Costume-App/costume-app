@@ -11,13 +11,18 @@ interface Showing {
 export function ShowingsList({ showings }: { showings: Showing[] }) {
   if (showings.length === 0) return null;
   return (
-    <ul className="space-y-0.5">
-      {showings.map((s) => (
-        <li key={s.id} className="text-sm muted">
-          {formatShowDate(s.show_date)}
-          {s.show_time ? ` · ${formatShowTime(s.show_time)}` : ""}
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-1">
+      <span className="lbl block">
+        {showings.length} {showings.length === 1 ? "Showing" : "Showings"}
+      </span>
+      <ul className="space-y-0.5">
+        {showings.map((s) => (
+          <li key={s.id} className="text-sm muted">
+            {formatShowDate(s.show_date)}
+            {s.show_time ? ` · ${formatShowTime(s.show_time)}` : ""}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
