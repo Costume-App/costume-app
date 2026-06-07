@@ -69,7 +69,7 @@ export function PastAndInactiveProductions({ productions }: { productions: Row[]
                   type="button"
                   onClick={() => makeActive(p.id)}
                   disabled={busyId === p.id}
-                  className="link-red text-sm"
+                  className="link-muted text-sm"
                 >
                   {busyId === p.id ? "…" : "Make active"}
                 </button>

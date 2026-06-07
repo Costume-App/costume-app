@@ -74,7 +74,11 @@ export default async function ProductionDetailPage({
           showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date }))}
         />
         <div className="flex flex-col items-end gap-1">
-          {statusLabel && <span className="chip">{statusLabel}</span>}
+          {statusLabel && (
+            <span className="inline-flex items-center rounded-full border border-[var(--field-line)] px-2.5 py-0.5 text-xs muted">
+              {statusLabel}
+            </span>
+          )}
           {nextUpcoming && <span className="text-sm muted">{formatShowDate(nextUpcoming)}</span>}
           <CountdownBadge showDate={nextUpcoming} />
         </div>
