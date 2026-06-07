@@ -40,13 +40,14 @@ export function DeleteProductionButton({ productionId }: { productionId: string 
     <div className="relative">
       <button
         type="button"
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => setOpen(true)}
+        disabled={open}
         className="link-muted text-sm"
       >
         Delete production
       </button>
       {open && (
-        <div className="surface absolute right-0 z-20 mt-2 w-80 space-y-3 p-4 text-left">
+        <div className="surface absolute right-0 z-20 mt-2 w-80 max-w-[calc(100vw-3rem)] space-y-3 p-4 text-left">
           <p id="delete-warning" className="text-sm">
             Deleting removes this production <strong>and all its cast, roles, castings, costume
             designs, and pieces</strong>. This can&apos;t be undone.
