@@ -13,15 +13,17 @@ vi.mock("@/lib/data/production-access", () => ({
 
 const deleteProduction = vi.fn();
 const updateProduction = vi.fn();
+const setProductionActive = vi.fn();
 vi.mock("@/lib/data/productions", () => ({
   deleteProduction: (...a: unknown[]) => deleteProduction(...a),
   updateProduction: (...a: unknown[]) => updateProduction(...a),
+  setProductionActive: (...a: unknown[]) => setProductionActive(...a),
 }));
 
 import { DELETE, PATCH } from "@/app/api/productions/[id]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction, setProductionActive].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
 });
@@ -73,4 +75,20 @@ test("PATCH 404 when the production is not in the caller's org", async () => {
   const res = await PATCH(patchReq({ title: "X" }), ctx("p1"));
   expect(res.status).toBe(404);
   expect(updateProduction).not.toHaveBeenCalled();
+});
+
+test("PATCH with isActive=false hides the production via setProductionActive (200)", async () => {
+  setProductionActive.mockResolvedValue({ id: "p1", title: "Annie", is_active: false });
+  const res = await PATCH(patchReq({ isActive: false }), ctx("p1"));
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ production: { id: "p1", title: "Annie", is_active: false } });
+  expect(setProductionActive).toHaveBeenCalledWith("org_1", "p1", false);
+  expect(updateProduction).not.toHaveBeenCalled();
+});
+
+test("PATCH with isActive=true reactivates the production (200)", async () => {
+  setProductionActive.mockResolvedValue({ id: "p1", title: "Annie", is_active: true });
+  const res = await PATCH(patchReq({ isActive: true }), ctx("p1"));
+  expect(res.status).toBe(200);
+  expect(setProductionActive).toHaveBeenCalledWith("org_1", "p1", true);
 });
