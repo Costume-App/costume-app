@@ -89,6 +89,19 @@ export async function setProductionActive(orgId: string, id: string, isActive: b
   return data as Production;
 }
 
+export async function setProductionNotes(orgId: string, id: string, notes: string): Promise<Production> {
+  const { data, error } = await supabaseAdmin
+    .from("productions")
+    .update({ notes: notes || null })
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Production not found");
+  return data as Production;
+}
+
 export async function deleteProduction(orgId: string, productionId: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from("productions")

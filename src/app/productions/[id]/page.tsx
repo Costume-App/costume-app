@@ -16,6 +16,7 @@ import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
 import { ShowingsList } from "@/components/ShowingsList";
+import { ProductionNotes } from "@/components/ProductionNotes";
 import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 import { classifyProduction } from "@/lib/production-status";
 
@@ -98,6 +99,10 @@ export default async function ProductionDetailPage({
           <ShowingsList showings={showDates} />
         </div>
       )}
+
+      <div className="mb-6">
+        <ProductionNotes productionId={id} notes={production.notes} />
+      </div>
 
       <ProductionWorkspace
         productionId={id}

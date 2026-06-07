@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { assertProductionInOrg } from "@/lib/data/production-access";
-import { deleteProduction, updateProduction, setProductionActive } from "@/lib/data/productions";
+import { deleteProduction, updateProduction, setProductionActive, setProductionNotes } from "@/lib/data/productions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -23,9 +23,13 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { title?: string; isActive?: boolean };
+    const body = (await request.json()) as { title?: string; isActive?: boolean; notes?: string };
     if (typeof body.isActive === "boolean") {
       const production = await setProductionActive(orgId, id, body.isActive);
+      return NextResponse.json({ production });
+    }
+    if (typeof body.notes === "string") {
+      const production = await setProductionNotes(orgId, id, body.notes);
       return NextResponse.json({ production });
     }
     const production = await updateProduction(orgId, id, typeof body.title === "string" ? body.title : "");
