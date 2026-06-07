@@ -8,15 +8,13 @@ import {
   castColorEdge,
   DEFAULT_CAST_COLOR,
 } from "@/lib/cast-colors";
-import { Tabs } from "@/components/Tabs";
-import { RosterTab } from "@/components/RosterTab";
-import { CostumesTab } from "@/components/CostumesTab";
+import { RoleCard } from "@/components/RoleCard";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 
 export type MeasureStatus = "none" | "partial" | "complete";
 export interface Cast { id: string; name: string; color: string }
-export interface Role { id: string; name: string }
+export interface Role { id: string; name: string; notes: string | null }
 export interface Performer { id: string; name: string }
 export interface Casting {
   id: string;
@@ -47,14 +45,14 @@ export function ProductionWorkspace({
 }) {
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
   const [selectedCastId, setSelectedCastId] = useState<string>(initialCasts[0]?.id ?? "");
-  const [tab, setTab] = useState<"roster" | "costumes">("roster");
   // Shared workspace data lives here so both tabs (and cast switches) stay live
-  // without a reload — RosterTab and CostumesTab mutate these via the setters below.
+  // without a reload — the role cards' panels mutate these via the setters below.
   const [roles, setRoles] = useState<Role[]>(initialRoles);
   const [performers, setPerformers] = useState<Performer[]>(initialPerformers);
   const [castings, setCastings] = useState<Casting[]>(initialCastings);
   const [designs, setDesigns] = useState<CostumeDesign[]>(initialDesigns);
   const [pieces, setPieces] = useState<CostumePiece[]>(initialPieces);
+  const [newRole, setNewRole] = useState("");
   const [newCast, setNewCast] = useState("");
   const [newCastColor, setNewCastColor] = useState(DEFAULT_CAST_COLOR);
   const [showAddCast, setShowAddCast] = useState(false);
@@ -63,6 +61,27 @@ export function ProductionWorkspace({
   const [renameColor, setRenameColor] = useState(DEFAULT_CAST_COLOR);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function addRole(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newRole.trim()) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/roles`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name: newRole }),
+    });
+    if (res.ok) {
+      const { role } = (await res.json()) as { role: { id: string; name: string; notes: string | null } };
+      setRoles((prev) => [...prev, { id: role.id, name: role.name, notes: role.notes }]);
+      setNewRole("");
+    } else {
+      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add role");
+    }
+    setBusy(false);
+  }
 
   async function addCast(e: React.FormEvent) {
     e.preventDefault();
@@ -237,45 +256,46 @@ export function ProductionWorkspace({
         )}
       </div>
 
-      <Tabs
-        tabs={[
-          { id: "roster", label: "Cast and Measurements" },
-          { id: "costumes", label: "Costumes" },
-        ]}
-        active={tab}
-        onChange={(id) => setTab(id as "roster" | "costumes")}
-      />
-
-      {tab === "roster" ? (
-        <RosterTab
-          productionId={productionId}
-          selectedCastId={selectedCastId}
-          roles={roles}
-          setRoles={setRoles}
-          performers={performers}
-          setPerformers={setPerformers}
-          castings={castings}
-          setCastings={setCastings}
-          measurementStatus={measurementStatus}
-          tint={tint}
-          edge={edge}
-        />
+      {roles.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
+          No roles yet. Add the first character below.
+        </p>
       ) : (
-        <CostumesTab
-          productionId={productionId}
-          selectedCastId={selectedCastId}
-          roles={roles}
-          castings={castings}
-          performers={performers}
-          casts={casts}
-          designs={designs}
-          setDesigns={setDesigns}
-          pieces={pieces}
-          setPieces={setPieces}
-          tint={tint}
-          edge={edge}
-        />
+        <ul className="space-y-3">
+          {roles.map((r) => (
+            <RoleCard
+              key={r.id}
+              role={r}
+              productionId={productionId}
+              selectedCastId={selectedCastId}
+              tint={tint}
+              edge={edge}
+              performers={performers}
+              setPerformers={setPerformers}
+              castings={castings}
+              setCastings={setCastings}
+              measurementStatus={measurementStatus}
+              casts={casts}
+              designs={designs}
+              setDesigns={setDesigns}
+              pieces={pieces}
+              setPieces={setPieces}
+            />
+          ))}
+        </ul>
       )}
+
+      <form onSubmit={addRole} className="flex gap-2">
+        <input
+          className="field flex-1"
+          value={newRole}
+          onChange={(e) => setNewRole(e.target.value)}
+          placeholder="Add a role (character)"
+        />
+        <button type="submit" disabled={busy} className="btn-primary shrink-0">
+          Add role
+        </button>
+      </form>
 
       {error && <p className="text-[var(--red)]">{error}</p>}
     </div>
