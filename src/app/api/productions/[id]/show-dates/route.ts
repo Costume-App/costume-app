@@ -1,0 +1,20 @@
+import { NextResponse } from "next/server";
+import { getAuthContext } from "@/lib/auth-context";
+import { errorResponse } from "@/lib/api";
+import { assertProductionInOrg } from "@/lib/data/production-access";
+import { addShowDate } from "@/lib/data/show-dates";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function POST(request: Request, { params }: Ctx) {
+  try {
+    const { orgId } = await getAuthContext();
+    const { id } = await params;
+    await assertProductionInOrg(orgId, id);
+    const body = (await request.json()) as { date?: string };
+    const showDate = await addShowDate(id, typeof body.date === "string" ? body.date : "");
+    return NextResponse.json({ showDate }, { status: 201 });
+  } catch (err) {
+    return errorResponse(err);
+  }
+}
