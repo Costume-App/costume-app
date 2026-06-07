@@ -1,15 +1,18 @@
 "use client";
 
 import { MakePieceRow } from "@/components/MakePieceRow";
+import { RolePhotoStrip, type RolePhoto } from "@/components/RolePhotoStrip";
 import type { Worklist, PieceRow } from "@/lib/tailor-summary";
 
 export function MakeWorklist({
   productionId,
   worklist,
+  photosByRole,
   onSaved,
 }: {
   productionId: string;
   worklist: Worklist;
+  photosByRole: Record<string, RolePhoto[]>;
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   if (worklist.totalItems === 0) {
@@ -27,6 +30,7 @@ export function MakeWorklist({
           {role.notes && role.notes.trim() && (
             <p className="whitespace-pre-wrap text-sm muted">{role.notes}</p>
           )}
+          <RolePhotoStrip images={photosByRole[role.roleId] ?? []} />
           {role.garments.map((g) => (
             <div key={g.designId} className="space-y-1">
               <p className="lbl">{g.designName}</p>

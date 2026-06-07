@@ -8,8 +8,11 @@ import { listCastings } from "@/lib/data/castings";
 import { listPerformers } from "@/lib/data/performers";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
+import { listRoleImagesForRoles } from "@/lib/data/role-images";
+import { signRoleImageUrls } from "@/lib/storage";
 import { NotFoundError } from "@/lib/errors";
 import { TailorSummary } from "@/components/TailorSummary";
+import type { RolePhoto } from "@/components/RolePhotoStrip";
 
 export default async function TailorSummaryPage({
   params,
@@ -36,6 +39,15 @@ export default async function TailorSummaryPage({
   const designs = await listCostumeDesigns(id);
   const pieces = await listCostumePieces(designs.map((d) => d.id));
 
+  // Role reference photos (read-only on this page) — one query + one batch sign,
+  // grouped by role for the worklist.
+  const roleImages = await listRoleImagesForRoles(roles.map((r) => r.id));
+  const imageUrls = await signRoleImageUrls(roleImages.map((i) => i.storage_path));
+  const photosByRole: Record<string, RolePhoto[]> = {};
+  for (const img of roleImages) {
+    (photosByRole[img.role_id] ??= []).push({ id: img.id, url: imageUrls[img.storage_path] ?? null });
+  }
+
   return (
     <main className="mx-auto max-w-2xl p-6">
       <Link href={`/productions/${id}`} className="link-muted text-sm">
@@ -61,6 +73,7 @@ export default async function TailorSummaryPage({
         performers={performers.map((p) => ({ id: p.id, name: p.label }))}
         casts={casts.map((c) => ({ id: c.id, name: c.name }))}
         initialPieces={pieces}
+        photosByRole={photosByRole}
       />
     </main>
   );

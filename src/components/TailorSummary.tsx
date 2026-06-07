@@ -9,6 +9,7 @@ import {
   buildFabricPurchaseList,
   type PieceRow,
 } from "@/lib/tailor-summary";
+import type { RolePhoto } from "@/components/RolePhotoStrip";
 
 interface Role { id: string; name: string; notes: string | null }
 interface Design { id: string; role_id: string; name: string; display_order: number }
@@ -24,6 +25,7 @@ export function TailorSummary({
   performers,
   casts,
   initialPieces,
+  photosByRole,
 }: {
   productionId: string;
   roles: Role[];
@@ -32,6 +34,7 @@ export function TailorSummary({
   performers: Performer[];
   casts: Cast[];
   initialPieces: PieceRow[];
+  photosByRole: Record<string, RolePhoto[]>;
 }) {
   const [tab, setTab] = useState<"make" | "fabric">("make");
   const [pieces, setPieces] = useState<PieceRow[]>(initialPieces);
@@ -70,7 +73,12 @@ export function TailorSummary({
         onChange={(id) => setTab(id as "make" | "fabric")}
       />
       {tab === "make" ? (
-        <MakeWorklist productionId={productionId} worklist={worklist} onSaved={applySaved} />
+        <MakeWorklist
+          productionId={productionId}
+          worklist={worklist}
+          photosByRole={photosByRole}
+          onSaved={applySaved}
+        />
       ) : (
         <FabricPurchaseList purchase={purchase} />
       )}

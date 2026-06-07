@@ -17,6 +17,18 @@ export async function listRoleImages(roleId: string): Promise<RoleImage[]> {
   return (data ?? []) as RoleImage[];
 }
 
+// All images for the given roles (one query), ordered oldest-first.
+export async function listRoleImagesForRoles(roleIds: string[]): Promise<RoleImage[]> {
+  if (roleIds.length === 0) return [];
+  const { data, error } = await supabaseAdmin
+    .from("role_images")
+    .select("*")
+    .in("role_id", roleIds)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RoleImage[];
+}
+
 // Distinct role ids (among the given roles) that have at least one image.
 export async function roleIdsWithImages(roleIds: string[]): Promise<string[]> {
   if (roleIds.length === 0) return [];
