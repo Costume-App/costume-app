@@ -7,8 +7,10 @@ vi.mock("@/lib/auth-context", async () => {
 });
 
 const assertProductionInOrg = vi.fn();
+const assertRoleInProduction = vi.fn();
 vi.mock("@/lib/data/production-access", () => ({
   assertProductionInOrg: (...a: unknown[]) => assertProductionInOrg(...a),
+  assertRoleInProduction: (...a: unknown[]) => assertRoleInProduction(...a),
 }));
 
 const deleteRoleImage = vi.fn();
@@ -24,9 +26,10 @@ vi.mock("@/lib/storage", () => ({
 import { DELETE } from "@/app/api/productions/[id]/roles/[roleId]/images/[imageId]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteRoleImage, removeRoleImages].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, assertRoleInProduction, deleteRoleImage, removeRoleImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertRoleInProduction.mockResolvedValue(undefined);
 });
 
 const ctx = (id: string, roleId: string, imageId: string) => ({ params: Promise.resolve({ id, roleId, imageId }) });

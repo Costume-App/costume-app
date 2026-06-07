@@ -20,6 +20,18 @@ export async function assertPerformerInOrg(orgId: string, performerId: string): 
   await assertProductionInOrg(orgId, productionId);
 }
 
+// Throws NotFoundError unless the role belongs to the given production.
+export async function assertRoleInProduction(productionId: string, roleId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("roles")
+    .select("id")
+    .eq("id", roleId)
+    .eq("production_id", productionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Role not found in this production");
+}
+
 // Throws NotFoundError unless the casting belongs to the given production.
 export async function assertCastingInProduction(productionId: string, castingId: string): Promise<void> {
   const { data, error } = await supabaseAdmin

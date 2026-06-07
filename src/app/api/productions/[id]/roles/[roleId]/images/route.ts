@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { ValidationError } from "@/lib/errors";
-import { assertProductionInOrg } from "@/lib/data/production-access";
-import { listRoleImages, addRoleImage } from "@/lib/data/role-images";
+import { assertProductionInOrg, assertRoleInProduction } from "@/lib/data/production-access";
+import { listRoleImages, addRoleImage, countRoleImages } from "@/lib/data/role-images";
 import { uploadRoleImage, signRoleImageUrls } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ id: string; roleId: string }> };
@@ -15,6 +15,7 @@ export async function GET(_request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id, roleId } = await params;
     await assertProductionInOrg(orgId, id);
+    await assertRoleInProduction(id, roleId);
     const images = await listRoleImages(roleId);
     const urls = await signRoleImageUrls(images.map((i) => i.storage_path));
     return NextResponse.json({
@@ -30,13 +31,14 @@ export async function POST(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id, roleId } = await params;
     await assertProductionInOrg(orgId, id);
-    const existing = await listRoleImages(roleId);
-    if (existing.length >= MAX_PER_ROLE) {
+    await assertRoleInProduction(id, roleId);
+    if ((await countRoleImages(roleId)) >= MAX_PER_ROLE) {
       throw new ValidationError(`Up to ${MAX_PER_ROLE} photos per role`);
     }
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) throw new ValidationError("No file provided");
+    if (!file.type.startsWith("image/")) throw new ValidationError("File must be an image");
     const bytes = new Uint8Array(await file.arrayBuffer());
     const path = `${id}/${roleId}/${crypto.randomUUID()}.jpg`;
     await uploadRoleImage(path, bytes);

@@ -7,14 +7,18 @@ vi.mock("@/lib/auth-context", async () => {
 });
 
 const assertProductionInOrg = vi.fn();
+const assertRoleInProduction = vi.fn();
 vi.mock("@/lib/data/production-access", () => ({
   assertProductionInOrg: (...a: unknown[]) => assertProductionInOrg(...a),
+  assertRoleInProduction: (...a: unknown[]) => assertRoleInProduction(...a),
 }));
 
 const listRoleImages = vi.fn();
+const countRoleImages = vi.fn();
 const addRoleImage = vi.fn();
 vi.mock("@/lib/data/role-images", () => ({
   listRoleImages: (...a: unknown[]) => listRoleImages(...a),
+  countRoleImages: (...a: unknown[]) => countRoleImages(...a),
   addRoleImage: (...a: unknown[]) => addRoleImage(...a),
 }));
 
@@ -28,9 +32,10 @@ vi.mock("@/lib/storage", () => ({
 import { GET, POST } from "@/app/api/productions/[id]/roles/[roleId]/images/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, listRoleImages, addRoleImage, uploadRoleImage, signRoleImageUrls].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, assertRoleInProduction, listRoleImages, countRoleImages, addRoleImage, uploadRoleImage, signRoleImageUrls].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertRoleInProduction.mockResolvedValue(undefined);
 });
 
 const ctx = (id: string, roleId: string) => ({ params: Promise.resolve({ id, roleId }) });
@@ -50,7 +55,7 @@ test("GET returns images with signed urls", async () => {
 });
 
 test("POST uploads and records an image (201)", async () => {
-  listRoleImages.mockResolvedValue([]);
+  countRoleImages.mockResolvedValue(0);
   uploadRoleImage.mockResolvedValue(undefined);
   addRoleImage.mockResolvedValue({ id: "i9" });
   const res = await POST(postReq(), ctx("p1", "r1"));
@@ -61,7 +66,7 @@ test("POST uploads and records an image (201)", async () => {
 });
 
 test("POST 400 when already at the 4-photo cap", async () => {
-  listRoleImages.mockResolvedValue([{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }]);
+  countRoleImages.mockResolvedValue(4);
   const res = await POST(postReq(), ctx("p1", "r1"));
   expect(res.status).toBe(400);
   expect(uploadRoleImage).not.toHaveBeenCalled();
@@ -72,4 +77,12 @@ test("POST 404 when production not in org", async () => {
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
   const res = await POST(postReq(), ctx("p1", "r1"));
   expect(res.status).toBe(404);
+});
+
+test("POST 404 when the role is not in that production (cross-production)", async () => {
+  const { NotFoundError } = await import("@/lib/errors");
+  assertRoleInProduction.mockRejectedValue(new NotFoundError("Role not found in this production"));
+  const res = await POST(postReq(), ctx("p1", "r1"));
+  expect(res.status).toBe(404);
+  expect(uploadRoleImage).not.toHaveBeenCalled();
 });

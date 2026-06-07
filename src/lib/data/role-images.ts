@@ -17,6 +17,15 @@ export async function listRoleImages(roleId: string): Promise<RoleImage[]> {
   return (data ?? []) as RoleImage[];
 }
 
+export async function countRoleImages(roleId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from("role_images")
+    .select("id", { count: "exact", head: true })
+    .eq("role_id", roleId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export async function addRoleImage(roleId: string, storagePath: string): Promise<RoleImage> {
   const { data, error } = await supabaseAdmin
     .from("role_images")

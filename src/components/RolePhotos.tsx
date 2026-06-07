@@ -16,14 +16,21 @@ export function RolePhotos({ productionId, roleId }: { productionId: string; rol
   const [error, setError] = useState<string | null>(null);
   const [enlarged, setEnlarged] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const inFlight = useRef(false);
 
   async function load() {
-    const res = await fetch(`/api/productions/${productionId}/roles/${roleId}/images`, {
-      credentials: "include",
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { images: RoleImageView[] };
-      setImages(data.images);
+    try {
+      const res = await fetch(`/api/productions/${productionId}/roles/${roleId}/images`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { images: RoleImageView[] };
+        setImages(data.images);
+      } else {
+        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't load photos");
+      }
+    } catch {
+      setError("Couldn't load photos");
     }
   }
 
@@ -34,10 +41,20 @@ export function RolePhotos({ productionId, roleId }: { productionId: string; rol
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productionId, roleId]);
 
+  useEffect(() => {
+    if (!enlarged) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEnlarged(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [enlarged]);
+
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
+    if (!file || inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -58,9 +75,12 @@ export function RolePhotos({ productionId, roleId }: { productionId: string; rol
       setError(err instanceof Error ? err.message : "Couldn't upload photo");
     }
     setBusy(false);
+    inFlight.current = false;
   }
 
   async function remove(id: string) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/productions/${productionId}/roles/${roleId}/images/${id}`, {
@@ -73,6 +93,7 @@ export function RolePhotos({ productionId, roleId }: { productionId: string; rol
       await load();
     }
     setBusy(false);
+    inFlight.current = false;
   }
 
   return (
