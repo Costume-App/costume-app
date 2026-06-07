@@ -55,16 +55,16 @@ export default function NewProductionPage() {
         </label>
         {error && <p className="text-[var(--red)]">{error}</p>}
         <div className="flex gap-3">
+          <button type="submit" disabled={saving} className="btn-primary flex-1">
+            {saving ? "Saving…" : "Create production"}
+          </button>
           <button
             type="button"
             onClick={() => router.push("/productions")}
             disabled={saving}
-            className="btn-ghost flex-1"
+            className="btn-ghost"
           >
             Cancel
-          </button>
-          <button type="submit" disabled={saving} className="btn-primary flex-1">
-            {saving ? "Saving…" : "Create production"}
           </button>
         </div>
       </form>
