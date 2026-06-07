@@ -111,7 +111,7 @@ export default async function ProductionDetailPage({
           href={`/productions/${id}/summary`}
           className="link-muted shrink-0 whitespace-nowrap text-sm"
         >
-          Tailor's summary →
+          Tailor&apos;s summary →
         </Link>
       </div>
 
