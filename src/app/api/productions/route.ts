@@ -4,6 +4,7 @@ import { errorResponse } from "@/lib/api";
 import { listProductions, createProduction } from "@/lib/data/productions";
 import { ensureOrganization } from "@/lib/data/organizations";
 import { addShowDate } from "@/lib/data/show-dates";
+import { createCast } from "@/lib/data/casts";
 
 export async function GET() {
   try {
@@ -31,6 +32,11 @@ export async function POST(request: Request) {
       title: typeof body.title === "string" ? body.title : "",
       notes: body.notes ?? null,
     });
+    // Every production starts with a default cast so cast members can be added
+    // right away. The 0004 migration only backfilled productions that already
+    // existed; without this, new productions had no cast and cast-member adds
+    // silently no-opped (no selected cast).
+    await createCast({ productionId: production.id, name: "Main Cast" });
     if (typeof body.showDate === "string" && body.showDate.trim()) {
       await addShowDate(production.id, body.showDate, null);
     }

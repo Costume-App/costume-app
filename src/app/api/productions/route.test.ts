@@ -24,10 +24,17 @@ vi.mock("@/lib/data/show-dates", () => ({
   addShowDate: (...a: unknown[]) => addShowDate(...a),
 }));
 
+const createCast = vi.fn();
+vi.mock("@/lib/data/casts", () => ({
+  createCast: (...a: unknown[]) => createCast(...a),
+}));
+
 import { GET, POST } from "@/app/api/productions/route";
 
 beforeEach(() => {
-  [getAuthContext, listProductions, createProduction, ensureOrganization, addShowDate].forEach((m) => m.mockReset());
+  [getAuthContext, listProductions, createProduction, ensureOrganization, addShowDate, createCast].forEach((m) =>
+    m.mockReset(),
+  );
 });
 
 function postReq(body: unknown) {
@@ -67,6 +74,14 @@ test("POST creates a production, stores the first show date, returns 201", async
     notes: null,
   });
   expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null);
+});
+
+test("POST gives the new production a default cast so cast members can be added", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
+  const res = await POST(postReq({ title: "Newsies", showDate: null }));
+  expect(res.status).toBe(201);
+  expect(createCast).toHaveBeenCalledWith({ productionId: "p2", name: "Main Cast" });
 });
 
 test("POST does not add a show date when none is provided", async () => {
