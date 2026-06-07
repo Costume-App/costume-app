@@ -41,7 +41,7 @@ export default async function TailorSummaryPage({
       <Link href={`/productions/${id}`} className="link-muted text-sm">
         ← {production.title}
       </Link>
-      <h1 className="mt-2 mb-6 font-display text-2xl font-semibold">Tailor's summary</h1>
+      <h1 className="mt-2 mb-6 font-display text-2xl font-semibold">Tailor&apos;s summary</h1>
       <TailorSummary
         productionId={id}
         roles={roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes }))}

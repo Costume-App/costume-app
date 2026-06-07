@@ -15,7 +15,7 @@ export function MakeWorklist({
   if (worklist.totalItems === 0) {
     return (
       <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
-        Nothing to make yet. Add costume pieces and mark them "Make".
+        Nothing to make yet. Add costume pieces and mark them &ldquo;Make&rdquo;.
       </p>
     );
   }
