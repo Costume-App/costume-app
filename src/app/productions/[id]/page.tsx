@@ -15,6 +15,7 @@ import { formatShowDate, formatShowTime, todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
+import { ShowingsList } from "@/components/ShowingsList";
 import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 import { classifyProduction } from "@/lib/production-status";
 
@@ -95,14 +96,7 @@ export default async function ProductionDetailPage({
       {showDates.length > 0 && (
         <div className="mb-6 space-y-1">
           <span className="lbl block">Showings</span>
-          <ul className="space-y-1">
-            {showDates.map((s) => (
-              <li key={s.id} className="text-sm muted">
-                {formatShowDate(s.show_date)}
-                {s.show_time ? ` · ${formatShowTime(s.show_time)}` : ""}
-              </li>
-            ))}
-          </ul>
+          <ShowingsList showings={showDates} />
         </div>
       )}
 

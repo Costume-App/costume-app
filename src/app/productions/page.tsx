@@ -6,7 +6,8 @@ import { listProductions } from "@/lib/data/productions";
 import { listShowDates } from "@/lib/data/show-dates";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { PastAndInactiveProductions } from "@/components/PastAndInactiveProductions";
-import { formatShowDate, nextUpcomingDate, latestDate, todayIso } from "@/lib/countdown";
+import { ShowingsList } from "@/components/ShowingsList";
+import { nextUpcomingDate, todayIso } from "@/lib/countdown";
 import { partitionProductions } from "@/lib/production-status";
 
 export default async function ProductionsPage() {
@@ -25,15 +26,15 @@ export default async function ProductionsPage() {
 
   const allShowDates = await listShowDates(productions.map((p) => p.id));
   const today = todayIso();
-  const withDates = productions.map((p) => ({
-    ...p,
-    dates: allShowDates.filter((d) => d.production_id === p.id).map((d) => d.show_date),
-  }));
+  const withDates = productions.map((p) => {
+    const showings = allShowDates.filter((d) => d.production_id === p.id);
+    return { ...p, dates: showings.map((s) => s.show_date), showings };
+  });
   const { active, inactive } = partitionProductions(withDates, today);
   const pastAndInactive = inactive.map((p) => ({
     id: p.id,
     title: p.title,
-    displayDate: nextUpcomingDate(p.dates, today) ?? latestDate(p.dates),
+    showings: p.showings.map((s) => ({ id: s.id, show_date: s.show_date, show_time: s.show_time })),
   }));
 
   return (
@@ -61,22 +62,21 @@ export default async function ProductionsPage() {
         <>
           {active.length > 0 && (
             <ul className="space-y-3">
-              {active.map((p) => {
-                const next = nextUpcomingDate(p.dates, today);
-                return (
-                  <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
-                    <Link href={`/productions/${p.id}`} className="block p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-display text-xl font-semibold">{p.title}</span>
-                        <div className="flex items-center gap-2">
-                          {next && <span className="text-sm muted">{formatShowDate(next)}</span>}
-                          <CountdownBadge showDate={next} />
-                        </div>
+              {active.map((p) => (
+                <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
+                  <Link href={`/productions/${p.id}`} className="block p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-display text-xl font-semibold">{p.title}</span>
+                      <CountdownBadge showDate={nextUpcomingDate(p.dates, today)} />
+                    </div>
+                    {p.showings.length > 0 && (
+                      <div className="mt-2">
+                        <ShowingsList showings={p.showings} />
                       </div>
-                    </Link>
-                  </li>
-                );
-              })}
+                    )}
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
           <PastAndInactiveProductions productions={pastAndInactive} />
