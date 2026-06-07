@@ -42,7 +42,14 @@ export function ProductionNotes({ productionId, notes }: { productionId: string;
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => setOpen(false)} className="link-muted text-sm">
+        <button
+          type="button"
+          onClick={() => {
+            save();
+            setOpen(false);
+          }}
+          className="link-muted text-sm"
+        >
           ▾ Production notes
         </button>
         {busy ? (
