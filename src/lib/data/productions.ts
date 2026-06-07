@@ -23,7 +23,6 @@ export async function listProductions(orgId: string): Promise<Production[]> {
     .from("productions")
     .select("*")
     .eq("org_id", orgId)
-    .order("show_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as Production[];

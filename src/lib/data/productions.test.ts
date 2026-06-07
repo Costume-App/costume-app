@@ -2,8 +2,7 @@ import { expect, test, vi, beforeEach } from "vitest";
 import { ValidationError } from "@/lib/errors";
 
 const orderCreated = vi.fn();
-const orderShow = vi.fn(() => ({ order: orderCreated }));
-const eq = vi.fn(() => ({ order: orderShow }));
+const eq = vi.fn(() => ({ order: orderCreated }));
 const select = vi.fn(() => ({ eq }));
 const single = vi.fn();
 const insertSelect = vi.fn(() => ({ single }));
@@ -15,21 +14,19 @@ vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) 
 import { listProductions, createProduction } from "@/lib/data/productions";
 
 beforeEach(() => {
-  [orderShow, orderCreated, eq, select, single, insertSelect, insert, from].forEach((m) => m.mockReset());
-  eq.mockReturnValue({ order: orderShow });
-  orderShow.mockReturnValue({ order: orderCreated });
+  [orderCreated, eq, select, single, insertSelect, insert, from].forEach((m) => m.mockReset());
+  eq.mockReturnValue({ order: orderCreated });
   select.mockReturnValue({ eq });
   insertSelect.mockReturnValue({ single });
   insert.mockReturnValue({ select: insertSelect });
   from.mockReturnValue({ select, insert });
 });
 
-test("listProductions queries by org, ordered by show_date then created_at", async () => {
+test("listProductions queries by org, ordered by created_at desc", async () => {
   orderCreated.mockResolvedValue({ data: [{ id: "p1", title: "Mary Poppins" }], error: null });
   const rows = await listProductions("org_1");
   expect(from).toHaveBeenCalledWith("productions");
   expect(eq).toHaveBeenCalledWith("org_id", "org_1");
-  expect(orderShow).toHaveBeenCalledWith("show_date", { ascending: true, nullsFirst: false });
   expect(orderCreated).toHaveBeenCalledWith("created_at", { ascending: false });
   expect(rows).toEqual([{ id: "p1", title: "Mary Poppins" }]);
 });
