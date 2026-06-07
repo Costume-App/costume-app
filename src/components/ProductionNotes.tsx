@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 export function ProductionNotes({ productionId, notes }: { productionId: string; notes: string | null }) {
   const [open, setOpen] = useState(!!notes);
@@ -9,6 +9,16 @@ export function ProductionNotes({ productionId, notes }: { productionId: string;
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastSaved = useRef(notes ?? "");
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow the textarea to fit its content so the whole note is visible with no
+  // inner scrollbar. Runs on every value change and when the panel (re)opens.
+  useLayoutEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }, [value, open]);
 
   async function save() {
     if (value === lastSaved.current) return;
@@ -61,8 +71,10 @@ export function ProductionNotes({ productionId, notes }: { productionId: string;
         ) : null}
       </div>
       <textarea
+        ref={taRef}
         className="field w-full"
         rows={4}
+        style={{ minHeight: "6rem", overflow: "hidden", resize: "none" }}
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
