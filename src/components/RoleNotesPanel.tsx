@@ -16,9 +16,11 @@ export function RoleNotesPanel({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastSaved = useRef(notes ?? "");
+  const inFlight = useRef(false);
 
   async function save() {
-    if (value === lastSaved.current) return;
+    if (value === lastSaved.current || inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     setSaved(false);
@@ -31,17 +33,19 @@ export function RoleNotesPanel({
     if (!res.ok) {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't save notes");
       setBusy(false);
+      inFlight.current = false;
       return;
     }
     lastSaved.current = value;
     setBusy(false);
+    inFlight.current = false;
     setSaved(true);
   }
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-3">
-        <span className="lbl">Costume notes</span>
+        <span className="lbl">Notes</span>
         {busy ? (
           <span className="text-xs muted">Saving…</span>
         ) : error ? (
@@ -59,7 +63,7 @@ export function RoleNotesPanel({
           setSaved(false);
         }}
         onBlur={save}
-        placeholder="Costume notes for this role…"
+        placeholder="Notes about this role's costume…"
       />
     </div>
   );
