@@ -9,6 +9,7 @@ import {
   DEFAULT_CAST_COLOR,
 } from "@/lib/cast-colors";
 import { RoleCard } from "@/components/RoleCard";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 
@@ -44,7 +45,10 @@ export function ProductionWorkspace({
   initialPieces: CostumePiece[];
 }) {
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
-  const [selectedCastId, setSelectedCastId] = useState<string>(initialCasts[0]?.id ?? "");
+  const [selectedCastId, setSelectedCastId] = usePersistentState<string>(
+    `nada:prod:${productionId}:cast`,
+    initialCasts[0]?.id ?? "",
+  );
   // Shared workspace data lives here so both tabs (and cast switches) stay live
   // without a reload — the role cards' panels mutate these via the setters below.
   const [roles, setRoles] = useState<Role[]>(initialRoles);
