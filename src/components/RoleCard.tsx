@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import { CollapsibleRole } from "@/components/CollapsibleRole";
 import { Tabs } from "@/components/Tabs";
 import { RoleNotesPanel } from "@/components/RoleNotesPanel";
@@ -46,7 +46,11 @@ export function RoleCard({
   pieces: CostumePiece[];
   setPieces: Dispatch<SetStateAction<CostumePiece[]>>;
 }) {
-  const [activeTab, setActiveTab] = useState<RoleTab>("ideas");
+  const [open, setOpen] = usePersistentState<boolean>(`nada:prod:${productionId}:role:${role.id}:open`, false);
+  const [activeTab, setActiveTab] = usePersistentState<RoleTab>(
+    `nada:prod:${productionId}:role:${role.id}:tab`,
+    "ideas",
+  );
 
   const primary = castings.find(
     (c) => c.castId === selectedCastId && c.roleId === role.id && c.assignment === "primary",
@@ -54,7 +58,14 @@ export function RoleCard({
   const summary = primary ? performers.find((p) => p.id === primary.performerId)?.name ?? "—" : "—";
 
   return (
-    <CollapsibleRole title={role.name} summary={summary} tint={tint} edge={edge}>
+    <CollapsibleRole
+      title={role.name}
+      summary={summary}
+      open={open}
+      onToggle={() => setOpen((o) => !o)}
+      tint={tint}
+      edge={edge}
+    >
       <Tabs
         tabs={[
           { id: "ideas", label: "Ideas & Notes" },
