@@ -1,0 +1,67 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getAuthContext } from "@/lib/auth-context";
+import { assertProductionInOrg } from "@/lib/data/production-access";
+import { listRoles } from "@/lib/data/roles";
+import { listCasts } from "@/lib/data/casts";
+import { listCastings } from "@/lib/data/castings";
+import { listPerformers } from "@/lib/data/performers";
+import { listCostumeDesigns } from "@/lib/data/costume-designs";
+import { listCostumePieces } from "@/lib/data/costume-pieces";
+import { NotFoundError } from "@/lib/errors";
+import { TailorSummary } from "@/components/TailorSummary";
+
+export default async function TailorSummaryPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { orgId } = await getAuthContext();
+  const { id } = await params;
+
+  let production;
+  try {
+    production = await assertProductionInOrg(orgId, id);
+  } catch (err) {
+    if (err instanceof NotFoundError) notFound();
+    throw err;
+  }
+
+  const [casts, roles, castings, performers] = await Promise.all([
+    listCasts(id),
+    listRoles(id),
+    listCastings(id),
+    listPerformers(id),
+  ]);
+  const designs = await listCostumeDesigns(id);
+  const pieces = await listCostumePieces(designs.map((d) => d.id));
+
+  return (
+    <main className="mx-auto max-w-2xl p-6">
+      <Link href={`/productions/${id}`} className="link-muted text-sm">
+        ← {production.title}
+      </Link>
+      <h1 className="mt-2 mb-6 font-display text-2xl font-semibold">Tailor's summary</h1>
+      <TailorSummary
+        productionId={id}
+        roles={roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes }))}
+        designs={designs.map((d) => ({
+          id: d.id,
+          role_id: d.role_id,
+          name: d.name,
+          display_order: d.display_order,
+        }))}
+        castings={castings.map((c) => ({
+          id: c.id,
+          cast_id: c.cast_id,
+          role_id: c.role_id,
+          performer_id: c.performer_id,
+          assignment: c.assignment,
+        }))}
+        performers={performers.map((p) => ({ id: p.id, name: p.label }))}
+        casts={casts.map((c) => ({ id: c.id, name: c.name }))}
+        initialPieces={pieces}
+      />
+    </main>
+  );
+}
