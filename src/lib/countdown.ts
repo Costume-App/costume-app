@@ -47,3 +47,16 @@ export function todayIso(now: Date = new Date()): string {
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+// Soonest date on or after `today`, or null if none upcoming. Dates are YYYY-MM-DD,
+// so lexical comparison/sort is correct.
+export function nextUpcomingDate(dates: string[], today: string): string | null {
+  const upcoming = dates.filter((d) => d >= today).sort();
+  return upcoming[0] ?? null;
+}
+
+// Latest date, or null if the list is empty.
+export function latestDate(dates: string[]): string | null {
+  if (dates.length === 0) return null;
+  return [...dates].sort()[dates.length - 1];
+}
