@@ -3,6 +3,19 @@
 import { useRef, useState } from "react";
 import type { MakeItem, PieceRow } from "@/lib/tailor-summary";
 
+interface PiecePutBody {
+  designId: string;
+  castingId: string;
+  source: "make";
+  fabricType: string | null;
+  fabricColor: string | null;
+  fabricWidth: string | null;
+  fabricSupplier: string | null;
+  fabricYardage: number | null;
+  fabricUnitCost: number | null;
+  made: boolean;
+}
+
 export function MakePieceRow({
   productionId,
   item,
@@ -22,46 +35,53 @@ export function MakePieceRow({
   const [unitCost, setUnitCost] = useState(item.fabric.unitCost != null ? String(item.fabric.unitCost) : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inFlight = useRef(false);
+  // Serialize saves so a fast blur-then-toggle (or two quick blurs) can't drop an
+  // edit: each call captures its values now and runs after the previous finishes.
+  const saveChain = useRef<Promise<void>>(Promise.resolve());
 
-  async function save(nextMade = made) {
-    if (inFlight.current) return;
-    inFlight.current = true;
+  function save(nextMade = made) {
+    const body: PiecePutBody = {
+      designId: item.designId,
+      castingId: item.castingId,
+      source: "make",
+      fabricType: type.trim() || null,
+      fabricColor: color.trim() || null,
+      fabricWidth: width.trim() || null,
+      fabricSupplier: supplier.trim() || null,
+      fabricYardage: yardage.trim() === "" ? null : Number(yardage),
+      fabricUnitCost: unitCost.trim() === "" ? null : Number(unitCost),
+      made: nextMade,
+    };
     setBusy(true);
+    saveChain.current = saveChain.current.then(() => sendSave(body));
+  }
+
+  async function sendSave(body: PiecePutBody) {
     setError(null);
-    const res = await fetch(`/api/productions/${productionId}/pieces`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        designId: item.designId,
-        castingId: item.castingId,
-        source: "make",
-        fabricType: type.trim() || null,
-        fabricColor: color.trim() || null,
-        fabricWidth: width.trim() || null,
-        fabricSupplier: supplier.trim() || null,
-        fabricYardage: yardage.trim() === "" ? null : Number(yardage),
-        fabricUnitCost: unitCost.trim() === "" ? null : Number(unitCost),
-        made: nextMade,
-      }),
-    });
-    if (!res.ok) {
-      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't save");
+    try {
+      const res = await fetch(`/api/productions/${productionId}/pieces`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't save");
+        return;
+      }
+      const { piece } = (await res.json()) as { piece: PieceRow | null };
+      onSaved(piece);
+    } catch {
+      setError("Couldn't save");
+    } finally {
       setBusy(false);
-      inFlight.current = false;
-      return;
     }
-    const { piece } = (await res.json()) as { piece: PieceRow | null };
-    onSaved(piece);
-    setBusy(false);
-    inFlight.current = false;
   }
 
   function toggleMade() {
     const next = !made;
     setMade(next);
-    void save(next);
+    save(next);
   }
 
   return (
