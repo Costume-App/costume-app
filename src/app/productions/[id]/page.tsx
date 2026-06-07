@@ -11,7 +11,7 @@ import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate, latestDate, nextUpcomingDate, todayIso } from "@/lib/countdown";
+import { formatShowDate, formatShowTime, todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
@@ -43,13 +43,13 @@ export default async function ProductionDetailPage({
     listMeasurementDefinitions(),
   ]);
 
-  const nextUpcoming = nextUpcomingDate(showDates.map((d) => d.show_date), todayIso());
-
   const status = classifyProduction(production.is_active, showDates.map((d) => d.show_date), todayIso());
   const statusLabel = status === "inactive" ? "Inactive" : null;
-  // For past productions there is no upcoming date — fall back to the most recent
-  // (past) show date so the header shows the date rather than the word "Past".
-  const displayDate = nextUpcoming ?? latestDate(showDates.map((d) => d.show_date));
+  // showDates arrive sorted by date then time. The next showing is the first one
+  // dated today-or-later; for a past production, fall back to the last showing.
+  const today = todayIso();
+  const upcomingShowings = showDates.filter((s) => s.show_date >= today);
+  const nextShowing = upcomingShowings[0] ?? showDates[showDates.length - 1] ?? null;
 
   // Per-performer measurement progress for the cast-list indicators.
   const filledCounts = await getFilledMeasurementCounts(performers.map((p) => p.id));
@@ -73,7 +73,7 @@ export default async function ProductionDetailPage({
         <EditableProductionHeader
           productionId={id}
           title={production.title}
-          showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date }))}
+          showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date, show_time: d.show_time }))}
           isActive={production.is_active}
         />
         <div className="flex flex-col items-end gap-1">
@@ -82,10 +82,29 @@ export default async function ProductionDetailPage({
               {statusLabel}
             </span>
           )}
-          {displayDate && <span className="text-sm muted">{formatShowDate(displayDate)}</span>}
-          <CountdownBadge showDate={displayDate} />
+          {nextShowing && (
+            <span className="text-sm muted">
+              {formatShowDate(nextShowing.show_date)}
+              {nextShowing.show_time ? ` · ${formatShowTime(nextShowing.show_time)}` : ""}
+            </span>
+          )}
+          <CountdownBadge showDate={nextShowing ? nextShowing.show_date : null} />
         </div>
       </div>
+
+      {showDates.length > 0 && (
+        <div className="mb-6 space-y-1">
+          <span className="lbl block">Showings</span>
+          <ul className="space-y-1">
+            {showDates.map((s) => (
+              <li key={s.id} className="text-sm muted">
+                {formatShowDate(s.show_date)}
+                {s.show_time ? ` · ${formatShowTime(s.show_time)}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <ProductionWorkspace
         productionId={id}
