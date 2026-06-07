@@ -296,6 +296,7 @@ function NoteIcon() {
     >
       <title>Has notes</title>
       <path d="M5 3h10l4 4v14H5z" />
+      <path d="M15 3v4h4" />
       <path d="M9 9h6" />
       <path d="M9 13h6" />
       <path d="M9 17h4" />
