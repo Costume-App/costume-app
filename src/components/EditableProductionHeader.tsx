@@ -73,7 +73,7 @@ export function EditableProductionHeader({
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ date: newDate, time: newTime }),
+        body: JSON.stringify({ date: newDate, time: newTime || null }),
       },
       "Couldn't add showing",
     );
@@ -143,7 +143,7 @@ export function EditableProductionHeader({
           />
           <input
             type="time"
-            className="field"
+            className="field w-32 shrink-0"
             value={newTime}
             onChange={(e) => setNewTime(e.target.value)}
             aria-label="Showing time (optional)"
