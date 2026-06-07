@@ -199,7 +199,8 @@ function CastLink({
         onSubmit={(e) => {
           e.preventDefault();
           const v = value.trim();
-          if (v && v !== name) onRename(v);
+          if (!v) return; // stay in edit mode; require a non-empty name or Cancel
+          if (v !== name) onRename(v);
           setEditing(false);
         }}
         className="inline-flex items-center gap-1.5"
@@ -248,6 +249,7 @@ function CastLink({
         <PencilIcon />
       </button>
       <button
+        type="button"
         onClick={onRemove}
         disabled={busy}
         aria-label={`Remove ${name}`}
