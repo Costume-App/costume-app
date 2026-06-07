@@ -10,11 +10,15 @@ import { MeasurementForm } from "@/components/MeasurementForm";
 
 export default async function MeasurementPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; performerId: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { orgId } = await getAuthContext();
   const { id, performerId } = await params;
+  const { from } = await searchParams;
+  const backToSummary = from === "summary";
   const production = await assertProductionInOrg(orgId, id);
   await assertPerformerInOrg(orgId, performerId);
 
@@ -37,8 +41,11 @@ export default async function MeasurementPage({
 
   return (
     <main className="mx-auto max-w-lg p-6">
-      <Link href={`/productions/${id}`} className="link-muted text-sm">
-        ← Cast
+      <Link
+        href={backToSummary ? `/productions/${id}/summary` : `/productions/${id}`}
+        className="link-muted text-sm"
+      >
+        ← {backToSummary ? "Back" : "Cast"}
       </Link>
       <div className="mt-2 mb-6">
         <p className="text-sm muted">

@@ -116,7 +116,7 @@ export function MakePieceRow({
         <div className="space-y-2 px-3 pb-3">
           <div className="rounded-md bg-[var(--bg)] px-2 py-1.5">
             <Link
-              href={`/productions/${productionId}/performers/${item.performerId}`}
+              href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}
               className="lbl inline-flex items-center gap-1 hover:text-[var(--red)] hover:underline"
             >
               Measurements <span aria-hidden>↗</span>
