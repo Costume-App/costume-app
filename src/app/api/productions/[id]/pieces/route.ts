@@ -33,12 +33,30 @@ export async function PUT(request: Request, { params }: Ctx) {
       source?: string;
       sharedWithCastingId?: string | null;
       sourceNote?: string | null;
+      fabricType?: string | null;
+      fabricColor?: string | null;
+      fabricWidth?: string | null;
+      fabricSupplier?: string | null;
+      fabricYardage?: number | null;
+      fabricUnitCost?: number | null;
+      made?: boolean;
     };
     if (typeof body.source !== "string" || !isCostumeSource(body.source)) {
       throw new ValidationError("Invalid source");
     }
     if (typeof body.designId !== "string" || typeof body.castingId !== "string") {
       throw new ValidationError("designId and castingId are required");
+    }
+    const checkNum = (n: number | null | undefined, field: string) => {
+      if (n === undefined || n === null) return;
+      if (typeof n !== "number" || !Number.isFinite(n) || n < 0) {
+        throw new ValidationError(`${field} must be a number ≥ 0`);
+      }
+    };
+    checkNum(body.fabricYardage, "Yardage");
+    checkNum(body.fabricUnitCost, "Unit cost");
+    if (body.made !== undefined && typeof body.made !== "boolean") {
+      throw new ValidationError("made must be a boolean");
     }
     const designs = await listCostumeDesigns(id);
     if (!designs.some((d) => d.id === body.designId)) {
@@ -56,6 +74,13 @@ export async function PUT(request: Request, { params }: Ctx) {
       source: body.source,
       sharedWithCastingId: body.sharedWithCastingId ?? null,
       sourceNote: body.sourceNote ?? null,
+      fabricType: body.fabricType ?? null,
+      fabricColor: body.fabricColor ?? null,
+      fabricWidth: body.fabricWidth ?? null,
+      fabricSupplier: body.fabricSupplier ?? null,
+      fabricYardage: body.fabricYardage ?? null,
+      fabricUnitCost: body.fabricUnitCost ?? null,
+      made: body.made ?? false,
     });
     return NextResponse.json({ piece });
   } catch (err) {

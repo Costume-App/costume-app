@@ -38,9 +38,9 @@ test("PUT upserts a piece source (200)", async () => {
   upsertPieceSource.mockResolvedValue({ id: "pp1", source: "on_hand" });
   const res = await PUT(put({ designId: "d1", castingId: "c1", source: "on_hand" }), ctx("p1"));
   expect(res.status).toBe(200);
-  expect(upsertPieceSource).toHaveBeenCalledWith({
-    designId: "d1", castingId: "c1", source: "on_hand", sharedWithCastingId: null, sourceNote: null,
-  });
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ designId: "d1", castingId: "c1", source: "on_hand", sharedWithCastingId: null, sourceNote: null }),
+  );
 });
 
 test("PUT 400 on unknown source", async () => {
@@ -53,4 +53,42 @@ test("PUT 400 when design not in production", async () => {
   listCostumeDesigns.mockResolvedValue([{ id: "dX" }]);
   const res = await PUT(put({ designId: "d1", castingId: "c1", source: "make" }), ctx("p1"));
   expect(res.status).toBe(400);
+});
+
+test("PUT forwards fabric + made fields", async () => {
+  upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make", made: true });
+  const res = await PUT(
+    put({
+      designId: "d1", castingId: "c1", source: "make",
+      fabricType: "wool", fabricColor: "navy", fabricWidth: '60"',
+      fabricSupplier: "Mood", fabricYardage: 2.5, fabricUnitCost: 10, made: true,
+    }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(200);
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({
+      designId: "d1", castingId: "c1", source: "make",
+      fabricType: "wool", fabricColor: "navy", fabricWidth: '60"',
+      fabricSupplier: "Mood", fabricYardage: 2.5, fabricUnitCost: 10, made: true,
+    }),
+  );
+});
+
+test("PUT 400 on negative yardage", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", fabricYardage: -1 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT 400 on non-boolean made", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", made: "yes" }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
 });
