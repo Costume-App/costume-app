@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate } from "@/lib/countdown";
+import { ShowingsList } from "@/components/ShowingsList";
 
 interface Row {
   id: string;
   title: string;
-  displayDate: string | null;
+  showings: { id: string; show_date: string; show_time: string | null }[];
 }
 
 export function PastAndInactiveProductions({ productions }: { productions: Row[] }) {
@@ -36,13 +35,12 @@ export function PastAndInactiveProductions({ productions }: { productions: Row[]
         {productions.map((p) => (
           <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
             <Link href={`/productions/${p.id}`} className="block p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-display text-xl font-semibold">{p.title}</span>
-                <div className="flex items-center gap-2">
-                  {p.displayDate && <span className="text-sm muted">{formatShowDate(p.displayDate)}</span>}
-                  <CountdownBadge showDate={p.displayDate} />
+              <span className="font-display text-xl font-semibold">{p.title}</span>
+              {p.showings.length > 0 && (
+                <div className="mt-2">
+                  <ShowingsList showings={p.showings} />
                 </div>
-              </div>
+              )}
             </Link>
           </li>
         ))}
