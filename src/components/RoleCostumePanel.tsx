@@ -129,10 +129,10 @@ export function RoleCostumePanel({
                     sources[pieceKey(c.id, d.id)]?.source !== "shared",
                 );
                 return (
-                  <div key={d.id} className="flex flex-wrap items-center gap-2 py-1">
-                    <span className="flex-1">{d.name}</span>
+                  <div key={d.id} className="flex items-center gap-2 py-1">
+                    <span className="min-w-0 flex-1 truncate">{d.name}</span>
                     <select
-                      className="field !p-1.5 text-sm"
+                      className="field !p-1.5 text-sm shrink-0"
                       value={source}
                       disabled={busy}
                       onChange={(e) => {
@@ -157,7 +157,7 @@ export function RoleCostumePanel({
                     </select>
                     {source === "shared" && (
                       <select
-                        className="field !p-1.5 text-sm"
+                        className="field !p-1.5 text-sm w-32 shrink-0 truncate"
                         value={sharedCastingId}
                         disabled={busy}
                         onChange={(e) => {
