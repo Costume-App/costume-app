@@ -5,11 +5,13 @@ import { assertProductionInOrg } from "@/lib/data/production-access";
 import { listRoles } from "@/lib/data/roles";
 import { listCasts } from "@/lib/data/casts";
 import { listCastings } from "@/lib/data/castings";
-import { listPerformers } from "@/lib/data/performers";
+import { listPerformers, getMeasurementsForPerformers } from "@/lib/data/performers";
+import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { listRoleImagesForRoles } from "@/lib/data/role-images";
 import { signRoleImageUrls } from "@/lib/storage";
+import { buildMeasurementsByCasting } from "@/lib/tailor-summary";
 import { NotFoundError } from "@/lib/errors";
 import { TailorSummary } from "@/components/TailorSummary";
 import type { RolePhoto } from "@/components/RolePhotoStrip";
@@ -48,6 +50,13 @@ export default async function TailorSummaryPage({
     (photosByRole[img.role_id] ??= []).push({ id: img.id, url: imageUrls[img.storage_path] ?? null });
   }
 
+  // Each performer's measurements (read-only reference), keyed by casting.
+  const [definitions, measurements] = await Promise.all([
+    listMeasurementDefinitions(),
+    getMeasurementsForPerformers(performers.map((p) => p.id)),
+  ]);
+  const measurementsByCasting = buildMeasurementsByCasting(definitions, measurements, castings);
+
   return (
     <main className="mx-auto max-w-2xl p-6">
       <Link href={`/productions/${id}`} className="link-muted text-sm">
@@ -74,6 +83,7 @@ export default async function TailorSummaryPage({
         casts={casts.map((c) => ({ id: c.id, name: c.name }))}
         initialPieces={pieces}
         photosByRole={photosByRole}
+        measurementsByCasting={measurementsByCasting}
       />
     </main>
   );

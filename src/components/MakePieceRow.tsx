@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { MakeItem, PieceRow } from "@/lib/tailor-summary";
+import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
   designId: string;
@@ -19,10 +19,12 @@ interface PiecePutBody {
 export function MakePieceRow({
   productionId,
   item,
+  measurements,
   onSaved,
 }: {
   productionId: string;
   item: MakeItem;
+  measurements: MeasurementView[];
   onSaved: (piece: PieceRow | null) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -110,14 +112,31 @@ export function MakePieceRow({
         {busy && <span className="text-xs muted">Saving…</span>}
       </div>
       {open && (
-        <div className="grid grid-cols-2 gap-2 px-3 pb-3 sm:grid-cols-3">
-          <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} />
-          <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} />
-          <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder={'e.g. 60"'} />
-          <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" />
-          <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" />
-          <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} />
-          {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
+        <div className="space-y-2 px-3 pb-3">
+          <div className="rounded-md bg-[var(--bg)] px-2 py-1.5">
+            <span className="lbl block">Measurements</span>
+            {measurements.length > 0 ? (
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
+                {measurements.map((m) => (
+                  <span key={m.label}>
+                    <span className="muted">{m.label}:</span> {m.value}
+                    {m.unit}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm muted">No measurements recorded yet.</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} />
+            <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} />
+            <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder={'e.g. 60"'} />
+            <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" />
+            <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" />
+            <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} />
+            {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
+          </div>
         </div>
       )}
     </li>

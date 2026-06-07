@@ -1,5 +1,34 @@
 import { expect, test } from "vitest";
-import { buildMakeWorklist, buildFabricPurchaseList, type PieceRow } from "@/lib/tailor-summary";
+import {
+  buildMakeWorklist,
+  buildFabricPurchaseList,
+  buildMeasurementsByCasting,
+  type PieceRow,
+} from "@/lib/tailor-summary";
+
+test("buildMeasurementsByCasting groups per casting and orders by definition", () => {
+  const defs = [
+    { key: "chest", label: "Chest", display_order: 1 },
+    { key: "waist", label: "Waist", display_order: 0 },
+  ];
+  const meas = [
+    { performer_id: "p1", measurement_key: "chest", value_numeric: 36, unit: "in" },
+    { performer_id: "p1", measurement_key: "waist", value_numeric: 30, unit: "in" },
+    { performer_id: "p2", measurement_key: "chest", value_numeric: 40, unit: "in" },
+  ];
+  const castings = [
+    { id: "c1", performer_id: "p1" },
+    { id: "c2", performer_id: "p2" },
+    { id: "c3", performer_id: "p3" }, // no measurements
+  ];
+  const map = buildMeasurementsByCasting(defs, meas, castings);
+  expect(map["c1"]).toEqual([
+    { label: "Waist", value: 30, unit: "in" },
+    { label: "Chest", value: 36, unit: "in" },
+  ]);
+  expect(map["c2"]).toEqual([{ label: "Chest", value: 40, unit: "in" }]);
+  expect(map["c3"]).toBeUndefined();
+});
 
 const roles = [
   { id: "r1", name: "Wizard", notes: "flowing" },

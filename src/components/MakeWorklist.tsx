@@ -3,7 +3,7 @@
 import { MakePieceRow } from "@/components/MakePieceRow";
 import { RolePhotoStrip, type RolePhoto } from "@/components/RolePhotoStrip";
 import { usePersistentState } from "@/lib/use-persistent-state";
-import type { Worklist, PieceRow } from "@/lib/tailor-summary";
+import type { Worklist, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 type WorklistRole = Worklist["roles"][number];
 
@@ -11,11 +11,13 @@ export function MakeWorklist({
   productionId,
   worklist,
   photosByRole,
+  measurementsByCasting,
   onSaved,
 }: {
   productionId: string;
   worklist: Worklist;
   photosByRole: Record<string, RolePhoto[]>;
+  measurementsByCasting: Record<string, MeasurementView[]>;
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   if (worklist.totalItems === 0) {
@@ -33,6 +35,7 @@ export function MakeWorklist({
           productionId={productionId}
           role={role}
           photos={photosByRole[role.roleId] ?? []}
+          measurementsByCasting={measurementsByCasting}
           onSaved={onSaved}
         />
       ))}
@@ -44,11 +47,13 @@ function RoleSection({
   productionId,
   role,
   photos,
+  measurementsByCasting,
   onSaved,
 }: {
   productionId: string;
   role: WorklistRole;
   photos: RolePhoto[];
+  measurementsByCasting: Record<string, MeasurementView[]>;
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   const [collapsed, setCollapsed] = usePersistentState<boolean>(
@@ -86,6 +91,7 @@ function RoleSection({
                     key={`${g.designId}:${item.castingId}`}
                     productionId={productionId}
                     item={item}
+                    measurements={measurementsByCasting[item.castingId] ?? []}
                     onSaved={(piece) => onSaved(g.designId, item.castingId, piece)}
                   />
                 ))}

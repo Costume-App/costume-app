@@ -74,6 +74,47 @@ interface CastingLike { id: string; cast_id: string; role_id: string; performer_
 interface PerformerLike { id: string; name: string }
 interface CastLike { id: string; name: string }
 
+export interface MeasurementView {
+  label: string;
+  value: number;
+  unit: string;
+}
+
+interface MeasurementDefLike { key: string; label: string; display_order: number }
+interface MeasurementRowLike { performer_id: string; measurement_key: string; value_numeric: number; unit: string }
+interface CastingPerformerLike { id: string; performer_id: string }
+
+// Map each casting to its performer's filled measurements, ordered by the
+// definition display order. Castings whose performer has no measurements are omitted.
+export function buildMeasurementsByCasting(
+  definitions: MeasurementDefLike[],
+  measurements: MeasurementRowLike[],
+  castings: CastingPerformerLike[],
+): Record<string, MeasurementView[]> {
+  const order = new Map(definitions.map((d) => [d.key, d.display_order]));
+  const label = new Map(definitions.map((d) => [d.key, d.label]));
+  const sorted = [...measurements].sort(
+    (a, b) => (order.get(a.measurement_key) ?? 999) - (order.get(b.measurement_key) ?? 999),
+  );
+  const byPerformer = new Map<string, MeasurementView[]>();
+  for (const m of sorted) {
+    const view: MeasurementView = {
+      label: label.get(m.measurement_key) ?? m.measurement_key,
+      value: m.value_numeric,
+      unit: m.unit,
+    };
+    const arr = byPerformer.get(m.performer_id) ?? [];
+    arr.push(view);
+    byPerformer.set(m.performer_id, arr);
+  }
+  const out: Record<string, MeasurementView[]> = {};
+  for (const c of castings) {
+    const views = byPerformer.get(c.performer_id);
+    if (views && views.length > 0) out[c.id] = views;
+  }
+  return out;
+}
+
 const EMPTY_FABRIC: Fabric = {
   type: null, color: null, width: null, supplier: null, yardage: null, unitCost: null,
 };

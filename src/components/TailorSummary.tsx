@@ -8,6 +8,7 @@ import {
   buildMakeWorklist,
   buildFabricPurchaseList,
   type PieceRow,
+  type MeasurementView,
 } from "@/lib/tailor-summary";
 import type { RolePhoto } from "@/components/RolePhotoStrip";
 
@@ -26,6 +27,7 @@ export function TailorSummary({
   casts,
   initialPieces,
   photosByRole,
+  measurementsByCasting,
 }: {
   productionId: string;
   roles: Role[];
@@ -35,6 +37,7 @@ export function TailorSummary({
   casts: Cast[];
   initialPieces: PieceRow[];
   photosByRole: Record<string, RolePhoto[]>;
+  measurementsByCasting: Record<string, MeasurementView[]>;
 }) {
   const [tab, setTab] = useState<"make" | "fabric">("make");
   const [pieces, setPieces] = useState<PieceRow[]>(initialPieces);
@@ -77,6 +80,7 @@ export function TailorSummary({
           productionId={productionId}
           worklist={worklist}
           photosByRole={photosByRole}
+          measurementsByCasting={measurementsByCasting}
           onSaved={applySaved}
         />
       ) : (
