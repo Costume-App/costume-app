@@ -78,6 +78,7 @@ export function RoleCard({
   // Shirt is filled when any piece for this role still needs making (source = make).
   const sources = resolvePieceSources(pieces);
   const roleDesigns = designs.filter((d) => d.role_id === role.id);
+  const hasPieces = roleDesigns.length > 0;
   const roleCastings = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
   const needsMake = roleCastings.some((c) =>
     roleDesigns.some((d) => (sources[pieceKey(c.id, d.id)]?.source ?? DEFAULT_SOURCE) === "make"),
@@ -191,7 +192,7 @@ export function RoleCard({
                 <span className="ml-auto flex items-center gap-1.5 text-xs muted">
                   {hasNotes && <NoteIcon />}
                   <MeasurementDot status={measureAgg} />
-                  <ShirtIcon filled={needsMake} />
+                  {hasPieces && <ShirtIcon filled={needsMake} />}
                   <span className="ml-0.5">{summary}</span>
                 </span>
               )}
