@@ -18,3 +18,40 @@ test("resolvePieceSources defaults missing rows to make", () => {
   expect(map[pieceKey("c1", "d1")]).toEqual({ source: "on_hand", sharedWithPieceId: null, sourceNote: "from closet" });
   expect(map[pieceKey("c1", "d2")]).toBeUndefined();
 });
+
+import { pieceRowIsEmpty } from "@/lib/costume-merge";
+
+const emptyInput = {
+  source: "make" as const,
+  sourceNote: null,
+  fabricType: null,
+  fabricColor: null,
+  fabricWidth: null,
+  fabricSupplier: null,
+  fabricYardage: null,
+  fabricUnitCost: null,
+  made: false,
+};
+
+test("pieceRowIsEmpty: bare make row with nothing set is empty", () => {
+  expect(pieceRowIsEmpty(emptyInput)).toBe(true);
+});
+
+test("pieceRowIsEmpty: non-make source is never empty", () => {
+  expect(pieceRowIsEmpty({ ...emptyInput, source: "on_hand" })).toBe(false);
+  expect(pieceRowIsEmpty({ ...emptyInput, source: "shared" })).toBe(false);
+});
+
+test("pieceRowIsEmpty: a note keeps the row", () => {
+  expect(pieceRowIsEmpty({ ...emptyInput, sourceNote: "from scratch" })).toBe(false);
+});
+
+test("pieceRowIsEmpty: any fabric field keeps the row", () => {
+  expect(pieceRowIsEmpty({ ...emptyInput, fabricType: "wool" })).toBe(false);
+  expect(pieceRowIsEmpty({ ...emptyInput, fabricYardage: 2 })).toBe(false);
+  expect(pieceRowIsEmpty({ ...emptyInput, fabricUnitCost: 0 })).toBe(false);
+});
+
+test("pieceRowIsEmpty: made keeps the row", () => {
+  expect(pieceRowIsEmpty({ ...emptyInput, made: true })).toBe(false);
+});

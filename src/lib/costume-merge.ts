@@ -40,3 +40,24 @@ export function pieceCountByRole(designs: DesignLike[]): Record<string, number> 
   for (const d of designs) counts[d.role_id] = (counts[d.role_id] ?? 0) + 1;
   return counts;
 }
+
+// True when a costume_pieces row carries no meaningful data and can be deleted
+// (the lazy default: absence of a row means "make"). Note must already be trimmed
+// to null when blank.
+export function pieceRowIsEmpty(input: {
+  source: "make" | "on_hand" | "shared";
+  sourceNote: string | null;
+  fabricType: string | null;
+  fabricColor: string | null;
+  fabricWidth: string | null;
+  fabricSupplier: string | null;
+  fabricYardage: number | null;
+  fabricUnitCost: number | null;
+  made: boolean;
+}): boolean {
+  const hasFabric =
+    !!(input.fabricType || input.fabricColor || input.fabricWidth || input.fabricSupplier) ||
+    input.fabricYardage != null ||
+    input.fabricUnitCost != null;
+  return input.source === "make" && !input.sourceNote && !hasFabric && !input.made;
+}
