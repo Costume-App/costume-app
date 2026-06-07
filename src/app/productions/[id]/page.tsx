@@ -96,7 +96,7 @@ export default async function ProductionDetailPage({
 
       {showDates.length > 0 && (
         <div className="mb-6">
-          <ShowingsList showings={showDates} />
+          <ShowingsList showings={showDates} collapsible />
         </div>
       )}
 
