@@ -99,26 +99,29 @@ export function RolePhotos({ productionId, roleId }: { productionId: string; rol
   return (
     <div className="space-y-1">
       <span className="lbl block">Photos</span>
-      <div className="flex flex-wrap items-center gap-2">
-        {images.map((img) => (
-          <div key={img.id} className="relative">
-            {img.url ? (
-              <button type="button" onClick={() => setEnlarged(img.url)} className="block">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt="Role reference" className="h-[72px] w-[72px] rounded object-cover" />
+      <div className="flex flex-wrap items-start gap-2">
+        {images.map((img, i) => (
+          <div key={img.id} className="flex flex-col items-center gap-0.5">
+            <div className="relative">
+              {img.url ? (
+                <button type="button" onClick={() => setEnlarged(img.url)} className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={`Role reference ${i + 1}`} className="h-[72px] w-[72px] rounded object-cover" />
+                </button>
+              ) : (
+                <div className="h-[72px] w-[72px] rounded bg-[var(--bg)]" />
+              )}
+              <button
+                type="button"
+                onClick={() => remove(img.id)}
+                disabled={busy}
+                aria-label={`Remove photo ${i + 1}`}
+                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--red)] text-xs leading-none text-[var(--red-fg)] disabled:opacity-50"
+              >
+                ×
               </button>
-            ) : (
-              <div className="h-[72px] w-[72px] rounded bg-[var(--bg)]" />
-            )}
-            <button
-              type="button"
-              onClick={() => remove(img.id)}
-              disabled={busy}
-              aria-label="Remove photo"
-              className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--red)] text-xs leading-none text-[var(--red-fg)] disabled:opacity-50"
-            >
-              ×
-            </button>
+            </div>
+            <span className="text-xs muted">#{i + 1}</span>
           </div>
         ))}
         {images.length < MAX_PER_ROLE && (
