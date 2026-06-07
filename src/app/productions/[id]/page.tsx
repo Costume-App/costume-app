@@ -11,8 +11,10 @@ import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate } from "@/lib/countdown";
+import { formatShowDate, nextUpcomingDate, todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
+import { listShowDates } from "@/lib/data/show-dates";
+import { EditableProductionHeader } from "@/components/EditableProductionHeader";
 import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 
 export default async function ProductionDetailPage({
@@ -31,13 +33,16 @@ export default async function ProductionDetailPage({
     throw err;
   }
 
-  const [casts, roles, castings, performers, definitions] = await Promise.all([
+  const [showDates, casts, roles, castings, performers, definitions] = await Promise.all([
+    listShowDates([id]),
     listCasts(id),
     listRoles(id),
     listCastings(id),
     listPerformers(id),
     listMeasurementDefinitions(),
   ]);
+
+  const nextUpcoming = nextUpcomingDate(showDates.map((d) => d.show_date), todayIso());
 
   // Per-performer measurement progress for the cast-list indicators.
   const filledCounts = await getFilledMeasurementCounts(performers.map((p) => p.id));
@@ -60,13 +65,15 @@ export default async function ProductionDetailPage({
         </Link>
         <DeleteProductionButton productionId={id} />
       </div>
-      <div className="mt-2 mb-6 flex items-end justify-between gap-3">
-        <h1 className="font-display text-3xl font-semibold leading-none">{production.title}</h1>
+      <div className="mt-2 mb-6 flex items-start justify-between gap-3">
+        <EditableProductionHeader
+          productionId={id}
+          title={production.title}
+          showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date }))}
+        />
         <div className="flex flex-col items-end gap-1">
-          {production.show_date && (
-            <span className="text-sm muted">{formatShowDate(production.show_date)}</span>
-          )}
-          <CountdownBadge showDate={production.show_date} />
+          {nextUpcoming && <span className="text-sm muted">{formatShowDate(nextUpcoming)}</span>}
+          <CountdownBadge showDate={nextUpcoming} />
         </div>
       </div>
 

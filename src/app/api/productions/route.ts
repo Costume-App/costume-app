@@ -3,6 +3,7 @@ import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { listProductions, createProduction } from "@/lib/data/productions";
 import { ensureOrganization } from "@/lib/data/organizations";
+import { addShowDate } from "@/lib/data/show-dates";
 
 export async function GET() {
   try {
@@ -28,9 +29,11 @@ export async function POST(request: Request) {
       orgId,
       createdBy: userId,
       title: typeof body.title === "string" ? body.title : "",
-      showDate: body.showDate ?? null,
       notes: body.notes ?? null,
     });
+    if (typeof body.showDate === "string" && body.showDate.trim()) {
+      await addShowDate(production.id, body.showDate);
+    }
     return NextResponse.json({ production }, { status: 201 });
   } catch (err) {
     return errorResponse(err);

@@ -53,3 +53,29 @@ test("formatShowDate renders a human-readable date with no timezone drift", () =
   expect(formatShowDate("2026-01-01")).toBe("Jan 1, 2026");
   expect(formatShowDate("2026-12-31")).toBe("Dec 31, 2026");
 });
+
+import { nextUpcomingDate, latestDate } from "@/lib/countdown";
+
+test("nextUpcomingDate returns the soonest date on or after today", () => {
+  expect(nextUpcomingDate(["2026-07-01", "2026-06-10", "2026-06-20"], "2026-06-15")).toBe("2026-06-20");
+});
+
+test("nextUpcomingDate treats today as upcoming", () => {
+  expect(nextUpcomingDate(["2026-06-15", "2026-08-01"], "2026-06-15")).toBe("2026-06-15");
+});
+
+test("nextUpcomingDate returns null when all dates are past", () => {
+  expect(nextUpcomingDate(["2026-01-01", "2026-02-01"], "2026-06-15")).toBeNull();
+});
+
+test("nextUpcomingDate returns null for an empty list", () => {
+  expect(nextUpcomingDate([], "2026-06-15")).toBeNull();
+});
+
+test("latestDate returns the maximum date", () => {
+  expect(latestDate(["2026-07-01", "2026-06-10", "2026-08-20"])).toBe("2026-08-20");
+});
+
+test("latestDate returns null for an empty list", () => {
+  expect(latestDate([])).toBeNull();
+});

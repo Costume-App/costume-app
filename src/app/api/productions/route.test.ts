@@ -19,10 +19,15 @@ vi.mock("@/lib/data/organizations", () => ({
   ensureOrganization: (...a: unknown[]) => ensureOrganization(...a),
 }));
 
+const addShowDate = vi.fn();
+vi.mock("@/lib/data/show-dates", () => ({
+  addShowDate: (...a: unknown[]) => addShowDate(...a),
+}));
+
 import { GET, POST } from "@/app/api/productions/route";
 
 beforeEach(() => {
-  [getAuthContext, listProductions, createProduction, ensureOrganization].forEach((m) => m.mockReset());
+  [getAuthContext, listProductions, createProduction, ensureOrganization, addShowDate].forEach((m) => m.mockReset());
 });
 
 function postReq(body: unknown) {
@@ -49,7 +54,7 @@ test("GET returns productions for the org", async () => {
   expect(listProductions).toHaveBeenCalledWith("org_1");
 });
 
-test("POST creates a production and returns 201", async () => {
+test("POST creates a production, stores the first show date, returns 201", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   const res = await POST(postReq({ title: "Newsies", showDate: "2026-11-01", orgName: "Lincoln HS" }));
@@ -59,9 +64,17 @@ test("POST creates a production and returns 201", async () => {
     orgId: "org_1",
     createdBy: "u1",
     title: "Newsies",
-    showDate: "2026-11-01",
     notes: null,
   });
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01");
+});
+
+test("POST does not add a show date when none is provided", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createProduction.mockResolvedValue({ id: "p3", title: "Cats" });
+  const res = await POST(postReq({ title: "Cats", showDate: null }));
+  expect(res.status).toBe(201);
+  expect(addShowDate).not.toHaveBeenCalled();
 });
 
 test("POST maps a ValidationError to 400", async () => {
@@ -99,7 +112,6 @@ test("POST coerces a non-string title to empty before calling the data layer", a
     orgId: "org_1",
     createdBy: "u1",
     title: "",
-    showDate: null,
     notes: null,
   });
 });
