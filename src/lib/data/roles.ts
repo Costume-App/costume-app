@@ -33,6 +33,21 @@ export async function createRole(input: { productionId: string; name: string }):
   return data as Role;
 }
 
+export async function updateRole(productionId: string, id: string, name: string): Promise<Role> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new ValidationError("Role name is required");
+  const { data, error } = await supabaseAdmin
+    .from("roles")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .eq("production_id", productionId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Role not found");
+  return data as Role;
+}
+
 export async function setRoleNotes(productionId: string, id: string, notes: string): Promise<Role> {
   const { data, error } = await supabaseAdmin
     .from("roles")

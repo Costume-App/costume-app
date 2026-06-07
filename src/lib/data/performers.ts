@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ValidationError } from "@/lib/errors";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 
 export interface Performer {
   id: string;
@@ -40,6 +40,20 @@ export async function createPerformer(input: {
     .select()
     .single();
   if (error) throw new Error(error.message);
+  return data as Performer;
+}
+
+export async function updatePerformer(id: string, label: string): Promise<Performer> {
+  const trimmed = label.trim();
+  if (!trimmed) throw new ValidationError("Name is required");
+  const { data, error } = await supabaseAdmin
+    .from("performers")
+    .update({ label: trimmed })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Performer not found");
   return data as Performer;
 }
 
