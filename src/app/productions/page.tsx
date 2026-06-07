@@ -3,8 +3,9 @@ import { UserButton } from "@clerk/nextjs";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { listProductions } from "@/lib/data/productions";
+import { listShowDates } from "@/lib/data/show-dates";
 import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate } from "@/lib/countdown";
+import { formatShowDate, nextUpcomingDate, todayIso } from "@/lib/countdown";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
@@ -19,6 +20,14 @@ export default async function ProductionsPage() {
     user?.username ||
     user?.emailAddresses?.[0]?.emailAddress ||
     "";
+
+  const allShowDates = await listShowDates(productions.map((p) => p.id));
+  const today = todayIso();
+  const nextByProduction = new Map<string, string | null>();
+  for (const p of productions) {
+    const dates = allShowDates.filter((d) => d.production_id === p.id).map((d) => d.show_date);
+    nextByProduction.set(p.id, nextUpcomingDate(dates, today));
+  }
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -49,8 +58,10 @@ export default async function ProductionsPage() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-display text-xl font-semibold">{p.title}</span>
                   <div className="flex items-center gap-2">
-                    {p.show_date && <span className="text-sm muted">{formatShowDate(p.show_date)}</span>}
-                    <CountdownBadge showDate={p.show_date} />
+                    {nextByProduction.get(p.id) && (
+                      <span className="text-sm muted">{formatShowDate(nextByProduction.get(p.id)!)}</span>
+                    )}
+                    <CountdownBadge showDate={nextByProduction.get(p.id) ?? null} />
                   </div>
                 </div>
               </Link>
