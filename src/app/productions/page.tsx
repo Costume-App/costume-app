@@ -5,7 +5,9 @@ import { getAuthContext } from "@/lib/auth-context";
 import { listProductions } from "@/lib/data/productions";
 import { listShowDates } from "@/lib/data/show-dates";
 import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate, nextUpcomingDate, todayIso } from "@/lib/countdown";
+import { PastAndInactiveProductions } from "@/components/PastAndInactiveProductions";
+import { formatShowDate, nextUpcomingDate, latestDate, todayIso } from "@/lib/countdown";
+import { partitionProductions } from "@/lib/production-status";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
@@ -23,11 +25,16 @@ export default async function ProductionsPage() {
 
   const allShowDates = await listShowDates(productions.map((p) => p.id));
   const today = todayIso();
-  const nextByProduction = new Map<string, string | null>();
-  for (const p of productions) {
-    const dates = allShowDates.filter((d) => d.production_id === p.id).map((d) => d.show_date);
-    nextByProduction.set(p.id, nextUpcomingDate(dates, today));
-  }
+  const withDates = productions.map((p) => ({
+    ...p,
+    dates: allShowDates.filter((d) => d.production_id === p.id).map((d) => d.show_date),
+  }));
+  const { active, inactive } = partitionProductions(withDates, today);
+  const pastAndInactive = inactive.map((p) => ({
+    id: p.id,
+    title: p.title,
+    displayDate: nextUpcomingDate(p.dates, today) ?? latestDate(p.dates),
+  }));
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -51,23 +58,29 @@ export default async function ProductionsPage() {
           No productions yet. Create your first show to get started.
         </p>
       ) : (
-        <ul className="space-y-3">
-          {productions.map((p) => (
-            <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
-              <Link href={`/productions/${p.id}`} className="block p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-display text-xl font-semibold">{p.title}</span>
-                  <div className="flex items-center gap-2">
-                    {nextByProduction.get(p.id) && (
-                      <span className="text-sm muted">{formatShowDate(nextByProduction.get(p.id)!)}</span>
-                    )}
-                    <CountdownBadge showDate={nextByProduction.get(p.id) ?? null} />
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          {active.length > 0 && (
+            <ul className="space-y-3">
+              {active.map((p) => {
+                const next = nextUpcomingDate(p.dates, today);
+                return (
+                  <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
+                    <Link href={`/productions/${p.id}`} className="block p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-display text-xl font-semibold">{p.title}</span>
+                        <div className="flex items-center gap-2">
+                          {next && <span className="text-sm muted">{formatShowDate(next)}</span>}
+                          <CountdownBadge showDate={next} />
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <PastAndInactiveProductions productions={pastAndInactive} />
+        </>
       )}
     </main>
   );
