@@ -225,7 +225,7 @@ function AddName({
     >
       <input
         autoFocus
-        className="field w-28 !p-1.5 text-sm"
+        className="field w-44 !p-1.5 text-sm"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={placeholder}
