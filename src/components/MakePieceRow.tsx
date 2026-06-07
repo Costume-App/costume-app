@@ -133,7 +133,7 @@ export function MakePieceRow({
             <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} placeholder="Fabric color" />
             <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
             <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" />
-            <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" placeholder="Price per yard" />
+            <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" prefix="$" placeholder="Per yard" />
             <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} placeholder="Where to buy" />
             {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
           </div>
@@ -150,6 +150,7 @@ function Field({
   onBlur,
   placeholder,
   inputMode,
+  prefix,
 }: {
   label: string;
   value: string;
@@ -157,18 +158,26 @@ function Field({
   onBlur: () => void;
   placeholder?: string;
   inputMode?: "decimal";
+  prefix?: string;
 }) {
   return (
     <label className="flex flex-col gap-0.5">
       <span className="lbl">{label}</span>
-      <input
-        className="field !p-1.5 text-sm"
-        value={value}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-      />
+      <div className="relative">
+        {prefix && (
+          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm muted">
+            {prefix}
+          </span>
+        )}
+        <input
+          className={`field !p-1.5 text-sm w-full ${prefix ? "!pl-5" : ""}`}
+          value={value}
+          inputMode={inputMode}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+        />
+      </div>
     </label>
   );
 }
