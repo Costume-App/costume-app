@@ -274,6 +274,7 @@ export function ProductionWorkspace({
               selectedCastId={selectedCastId}
               tint={tint}
               edge={edge}
+              setRoles={setRoles}
               performers={performers}
               setPerformers={setPerformers}
               castings={castings}
