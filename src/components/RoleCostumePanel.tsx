@@ -226,9 +226,9 @@ function PieceEditor({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   return (
-    <div className="mb-1">
+    <div className="mb-1 space-y-1">
+      <span className="lbl block">Pieces</span>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="lbl">Pieces</span>
         {designs.map((d) => (
           <span key={d.id} className="chip">
             {d.name}
