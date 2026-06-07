@@ -33,16 +33,16 @@ export default async function ProductionDetailPage({
     throw err;
   }
 
-  const showDates = await listShowDates([id]);
-  const nextUpcoming = nextUpcomingDate(showDates.map((d) => d.show_date), todayIso());
-
-  const [casts, roles, castings, performers, definitions] = await Promise.all([
+  const [showDates, casts, roles, castings, performers, definitions] = await Promise.all([
+    listShowDates([id]),
     listCasts(id),
     listRoles(id),
     listCastings(id),
     listPerformers(id),
     listMeasurementDefinitions(),
   ]);
+
+  const nextUpcoming = nextUpcomingDate(showDates.map((d) => d.show_date), todayIso());
 
   // Per-performer measurement progress for the cast-list indicators.
   const filledCounts = await getFilledMeasurementCounts(performers.map((p) => p.id));

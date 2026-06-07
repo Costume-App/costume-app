@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatShowDate } from "@/lib/countdown";
 
@@ -24,17 +24,24 @@ export function EditableProductionHeader({
   const [newDate, setNewDate] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Synchronous in-flight guard: state updates are async, so `busy` alone can't
+  // stop a blur and a Done-click that fire in the same tick from overlapping.
+  const inFlight = useRef(false);
 
   async function send(url: string, init: RequestInit, failMsg: string): Promise<boolean> {
+    if (inFlight.current) return false;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     const res = await fetch(url, { credentials: "include", ...init });
     if (!res.ok) {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? failMsg);
       setBusy(false);
+      inFlight.current = false;
       return false;
     }
     setBusy(false);
+    inFlight.current = false;
     router.refresh();
     return true;
   }
@@ -49,6 +56,10 @@ export function EditableProductionHeader({
 
   async function addDate() {
     if (!newDate) return;
+    if (showDates.some((d) => d.show_date === newDate)) {
+      setError("That date is already added.");
+      return;
+    }
     const ok = await send(
       `/api/productions/${productionId}/show-dates`,
       { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ date: newDate }) },
