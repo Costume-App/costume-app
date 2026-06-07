@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { RolePhotos } from "@/components/RolePhotos";
 
 export function RoleNotesPanel({
   productionId,
@@ -43,28 +44,31 @@ export function RoleNotesPanel({
   }
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between gap-3">
-        <span className="lbl">Notes</span>
-        {busy ? (
-          <span className="text-xs muted">Saving…</span>
-        ) : error ? (
-          <span className="text-xs text-[var(--red)]">{error}</span>
-        ) : saved ? (
-          <span className="text-xs muted">Saved</span>
-        ) : null}
+    <div className="space-y-3">
+      <RolePhotos productionId={productionId} roleId={roleId} />
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-3">
+          <span className="lbl">Notes</span>
+          {busy ? (
+            <span className="text-xs muted">Saving…</span>
+          ) : error ? (
+            <span className="text-xs text-[var(--red)]">{error}</span>
+          ) : saved ? (
+            <span className="text-xs muted">Saved</span>
+          ) : null}
+        </div>
+        <textarea
+          className="field w-full"
+          rows={4}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setSaved(false);
+          }}
+          onBlur={save}
+          placeholder="Notes about this role's costume…"
+        />
       </div>
-      <textarea
-        className="field w-full"
-        rows={4}
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setSaved(false);
-        }}
-        onBlur={save}
-        placeholder="Notes about this role's costume…"
-      />
     </div>
   );
 }
