@@ -5,6 +5,7 @@ export interface ShowDate {
   id: string;
   production_id: string;
   show_date: string;
+  show_time: string | null;
   created_at: string;
 }
 
@@ -14,17 +15,18 @@ export async function listShowDates(productionIds: string[]): Promise<ShowDate[]
     .from("show_dates")
     .select("*")
     .in("production_id", productionIds)
-    .order("show_date", { ascending: true });
+    .order("show_date", { ascending: true })
+    .order("show_time", { ascending: true, nullsFirst: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as ShowDate[];
 }
 
-export async function addShowDate(productionId: string, date: string): Promise<ShowDate> {
+export async function addShowDate(productionId: string, date: string, time: string | null): Promise<ShowDate> {
   const show_date = date.trim();
   if (!show_date) throw new ValidationError("Show date is required");
   const { data, error } = await supabaseAdmin
     .from("show_dates")
-    .insert({ production_id: productionId, show_date })
+    .insert({ production_id: productionId, show_date, show_time: time || null })
     .select()
     .single();
   if (error) throw new Error(error.message);
