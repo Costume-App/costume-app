@@ -12,6 +12,12 @@ export function DeleteProductionButton({ productionId }: { productionId: string 
 
   const canDelete = confirmText.trim().toLowerCase() === "delete";
 
+  function close() {
+    setOpen(false);
+    setConfirmText("");
+    setError(null);
+  }
+
   async function handleDelete() {
     if (!canDelete) return;
     setBusy(true);
@@ -30,55 +36,55 @@ export function DeleteProductionButton({ productionId }: { productionId: string 
     setBusy(false);
   }
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="link-muted text-sm">
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => (open ? close() : setOpen(true))}
+        className="link-muted text-sm"
+      >
         Delete production
       </button>
-    );
-  }
-
-  return (
-    <div className="surface mt-4 space-y-3 p-4">
-      <p className="text-sm">
-        Deleting removes this production <strong>and all its cast, roles, castings, costume
-        designs, and pieces</strong>. This can&apos;t be undone.
-      </p>
-      <label className="block">
-        <span className="lbl mb-1 block">
-          Type <code>delete</code> to confirm
-        </span>
-        <input
-          className="field w-full"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          placeholder="delete"
-          autoFocus
-        />
-      </label>
-      {error && <p className="text-[var(--red)] text-sm">{error}</p>}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={!canDelete || busy}
-          className="btn-primary"
-        >
-          {busy ? "Deleting…" : "Delete permanently"}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            setConfirmText("");
-            setError(null);
-          }}
-          disabled={busy}
-          className="link-muted text-sm"
-        >
-          Never mind
-        </button>
-      </div>
+      {open && (
+        <div className="surface absolute right-0 z-20 mt-2 w-80 space-y-3 p-4 text-left">
+          <p id="delete-warning" className="text-sm">
+            Deleting removes this production <strong>and all its cast, roles, castings, costume
+            designs, and pieces</strong>. This can&apos;t be undone.
+          </p>
+          <label className="block">
+            <span className="lbl mb-1 block">
+              Type <code>delete</code> to confirm
+            </span>
+            <input
+              className="field w-full"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="delete"
+              aria-describedby="delete-warning"
+              autoFocus
+            />
+          </label>
+          {error && <p className="text-[var(--red)] text-sm">{error}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={!canDelete || busy}
+              className="btn-primary"
+            >
+              {busy ? "Deleting…" : "Delete permanently"}
+            </button>
+            <button
+              type="button"
+              onClick={close}
+              disabled={busy}
+              className="link-muted text-sm"
+            >
+              Never mind
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
