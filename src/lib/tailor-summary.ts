@@ -25,6 +25,7 @@ export interface Fabric {
 export interface MakeItem {
   designId: string;
   castingId: string;
+  performerId: string;
   performerName: string;
   castName: string;
   assignment: "primary" | "understudy";
@@ -168,6 +169,7 @@ export function buildMakeWorklist(
         items.push({
           designId: design.id,
           castingId: casting.id,
+          performerId: casting.performer_id,
           performerName: performerName.get(casting.performer_id) ?? "—",
           castName: castName.get(casting.cast_id) ?? "—",
           assignment: casting.assignment,

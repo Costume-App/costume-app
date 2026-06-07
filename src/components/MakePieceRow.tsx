@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
@@ -114,7 +115,12 @@ export function MakePieceRow({
       {open && (
         <div className="space-y-2 px-3 pb-3">
           <div className="rounded-md bg-[var(--bg)] px-2 py-1.5">
-            <span className="lbl block">Measurements</span>
+            <Link
+              href={`/productions/${productionId}/performers/${item.performerId}`}
+              className="lbl inline-flex items-center gap-1 hover:text-[var(--red)] hover:underline"
+            >
+              Measurements <span aria-hidden>↗</span>
+            </Link>
             {measurements.length > 0 ? (
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
                 {measurements.map((m) => (
@@ -125,7 +131,7 @@ export function MakePieceRow({
                 ))}
               </div>
             ) : (
-              <p className="text-sm muted">No measurements recorded yet.</p>
+              <p className="text-sm muted">No measurements recorded yet — click to add.</p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
