@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
@@ -28,7 +29,11 @@ export function MakePieceRow({
   measurements: MeasurementView[];
   onSaved: (piece: PieceRow | null) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // Persist per piece so the card stays open after a trip to the measurements page.
+  const [open, setOpen] = usePersistentState<boolean>(
+    `nada:prod:${productionId}:summary:piece:${item.designId}:${item.castingId}:open`,
+    false,
+  );
   const [made, setMade] = useState(item.made);
   const [type, setType] = useState(item.fabric.type ?? "");
   const [color, setColor] = useState(item.fabric.color ?? "");
