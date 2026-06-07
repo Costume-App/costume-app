@@ -129,12 +129,12 @@ export function MakePieceRow({
             )}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} />
-            <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} />
-            <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder={'e.g. 60"'} />
-            <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" />
-            <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" />
-            <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} />
+            <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} placeholder="Type" />
+            <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} placeholder="Fabric color" />
+            <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
+            <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" />
+            <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" placeholder="Price per yard" />
+            <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} placeholder="Where to buy" />
             {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
           </div>
         </div>
