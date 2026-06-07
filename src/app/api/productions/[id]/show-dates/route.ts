@@ -11,8 +11,12 @@ export async function POST(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { date?: string };
-    const showDate = await addShowDate(id, typeof body.date === "string" ? body.date : "");
+    const body = (await request.json()) as { date?: string; time?: string };
+    const showDate = await addShowDate(
+      id,
+      typeof body.date === "string" ? body.date : "",
+      typeof body.time === "string" ? body.time : null,
+    );
     return NextResponse.json({ showDate }, { status: 201 });
   } catch (err) {
     return errorResponse(err);

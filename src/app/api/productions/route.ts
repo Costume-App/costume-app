@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       notes: body.notes ?? null,
     });
     if (typeof body.showDate === "string" && body.showDate.trim()) {
-      await addShowDate(production.id, body.showDate);
+      await addShowDate(production.id, body.showDate, null);
     }
     return NextResponse.json({ production }, { status: 201 });
   } catch (err) {

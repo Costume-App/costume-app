@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { countdown, todayIso, formatShowDate } from "@/lib/countdown";
+import { countdown, todayIso, formatShowDate, formatShowTime } from "@/lib/countdown";
 
 test("future date shows days to go", () => {
   expect(countdown("2026-07-16", "2026-06-04")).toEqual({
@@ -48,10 +48,20 @@ test("todayIso formats a Date as local YYYY-MM-DD", () => {
   expect(todayIso(new Date(2026, 0, 9))).toBe("2026-01-09");
 });
 
-test("formatShowDate renders a human-readable date with no timezone drift", () => {
-  expect(formatShowDate("2026-07-16")).toBe("Jul 16, 2026");
-  expect(formatShowDate("2026-01-01")).toBe("Jan 1, 2026");
-  expect(formatShowDate("2026-12-31")).toBe("Dec 31, 2026");
+test("formatShowDate renders weekday + human-readable date with no timezone drift", () => {
+  expect(formatShowDate("2026-07-16")).toBe("Thu, Jul 16, 2026");
+  expect(formatShowDate("2026-01-01")).toBe("Thu, Jan 1, 2026");
+  expect(formatShowDate("2026-12-31")).toBe("Thu, Dec 31, 2026");
+  expect(formatShowDate("2026-06-13")).toBe("Sat, Jun 13, 2026");
+});
+
+test("formatShowTime renders 12-hour times and handles seconds + empty", () => {
+  expect(formatShowTime("14:00")).toBe("2:00 PM");
+  expect(formatShowTime("09:30")).toBe("9:30 AM");
+  expect(formatShowTime("00:00")).toBe("12:00 AM");
+  expect(formatShowTime("12:00")).toBe("12:00 PM");
+  expect(formatShowTime("14:00:00")).toBe("2:00 PM");
+  expect(formatShowTime("")).toBe("");
 });
 
 import { nextUpcomingDate, latestDate } from "@/lib/countdown";

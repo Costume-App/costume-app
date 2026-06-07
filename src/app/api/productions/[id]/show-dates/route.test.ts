@@ -32,12 +32,18 @@ const req = (body: unknown) =>
     body: JSON.stringify(body),
   });
 
-test("POST adds a show date (201)", async () => {
-  addShowDate.mockResolvedValue({ id: "s1", production_id: "p1", show_date: "2026-08-01" });
-  const res = await POST(req({ date: "2026-08-01" }), ctx("p1"));
+test("POST adds a show date with time (201)", async () => {
+  addShowDate.mockResolvedValue({ id: "s1", production_id: "p1", show_date: "2026-08-01", show_time: "14:00:00" });
+  const res = await POST(req({ date: "2026-08-01", time: "14:00" }), ctx("p1"));
   expect(res.status).toBe(201);
-  expect(await res.json()).toEqual({ showDate: { id: "s1", production_id: "p1", show_date: "2026-08-01" } });
-  expect(addShowDate).toHaveBeenCalledWith("p1", "2026-08-01");
+  expect(addShowDate).toHaveBeenCalledWith("p1", "2026-08-01", "14:00");
+});
+
+test("POST defaults time to null when omitted", async () => {
+  addShowDate.mockResolvedValue({ id: "s4", production_id: "p1", show_date: "2026-08-02", show_time: null });
+  const res = await POST(req({ date: "2026-08-02" }), ctx("p1"));
+  expect(res.status).toBe(201);
+  expect(addShowDate).toHaveBeenCalledWith("p1", "2026-08-02", null);
 });
 
 test("POST 400 on an empty date", async () => {

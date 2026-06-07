@@ -66,7 +66,7 @@ test("POST creates a production, stores the first show date, returns 201", async
     title: "Newsies",
     notes: null,
   });
-  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01");
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null);
 });
 
 test("POST does not add a show date when none is provided", async () => {

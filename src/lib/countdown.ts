@@ -34,10 +34,25 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-// Render a YYYY-MM-DD date as e.g. "Jul 16, 2026" (date-only, no timezone drift).
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Render a YYYY-MM-DD date as e.g. "Sat, Jun 13, 2026" (date-only, no timezone drift).
 export function formatShowDate(isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
-  return `${MONTHS[m - 1]} ${d}, ${y}`;
+  const weekday = DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${weekday}, ${MONTHS[m - 1]} ${d}, ${y}`;
+}
+
+// Render an "HH:MM" or "HH:MM:SS" time as e.g. "2:00 PM"; "" for empty/invalid.
+export function formatShowTime(time: string): string {
+  const parts = time.split(":");
+  if (parts.length < 2) return "";
+  const h = Number(parts[0]);
+  const minutes = parts[1];
+  if (Number.isNaN(h)) return "";
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${minutes} ${period}`;
 }
 
 // Today's date as YYYY-MM-DD in the user's local timezone.

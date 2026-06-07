@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatShowDate, latestDate, todayIso } from "@/lib/countdown";
+import { formatShowDate, formatShowTime, latestDate, todayIso } from "@/lib/countdown";
 import { ToggleProductionActiveButton } from "@/components/ToggleProductionActiveButton";
 
 interface ShowDateItem {
   id: string;
   show_date: string;
+  show_time: string | null;
 }
 
 export function EditableProductionHeader({
@@ -25,6 +26,7 @@ export function EditableProductionHeader({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(title);
   const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Synchronous in-flight guard: state updates are async, so `busy` alone can't
@@ -59,16 +61,26 @@ export function EditableProductionHeader({
 
   async function addDate() {
     if (!newDate) return;
-    if (showDates.some((d) => d.show_date === newDate)) {
-      setError("That date is already added.");
+    const dup = showDates.some(
+      (d) => d.show_date === newDate && (d.show_time ?? "").slice(0, 5) === newTime,
+    );
+    if (dup) {
+      setError("That showing is already added.");
       return;
     }
     const ok = await send(
       `/api/productions/${productionId}/show-dates`,
-      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ date: newDate }) },
-      "Couldn't add date",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ date: newDate, time: newTime || null }),
+      },
+      "Couldn't add showing",
     );
-    if (ok) setNewDate("");
+    if (ok) {
+      setNewDate("");
+      setNewTime("");
+    }
   }
 
   function removeDate(dateId: string) {
@@ -84,12 +96,16 @@ export function EditableProductionHeader({
 
   if (!editing) {
     return (
-      <div>
-        <h1 className="font-display text-3xl font-semibold leading-none">{title}</h1>
-        <button type="button" onClick={() => setEditing(true)} className="link-muted mt-1 text-sm">
-          Edit
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="block text-left"
+        title="Edit production"
+      >
+        <h1 className="font-display text-3xl font-semibold leading-none hover:text-[var(--red)]">
+          {title}
+        </h1>
+      </button>
     );
   }
 
@@ -105,11 +121,14 @@ export function EditableProductionHeader({
         />
       </label>
       <div className="space-y-2">
-        <span className="lbl block">Show dates</span>
-        {showDates.length === 0 && <p className="text-sm muted">No dates yet.</p>}
+        <span className="lbl block">Showings</span>
+        {showDates.length === 0 && <p className="text-sm muted">No showings yet.</p>}
         {showDates.map((d) => (
           <div key={d.id} className="flex items-center justify-between gap-3">
-            <span className="text-sm">{formatShowDate(d.show_date)}</span>
+            <span className="text-sm">
+              {formatShowDate(d.show_date)}
+              {d.show_time ? ` · ${formatShowTime(d.show_time)}` : ""}
+            </span>
             <button type="button" onClick={() => removeDate(d.id)} disabled={busy} className="link-muted text-sm">
               Remove
             </button>
@@ -122,8 +141,15 @@ export function EditableProductionHeader({
             value={newDate}
             onChange={(e) => setNewDate(e.target.value)}
           />
+          <input
+            type="time"
+            className="field w-32 shrink-0"
+            value={newTime}
+            onChange={(e) => setNewTime(e.target.value)}
+            aria-label="Showing time (optional)"
+          />
           <button type="button" onClick={addDate} disabled={busy || !newDate} className="btn-ghost text-sm">
-            Add date
+            Add
           </button>
         </div>
       </div>
@@ -140,6 +166,7 @@ export function EditableProductionHeader({
             setEditing(false);
             setName(title);
             setNewDate("");
+            setNewTime("");
             setError(null);
           }}
           disabled={busy}
