@@ -192,7 +192,7 @@ export function RoleCard({
                 <span className="ml-auto flex items-center gap-1.5 text-xs muted">
                   {hasNotes && <NoteIcon />}
                   <MeasurementDot status={measureAgg} />
-                  {hasPieces && <ShirtIcon filled={needsMake} />}
+                  {hasPieces && <ShirtIcon done={!needsMake} />}
                   <span className="ml-0.5">{summary}</span>
                 </span>
               )}
@@ -313,22 +313,23 @@ function NoteIcon() {
   );
 }
 
-function ShirtIcon({ filled }: { filled: boolean }) {
-  // A short-sleeved shirt with a square collar notch. Filled = pieces still to make.
+function ShirtIcon({ done }: { done: boolean }) {
+  // A short-sleeved shirt with a square collar notch.
+  // Filled = nothing left to make; outline = pieces still to make.
   return (
     <svg
       width="14"
       height="14"
       viewBox="0 0 24 24"
-      fill={filled ? "var(--red)" : "none"}
-      stroke={filled ? "var(--red)" : "currentColor"}
+      fill={done ? "var(--red)" : "none"}
+      stroke={done ? "var(--red)" : "currentColor"}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       role="img"
-      aria-label={filled ? "Pieces to make" : "No pieces to make"}
+      aria-label={done ? "All pieces sourced" : "Pieces to make"}
     >
-      <title>{filled ? "Pieces to make" : "No pieces to make"}</title>
+      <title>{done ? "All pieces sourced" : "Pieces to make"}</title>
       <path d="M3 7L6 10L8 9V20H16V9L18 10L21 7L17 4H15V7H9V4H7Z" />
     </svg>
   );
