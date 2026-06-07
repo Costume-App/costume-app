@@ -23,8 +23,8 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
               <th className="pb-1 font-normal">Fabric</th>
               <th className="pb-1 font-normal">Color</th>
               <th className="pb-1 font-normal">Width</th>
-              <th className="pb-1 text-right font-normal">Yards</th>
-              <th className="pb-1 text-right font-normal">Est. $</th>
+              <th className="pb-1 pr-4 text-right font-normal">Yards</th>
+              <th className="pb-1 pr-6 text-right font-normal">Est. $</th>
               <th className="pb-1 font-normal">Supplier</th>
             </tr>
           </thead>
@@ -34,8 +34,8 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
                 <td className="py-1.5">{l.type}</td>
                 <td className="py-1.5">{l.color ?? "—"}</td>
                 <td className="py-1.5">{l.width ?? "—"}</td>
-                <td className="py-1.5 text-right">{formatYards(l.totalYardage)}</td>
-                <td className="py-1.5 text-right">{l.estCost > 0 ? `$${l.estCost.toFixed(2)}` : "—"}</td>
+                <td className="py-1.5 pr-4 text-right">{formatYards(l.totalYardage)}</td>
+                <td className="py-1.5 pr-6 text-right">{l.estCost > 0 ? `$${l.estCost.toFixed(2)}` : "—"}</td>
                 <td className="py-1.5">{l.supplier ?? "—"}</td>
               </tr>
             ))}
@@ -45,8 +45,8 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
               <td className="py-1.5" colSpan={3}>
                 Total
               </td>
-              <td className="py-1.5 text-right">{formatYards(purchase.totalYardage)}</td>
-              <td className="py-1.5 text-right">
+              <td className="py-1.5 pr-4 text-right">{formatYards(purchase.totalYardage)}</td>
+              <td className="py-1.5 pr-6 text-right">
                 {purchase.totalCost > 0 ? `$${purchase.totalCost.toFixed(2)}` : "—"}
               </td>
               <td />
