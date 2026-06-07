@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { aggregateMeasureStatus } from "@/lib/measurement-aggregate";
+import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
+import { DEFAULT_SOURCE } from "@/lib/costume-sources";
 import { MeasurementDot } from "@/components/MeasurementDot";
 import { Tabs } from "@/components/Tabs";
 import { RoleNotesPanel } from "@/components/RoleNotesPanel";
@@ -73,7 +75,13 @@ export function RoleCard({
       .map((c) => measurementStatus[c.performerId] ?? "none"),
   );
   const hasNotes = !!role.notes && role.notes.trim().length > 0;
-  const hasPieces = designs.some((d) => d.role_id === role.id);
+  // Shirt is filled when any piece for this role still needs making (source = make).
+  const sources = resolvePieceSources(pieces);
+  const roleDesigns = designs.filter((d) => d.role_id === role.id);
+  const roleCastings = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
+  const needsMake = roleCastings.some((c) =>
+    roleDesigns.some((d) => (sources[pieceKey(c.id, d.id)]?.source ?? DEFAULT_SOURCE) === "make"),
+  );
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -183,7 +191,7 @@ export function RoleCard({
                 <span className="ml-auto flex items-center gap-1.5 text-xs muted">
                   {hasNotes && <NoteIcon />}
                   <MeasurementDot status={measureAgg} />
-                  {hasPieces && <ShirtIcon />}
+                  <ShirtIcon filled={needsMake} />
                   <span className="ml-0.5">{summary}</span>
                 </span>
               )}
@@ -304,22 +312,22 @@ function NoteIcon() {
   );
 }
 
-function ShirtIcon() {
-  // A short-sleeved shirt with a square collar notch.
+function ShirtIcon({ filled }: { filled: boolean }) {
+  // A short-sleeved shirt with a square collar notch. Filled = pieces still to make.
   return (
     <svg
       width="14"
       height="14"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
+      fill={filled ? "var(--red)" : "none"}
+      stroke={filled ? "var(--red)" : "currentColor"}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       role="img"
-      aria-label="Has costume pieces"
+      aria-label={filled ? "Pieces to make" : "No pieces to make"}
     >
-      <title>Has costume pieces</title>
+      <title>{filled ? "Pieces to make" : "No pieces to make"}</title>
       <path d="M3 7L6 10L8 9V20H16V9L18 10L21 7L17 4H15V7H9V4H7Z" />
     </svg>
   );
