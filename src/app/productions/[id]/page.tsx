@@ -69,14 +69,14 @@ export default async function ProductionDetailPage({
       <Link href="/productions" className="link-muted text-sm">
         ← Productions
       </Link>
-      <div className="mt-2 mb-6 flex items-start justify-between gap-3">
+      <div className="mt-2 mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <EditableProductionHeader
           productionId={id}
           title={production.title}
           showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date, show_time: d.show_time }))}
           isActive={production.is_active}
         />
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-start gap-1 sm:items-end">
           {statusLabel && (
             <span className="inline-flex items-center rounded-full border border-[var(--field-line)] px-2.5 py-0.5 text-xs muted">
               {statusLabel}

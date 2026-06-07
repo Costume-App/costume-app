@@ -134,10 +134,10 @@ export function EditableProductionHeader({
             </button>
           </div>
         ))}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
-            className="field flex-1"
+            className="field min-w-0 flex-1"
             value={newDate}
             onChange={(e) => setNewDate(e.target.value)}
           />
