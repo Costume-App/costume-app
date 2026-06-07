@@ -64,11 +64,11 @@ function RoleSection({
   const made = items.filter((i) => i.made).length;
 
   return (
-    <section className="space-y-2">
+    <section className="surface overflow-hidden p-0">
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center gap-2 text-left"
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
       >
         <span className="text-sm text-[var(--muted)]">{collapsed ? "▸" : "▾"}</span>
         <h3 className="font-display text-lg font-semibold">{role.roleName}</h3>
@@ -77,7 +77,7 @@ function RoleSection({
         </span>
       </button>
       {!collapsed && (
-        <>
+        <div className="space-y-2 border-t border-[var(--field-line)] px-3 pb-3 pt-2">
           {role.notes && role.notes.trim() && (
             <p className="whitespace-pre-wrap text-sm muted">{role.notes}</p>
           )}
@@ -98,7 +98,7 @@ function RoleSection({
               </ul>
             </div>
           ))}
-        </>
+        </div>
       )}
     </section>
   );
