@@ -142,7 +142,7 @@ export function MakePieceRow({
             )}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} placeholder="Type" />
+            <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} placeholder="Name/Type/Description" />
             <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} placeholder="Fabric color" />
             <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
             <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" />
