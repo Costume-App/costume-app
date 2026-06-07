@@ -183,7 +183,7 @@ export function RoleCard({
                 <span className="ml-auto flex items-center gap-1.5 text-xs muted">
                   {hasNotes && <NoteIcon />}
                   <MeasurementDot status={measureAgg} />
-                  {hasPieces && <HangerIcon />}
+                  {hasPieces && <CoatIcon />}
                   <span className="ml-0.5">{summary}</span>
                 </span>
               )}
@@ -304,7 +304,7 @@ function NoteIcon() {
   );
 }
 
-function HangerIcon() {
+function CoatIcon() {
   return (
     <svg
       width="14"
@@ -319,8 +319,9 @@ function HangerIcon() {
       aria-label="Has costume pieces"
     >
       <title>Has costume pieces</title>
-      <path d="M12 8a2 2 0 1 1 2 2c-1.1 0-2 .9-2 2" />
-      <path d="M12 12 4 17.5h16L12 12Z" />
+      <path d="M8 3 4 6 6 11 8 10V20H16V10L18 11 20 6 16 3" />
+      <path d="M8 3 12 6 16 3" />
+      <path d="M12 6V20" />
     </svg>
   );
 }
