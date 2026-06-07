@@ -9,6 +9,7 @@ import {
   DEFAULT_CAST_COLOR,
 } from "@/lib/cast-colors";
 import { RoleCard } from "@/components/RoleCard";
+import { RoleIconLegend } from "@/components/RoleIconLegend";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
@@ -266,6 +267,9 @@ export function ProductionWorkspace({
         </p>
       ) : (
         <ul className="space-y-3">
+          <li>
+            <RoleIconLegend />
+          </li>
           {roles.map((r) => (
             <RoleCard
               key={r.id}
