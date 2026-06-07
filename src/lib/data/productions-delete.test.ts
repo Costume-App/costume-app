@@ -5,7 +5,7 @@ const eqId = vi.fn(() => ({ eq: eqOrg }));
 const del = vi.fn(() => ({ eq: eqId }));
 const from = vi.fn((_table: string) => ({ delete: del }));
 
-vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (t: string) => from(t) } }));
+vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) => from(table) } }));
 
 import { deleteProduction } from "@/lib/data/productions";
 
