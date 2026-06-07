@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatShowDate, formatShowTime, latestDate, todayIso } from "@/lib/countdown";
+import { latestDate, todayIso } from "@/lib/countdown";
 import { ToggleProductionActiveButton } from "@/components/ToggleProductionActiveButton";
 
 interface ShowDateItem {
@@ -91,6 +91,14 @@ export function EditableProductionHeader({
     );
   }
 
+  function saveShowing(dateId: string, patch: { date?: string; time?: string }) {
+    return send(
+      `/api/productions/${productionId}/show-dates/${dateId}`,
+      { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) },
+      "Couldn't save showing",
+    );
+  }
+
   const last = latestDate(showDates.map((d) => d.show_date));
   const isPast = last !== null && last < todayIso();
 
@@ -124,11 +132,21 @@ export function EditableProductionHeader({
         <span className="lbl block">Showings</span>
         {showDates.length === 0 && <p className="text-sm muted">No showings yet.</p>}
         {showDates.map((d) => (
-          <div key={d.id} className="flex items-center justify-between gap-3">
-            <span className="text-sm">
-              {formatShowDate(d.show_date)}
-              {d.show_time ? ` · ${formatShowTime(d.show_time)}` : ""}
-            </span>
+          <div key={d.id} className="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              className="field min-w-0 flex-1"
+              defaultValue={d.show_date}
+              onChange={(e) => e.target.value && saveShowing(d.id, { date: e.target.value })}
+              aria-label="Showing date"
+            />
+            <input
+              type="time"
+              className="field w-32 shrink-0"
+              defaultValue={(d.show_time ?? "").slice(0, 5)}
+              onChange={(e) => saveShowing(d.id, { time: e.target.value })}
+              aria-label="Showing time"
+            />
             <button type="button" onClick={() => removeDate(d.id)} disabled={busy} className="link-muted text-sm">
               Remove
             </button>

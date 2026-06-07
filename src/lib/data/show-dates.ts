@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ValidationError } from "@/lib/errors";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 
 export interface ShowDate {
   id: string;
@@ -30,6 +30,32 @@ export async function addShowDate(productionId: string, date: string, time: stri
     .select()
     .single();
   if (error) throw new Error(error.message);
+  return data as ShowDate;
+}
+
+export async function updateShowDate(
+  productionId: string,
+  id: string,
+  patch: { show_date?: string; show_time?: string | null },
+): Promise<ShowDate> {
+  const update: { show_date?: string; show_time?: string | null } = {};
+  if (patch.show_date !== undefined) {
+    const trimmed = patch.show_date.trim();
+    if (!trimmed) throw new ValidationError("Show date is required");
+    update.show_date = trimmed;
+  }
+  if (patch.show_time !== undefined) {
+    update.show_time = patch.show_time || null;
+  }
+  const { data, error } = await supabaseAdmin
+    .from("show_dates")
+    .update(update)
+    .eq("id", id)
+    .eq("production_id", productionId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Showing not found");
   return data as ShowDate;
 }
 
