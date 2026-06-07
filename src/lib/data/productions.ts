@@ -7,6 +7,7 @@ export interface Production {
   created_by: string;
   title: string;
   notes: string | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +67,19 @@ export async function updateProduction(orgId: string, id: string, title: string)
   const { data, error } = await supabaseAdmin
     .from("productions")
     .update({ title: trimmed })
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Production not found");
+  return data as Production;
+}
+
+export async function setProductionActive(orgId: string, id: string, isActive: boolean): Promise<Production> {
+  const { data, error } = await supabaseAdmin
+    .from("productions")
+    .update({ is_active: isActive })
     .eq("id", id)
     .eq("org_id", orgId)
     .select()
