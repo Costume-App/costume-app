@@ -103,8 +103,16 @@ export default async function ProductionDetailPage({
         </div>
       )}
 
-      <div className="mb-6">
-        <ProductionNotes productionId={id} notes={production.notes} />
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <ProductionNotes productionId={id} notes={production.notes} />
+        </div>
+        <Link
+          href={`/productions/${id}/summary`}
+          className="link-muted shrink-0 whitespace-nowrap text-sm"
+        >
+          Tailor's summary →
+        </Link>
       </div>
 
       <ProductionWorkspace
