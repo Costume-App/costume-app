@@ -7,10 +7,15 @@ export function RoleNotesPanel({
   productionId,
   roleId,
   notes,
+  onSaved,
 }: {
   productionId: string;
   roleId: string;
   notes: string | null;
+  // Lift the saved value up so the parent `roles` state stays in sync. Without
+  // this, the panel's local text is lost whenever it remounts (tab switch,
+  // collapse/reopen) because it re-seeds from the now-stale `notes` prop.
+  onSaved: (notes: string) => void;
 }) {
   const [value, setValue] = useState(notes ?? "");
   const [busy, setBusy] = useState(false);
@@ -38,6 +43,7 @@ export function RoleNotesPanel({
       return;
     }
     lastSaved.current = value;
+    onSaved(value);
     setBusy(false);
     inFlight.current = false;
     setSaved(true);

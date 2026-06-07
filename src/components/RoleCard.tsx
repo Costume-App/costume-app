@@ -240,7 +240,14 @@ export function RoleCard({
             onChange={(id) => setActiveTab(id as RoleTab)}
           />
           {activeTab === "ideas" && (
-            <RoleNotesPanel productionId={productionId} roleId={role.id} notes={role.notes} />
+            <RoleNotesPanel
+              productionId={productionId}
+              roleId={role.id}
+              notes={role.notes}
+              onSaved={(notes) =>
+                setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...r, notes } : r)))
+              }
+            />
           )}
           {activeTab === "cast" && (
             <RoleCastPanel
