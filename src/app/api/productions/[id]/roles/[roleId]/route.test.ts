@@ -13,15 +13,17 @@ vi.mock("@/lib/data/production-access", () => ({
 
 const deleteRole = vi.fn();
 const setRoleNotes = vi.fn();
+const updateRole = vi.fn();
 vi.mock("@/lib/data/roles", () => ({
   deleteRole: (...a: unknown[]) => deleteRole(...a),
   setRoleNotes: (...a: unknown[]) => setRoleNotes(...a),
+  updateRole: (...a: unknown[]) => updateRole(...a),
 }));
 
 import { DELETE, PATCH } from "@/app/api/productions/[id]/roles/[roleId]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
 });
@@ -39,6 +41,15 @@ test("DELETE removes a role (200)", async () => {
   const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
   expect(res.status).toBe(200);
   expect(deleteRole).toHaveBeenCalledWith("p1", "r1");
+});
+
+test("PATCH with a name renames the role via updateRole (200)", async () => {
+  updateRole.mockResolvedValue({ id: "r1", name: "Bert" });
+  const res = await PATCH(patchReq({ name: "Bert" }), ctx("p1", "r1"));
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ role: { id: "r1", name: "Bert" } });
+  expect(updateRole).toHaveBeenCalledWith("p1", "r1", "Bert");
+  expect(setRoleNotes).not.toHaveBeenCalled();
 });
 
 test("PATCH saves role notes (200)", async () => {

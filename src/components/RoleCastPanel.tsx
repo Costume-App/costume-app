@@ -83,6 +83,23 @@ export function RoleCastPanel({
     setBusy(false);
   }
 
+  async function renamePerformer(performerId: string, label: string) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/performers/${performerId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ label }),
+    });
+    if (res.ok) {
+      setPerformers((prev) => prev.map((p) => (p.id === performerId ? { ...p, name: label } : p)));
+    } else {
+      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't rename cast member");
+    }
+    setBusy(false);
+  }
+
   const forRole = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
   const primary = forRole.find((c) => c.assignment === "primary");
   const understudies = forRole.filter((c) => c.assignment === "understudy");
@@ -97,6 +114,7 @@ export function RoleCastPanel({
             name={nameOf(primary.performerId)}
             status={statusOf(primary.performerId)}
             onRemove={() => removeCastMember(primary.performerId)}
+            onRename={(label) => renamePerformer(primary.performerId, label)}
             busy={busy}
           />
         ) : (
@@ -125,6 +143,7 @@ export function RoleCastPanel({
               name={nameOf(u.performerId)}
               status={statusOf(u.performerId)}
               onRemove={() => removeCastMember(u.performerId)}
+              onRename={(label) => renamePerformer(u.performerId, label)}
               busy={busy}
             />
           ))}
@@ -157,6 +176,7 @@ function CastLink({
   performerId,
   name,
   onRemove,
+  onRename,
   busy,
   order,
   status,
@@ -165,10 +185,50 @@ function CastLink({
   performerId: string;
   name: string;
   onRemove: () => void;
+  onRename: (label: string) => void;
   busy: boolean;
   order?: number;
   status?: MeasureStatus;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+
+  if (editing) {
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = value.trim();
+          if (!v) return; // stay in edit mode; require a non-empty name or Cancel
+          if (v !== name) onRename(v);
+          setEditing(false);
+        }}
+        className="inline-flex items-center gap-1.5"
+      >
+        {order != null && <span className="muted text-sm">{order}.</span>}
+        <input
+          autoFocus
+          className="field w-44 !p-1.5 text-sm"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <button type="submit" disabled={busy} className="btn-ghost text-sm">
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setEditing(false);
+            setValue(name);
+          }}
+          className="link-muted text-sm"
+        >
+          Cancel
+        </button>
+      </form>
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-1">
       {order != null && <span className="muted text-sm">{order}.</span>}
@@ -177,6 +237,19 @@ function CastLink({
         {name}
       </Link>
       <button
+        type="button"
+        onClick={() => {
+          setValue(name);
+          setEditing(true);
+        }}
+        aria-label={`Rename ${name}`}
+        title={`Rename ${name}`}
+        className="opacity-60 hover:opacity-100"
+      >
+        <PencilIcon />
+      </button>
+      <button
+        type="button"
         onClick={onRemove}
         disabled={busy}
         aria-label={`Remove ${name}`}
@@ -186,6 +259,25 @@ function CastLink({
         ×
       </button>
     </span>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
 
