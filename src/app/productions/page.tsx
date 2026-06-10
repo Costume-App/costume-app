@@ -42,6 +42,9 @@ export default async function ProductionsPage() {
       <div className="mb-5 flex items-center justify-between gap-3 border-b border-[var(--field-line)] pb-3">
         <span className="lbl">{org.name}</span>
         <div className="flex items-center gap-2.5">
+          <Link href="/makers" className="link-muted text-sm">
+            Makers
+          </Link>
           {userName && <span className="text-sm muted">{userName}</span>}
           <UserButton />
         </div>
