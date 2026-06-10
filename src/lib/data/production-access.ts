@@ -32,6 +32,18 @@ export async function assertRoleInProduction(productionId: string, roleId: strin
   if (!data) throw new NotFoundError("Role not found in this production");
 }
 
+// Throws NotFoundError unless the costume design (piece) belongs to the given production.
+export async function assertDesignInProduction(productionId: string, designId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("costume_designs")
+    .select("id")
+    .eq("id", designId)
+    .eq("production_id", productionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Costume piece not found in this production");
+}
+
 // Throws NotFoundError unless the casting belongs to the given production.
 export async function assertCastingInProduction(productionId: string, castingId: string): Promise<void> {
   const { data, error } = await supabaseAdmin
