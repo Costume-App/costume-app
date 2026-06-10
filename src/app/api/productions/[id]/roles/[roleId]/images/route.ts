@@ -8,7 +8,7 @@ import { uploadRoleImage, signRoleImageUrls } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ id: string; roleId: string }> };
 
-const MAX_PER_ROLE = 4;
+const MAX_PER_ROLE = 6;
 
 export async function GET(_request: Request, { params }: Ctx) {
   try {
