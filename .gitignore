@@ -35,3 +35,6 @@ next-env.d.ts
 
 # Superpowers brainstorm scratch (visual companion mockups)
 .superpowers/
+
+# Meeting transcripts (kept locally, not versioned)
+docs/*.odt
