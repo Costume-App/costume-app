@@ -64,7 +64,9 @@ export default function NewProductionPage() {
         </label>
 
         <div className="space-y-2">
-          <span className="mb-1 block font-medium">Showings</span>
+          <span className="mb-1 block font-medium">
+            Showings <span className="muted font-normal">(Optional)</span>
+          </span>
           {showings.map((s, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2">
               <input
