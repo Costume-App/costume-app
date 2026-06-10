@@ -64,6 +64,7 @@ function row(overrides: Partial<PieceRow> & Pick<PieceRow, "costume_design_id" |
     fabric_yardage: null,
     fabric_unit_cost: null,
     made: false,
+    maker_id: null,
     ...overrides,
   };
 }
@@ -94,6 +95,25 @@ test("buildMakeWorklist: garment with zero make items is omitted", () => {
   ];
   const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
   expect(wl.roles.map((r) => r.roleName)).toEqual(["Wizard"]);
+});
+
+test("buildMakeWorklist: makerId is surfaced on MakeItem from maker_id on PieceRow", () => {
+  const pieces = [
+    row({ costume_design_id: "d1", casting_id: "c1", maker_id: "m1" }),
+    row({ costume_design_id: "d1", casting_id: "c2", maker_id: null }),
+  ];
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
+  const cloakItems = wl.roles[0].garments[0].items; // d1 = Cloak
+  const adaItem = cloakItems.find((i) => i.castingId === "c1")!;
+  const beaItem = cloakItems.find((i) => i.castingId === "c2")!;
+  expect(adaItem.makerId).toBe("m1");
+  expect(beaItem.makerId).toBeNull();
+});
+
+test("buildMakeWorklist: casting with no PieceRow gets makerId null", () => {
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, []);
+  const item = wl.roles[0].garments[0].items[0];
+  expect(item.makerId).toBeNull();
 });
 
 test("buildFabricPurchaseList: identical fabric merges into one line, grouped by type+color", () => {

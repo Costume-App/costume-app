@@ -18,6 +18,7 @@ export interface CostumePiece {
   fabric_unit_cost: number | null;
   made: boolean;
   made_at: string | null;
+  maker_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +74,7 @@ export async function upsertPieceSource(input: {
   fabricYardage?: number | null;
   fabricUnitCost?: number | null;
   made?: boolean;
+  makerId?: string | null;
 }): Promise<CostumePiece | null> {
   const clean = (s?: string | null) => (s && s.trim() ? s.trim() : null);
   const num = (n?: number | null) =>
@@ -86,6 +88,7 @@ export async function upsertPieceSource(input: {
   const fabricYardage = num(input.fabricYardage);
   const fabricUnitCost = num(input.fabricUnitCost);
   const made = input.made ?? false;
+  const makerId = input.makerId !== undefined ? input.makerId : null;
 
   if (
     pieceRowIsEmpty({
@@ -98,6 +101,7 @@ export async function upsertPieceSource(input: {
       fabricYardage,
       fabricUnitCost,
       made,
+      makerId,
     })
   ) {
     const { error } = await supabaseAdmin
@@ -134,6 +138,7 @@ export async function upsertPieceSource(input: {
         fabric_yardage: fabricYardage,
         fabric_unit_cost: fabricUnitCost,
         made,
+        maker_id: makerId,
         made_at: made ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       },

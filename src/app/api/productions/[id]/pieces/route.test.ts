@@ -92,3 +92,24 @@ test("PUT 400 on non-boolean made", async () => {
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
 });
+
+test("PUT forwards makerId to upsertPieceSource", async () => {
+  upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make", maker_id: "m1" });
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", sourceNote: "assigned", makerId: "m1" }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(200);
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ makerId: "m1" }),
+  );
+});
+
+test("PUT 400 on non-string makerId", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", makerId: 42 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});

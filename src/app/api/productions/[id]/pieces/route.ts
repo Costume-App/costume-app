@@ -40,6 +40,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricYardage?: number | null;
       fabricUnitCost?: number | null;
       made?: boolean;
+      makerId?: string | null;
     };
     if (typeof body.source !== "string" || !isCostumeSource(body.source)) {
       throw new ValidationError("Invalid source");
@@ -57,6 +58,9 @@ export async function PUT(request: Request, { params }: Ctx) {
     checkNum(body.fabricUnitCost, "Unit cost");
     if (body.made !== undefined && typeof body.made !== "boolean") {
       throw new ValidationError("made must be a boolean");
+    }
+    if (body.makerId !== undefined && body.makerId !== null && typeof body.makerId !== "string") {
+      throw new ValidationError("makerId must be a string or null");
     }
     const designs = await listCostumeDesigns(id);
     if (!designs.some((d) => d.id === body.designId)) {
@@ -81,6 +85,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricYardage: body.fabricYardage ?? null,
       fabricUnitCost: body.fabricUnitCost ?? null,
       made: body.made ?? false,
+      makerId: body.makerId ?? null,
     });
     return NextResponse.json({ piece });
   } catch (err) {

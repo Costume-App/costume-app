@@ -54,10 +54,11 @@ export function pieceRowIsEmpty(input: {
   fabricYardage: number | null;
   fabricUnitCost: number | null;
   made: boolean;
+  makerId: string | null;
 }): boolean {
   const hasFabric =
     !!(input.fabricType || input.fabricColor || input.fabricWidth || input.fabricSupplier) ||
     input.fabricYardage != null ||
     input.fabricUnitCost != null;
-  return input.source === "make" && !input.sourceNote && !hasFabric && !input.made;
+  return input.source === "make" && !input.sourceNote && !hasFabric && !input.made && !input.makerId;
 }

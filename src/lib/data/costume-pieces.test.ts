@@ -93,3 +93,19 @@ test("shared creates the target row as make when missing", async () => {
   expect(insert).toHaveBeenCalledWith({ costume_design_id: "d1", casting_id: "c2", source: "make" });
   expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ shared_with_piece_id: "pNew" }), expect.anything());
 });
+
+test("upsertPieceSource threads makerId → maker_id in the upserted row", async () => {
+  upsertSingle.mockResolvedValue({ data: { id: "p1", source: "make", maker_id: "m1" }, error: null });
+  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", sourceNote: "custom", makerId: "m1" });
+  expect(upsert).toHaveBeenCalledWith(
+    expect.objectContaining({ maker_id: "m1" }),
+    { onConflict: "costume_design_id,casting_id" },
+  );
+});
+
+test("make row with makerId assigned is NOT deleted", async () => {
+  upsertSingle.mockResolvedValue({ data: { id: "p1", source: "make", maker_id: "m1" }, error: null });
+  const result = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", makerId: "m1" });
+  expect(del).not.toHaveBeenCalled();
+  expect(result).toEqual({ id: "p1", source: "make", maker_id: "m1" });
+});
