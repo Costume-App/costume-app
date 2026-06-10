@@ -15,7 +15,7 @@ const from = vi.fn((_table: string) => ({ select, insert, delete: del }));
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) => from(table) } }));
 
-import { listRoles, createRole, deleteRole } from "@/lib/data/roles";
+import { listRoles, createRole, deleteRole, createRoles } from "@/lib/data/roles";
 
 beforeEach(() => {
   [order2, order1, listEq, insertSingle, insertSelect, insert, deleteEqProd, deleteEqId, del, select, from].forEach(
@@ -58,4 +58,53 @@ test("deleteRole deletes by id scoped to the production", async () => {
   expect(del).toHaveBeenCalled();
   expect(deleteEqId).toHaveBeenCalledWith("id", "r1");
   expect(deleteEqProd).toHaveBeenCalledWith("production_id", "p1");
+});
+
+// --- createRoles (batch) ---
+
+test("createRoles trims, drops blanks, and appends after the max display_order", async () => {
+  // First call: max-order lookup returns highest existing order = 4.
+  // createRoles calls .order(...).limit(1), so wire a dedicated chain here.
+  const limit = vi.fn().mockResolvedValue({ data: [{ display_order: 4 }], error: null });
+  const orderDesc = vi.fn(() => ({ limit }));
+  const maxEq = vi.fn(() => ({ order: orderDesc }));
+  const batchInsertSelect = vi.fn().mockResolvedValue({
+    data: [
+      { id: "r1", name: "Hamlet", display_order: 5 },
+      { id: "r2", name: "Ophelia", display_order: 6 },
+    ],
+    error: null,
+  });
+  const batchInsert = vi.fn(() => ({ select: batchInsertSelect }));
+  select.mockReturnValue({ eq: maxEq });
+  insert.mockReturnValue({ select: batchInsertSelect });
+  from.mockReturnValue({ select, insert: batchInsert });
+
+  const rows = await createRoles({ productionId: "p1", names: ["  Hamlet ", "Ophelia", "   "] });
+
+  expect(batchInsert).toHaveBeenCalledWith([
+    { production_id: "p1", name: "Hamlet", display_order: 5 },
+    { production_id: "p1", name: "Ophelia", display_order: 6 },
+  ]);
+  expect(rows).toEqual([
+    { id: "r1", name: "Hamlet", display_order: 5 },
+    { id: "r2", name: "Ophelia", display_order: 6 },
+  ]);
+});
+
+test("createRoles starts at display_order 0 when the production has no roles", async () => {
+  const limit = vi.fn().mockResolvedValue({ data: [], error: null });
+  const orderDesc = vi.fn(() => ({ limit }));
+  const maxEq = vi.fn(() => ({ order: orderDesc }));
+  const batchInsertSelect = vi.fn().mockResolvedValue({ data: [{ id: "r1", name: "A", display_order: 0 }], error: null });
+  const batchInsert = vi.fn(() => ({ select: batchInsertSelect }));
+  select.mockReturnValue({ eq: maxEq });
+  from.mockReturnValue({ select, insert: batchInsert });
+
+  await createRoles({ productionId: "p1", names: ["A"] });
+  expect(batchInsert).toHaveBeenCalledWith([{ production_id: "p1", name: "A", display_order: 0 }]);
+});
+
+test("createRoles rejects when all names are blank", async () => {
+  await expect(createRoles({ productionId: "p1", names: ["  ", ""] })).rejects.toBeInstanceOf(ValidationError);
 });
