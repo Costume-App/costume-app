@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import { PhotoStrip } from "@/components/PhotoStrip";
 import { COSTUME_SOURCES, DEFAULT_SOURCE } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
@@ -125,6 +126,19 @@ export function RoleCostumePanel({
   return (
     <div className="space-y-2">
       <PieceEditor designs={roleDesigns} onAdd={addDesign} onRemove={removeDesign} busy={busy} />
+      {roleDesigns.length > 0 && (
+        <div className="space-y-2">
+          {roleDesigns.map((d) => (
+            <div key={d.id} className="rounded-md border border-[var(--field-line)] p-2">
+              <span className="lbl mb-1 block">{d.name}</span>
+              <PhotoStrip
+                endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
+                max={6}
+              />
+            </div>
+          ))}
+        </div>
+      )}
       {ordered.length === 0 ? (
         <p className="text-sm muted">No one cast in this role yet.</p>
       ) : (
