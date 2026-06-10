@@ -8,7 +8,7 @@ interface RoleImageView {
   url: string | null;
 }
 
-const MAX_PER_ROLE = 4;
+const MAX_PER_ROLE = 6;
 
 export function RolePhotos({ productionId, roleId }: { productionId: string; roleId: string }) {
   const [images, setImages] = useState<RoleImageView[]>([]);

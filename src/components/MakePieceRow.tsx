@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import { formatHeight } from "@/lib/height";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
@@ -132,8 +133,8 @@ export function MakePieceRow({
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
                 {measurements.map((m) => (
                   <span key={m.label}>
-                    <span className="muted">{m.label}:</span> {m.value}
-                    {m.unit}
+                    <span className="muted">{m.label}:</span>{" "}
+                    {m.key === "height" ? formatHeight(m.value) : `${m.value}${m.unit}`}
                   </span>
                 ))}
               </div>

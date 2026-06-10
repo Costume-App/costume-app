@@ -23,10 +23,10 @@ test("buildMeasurementsByCasting groups per casting and orders by definition", (
   ];
   const map = buildMeasurementsByCasting(defs, meas, castings);
   expect(map["c1"]).toEqual([
-    { label: "Waist", value: 30, unit: "in" },
-    { label: "Chest", value: 36, unit: "in" },
+    { key: "waist", label: "Waist", value: 30, unit: "in" },
+    { key: "chest", label: "Chest", value: 36, unit: "in" },
   ]);
-  expect(map["c2"]).toEqual([{ label: "Chest", value: 40, unit: "in" }]);
+  expect(map["c2"]).toEqual([{ key: "chest", label: "Chest", value: 40, unit: "in" }]);
   expect(map["c3"]).toBeUndefined();
 });
 

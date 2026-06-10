@@ -65,11 +65,20 @@ test("POST uploads and records an image (201)", async () => {
   expect(addRoleImage).toHaveBeenCalled();
 });
 
-test("POST 400 when already at the 4-photo cap", async () => {
-  countRoleImages.mockResolvedValue(4);
+test("POST 400 when already at the 6-photo cap", async () => {
+  countRoleImages.mockResolvedValue(6);
   const res = await POST(postReq(), ctx("p1", "r1"));
   expect(res.status).toBe(400);
   expect(uploadRoleImage).not.toHaveBeenCalled();
+});
+
+test("POST allows a 5th photo (under the 6 cap)", async () => {
+  countRoleImages.mockResolvedValue(5);
+  uploadRoleImage.mockResolvedValue(undefined);
+  addRoleImage.mockResolvedValue({ id: "i6" });
+  const res = await POST(postReq(), ctx("p1", "r1"));
+  expect(res.status).toBe(201);
+  expect(uploadRoleImage).toHaveBeenCalled();
 });
 
 test("POST 404 when production not in org", async () => {

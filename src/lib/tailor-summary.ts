@@ -85,6 +85,7 @@ interface PerformerLike { id: string; name: string }
 interface CastLike { id: string; name: string }
 
 export interface MeasurementView {
+  key: string;
   label: string;
   value: number;
   unit: string;
@@ -109,6 +110,7 @@ export function buildMeasurementsByCasting(
   const byPerformer = new Map<string, MeasurementView[]>();
   for (const m of sorted) {
     const view: MeasurementView = {
+      key: m.measurement_key,
       label: label.get(m.measurement_key) ?? m.measurement_key,
       value: m.value_numeric,
       unit: m.unit,
