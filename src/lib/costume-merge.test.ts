@@ -31,6 +31,7 @@ const emptyInput = {
   fabricYardage: null,
   fabricUnitCost: null,
   made: false,
+  makerId: null,
 };
 
 test("pieceRowIsEmpty: bare make row with nothing set is empty", () => {
@@ -54,4 +55,38 @@ test("pieceRowIsEmpty: any fabric field keeps the row", () => {
 
 test("pieceRowIsEmpty: made keeps the row", () => {
   expect(pieceRowIsEmpty({ ...emptyInput, made: true })).toBe(false);
+});
+
+test("pieceRowIsEmpty: a make row with a maker assigned is NOT empty", () => {
+  expect(
+    pieceRowIsEmpty({
+      source: "make",
+      sourceNote: null,
+      fabricType: null,
+      fabricColor: null,
+      fabricWidth: null,
+      fabricSupplier: null,
+      fabricYardage: null,
+      fabricUnitCost: null,
+      made: false,
+      makerId: "m1",
+    }),
+  ).toBe(false);
+});
+
+test("pieceRowIsEmpty: a bare make row with no maker is still empty", () => {
+  expect(
+    pieceRowIsEmpty({
+      source: "make",
+      sourceNote: null,
+      fabricType: null,
+      fabricColor: null,
+      fabricWidth: null,
+      fabricSupplier: null,
+      fabricYardage: null,
+      fabricUnitCost: null,
+      made: false,
+      makerId: null,
+    }),
+  ).toBe(true);
 });

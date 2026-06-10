@@ -9,6 +9,7 @@ import { listPerformers, getFilledMeasurementCounts } from "@/lib/data/performer
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
+import { listMakers } from "@/lib/data/makers";
 import { NotFoundError } from "@/lib/errors";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate, formatShowTime, todayIso } from "@/lib/countdown";
@@ -69,6 +70,7 @@ export default async function ProductionDetailPage({
 
   const designs = await listCostumeDesigns(id);
   const pieces = await listCostumePieces(designs.map((d) => d.id));
+  const makers = await listMakers(orgId);
 
   const curated = findCuratedMatch(production.title);
   const roleSuggestion = curated
@@ -138,6 +140,7 @@ export default async function ProductionDetailPage({
         imageRoleIds={imageRoleIds}
         initialDesigns={designs}
         initialPieces={pieces}
+        makers={makers.map((m) => ({ id: m.id, name: m.name, color: m.color }))}
         roleSuggestion={roleSuggestion}
         aiEnabled={aiEnabled}
       />

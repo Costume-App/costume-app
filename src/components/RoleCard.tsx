@@ -36,6 +36,7 @@ export function RoleCard({
   setDesigns,
   pieces,
   setPieces,
+  makers,
 }: {
   role: Role;
   productionId: string;
@@ -54,6 +55,7 @@ export function RoleCard({
   setDesigns: Dispatch<SetStateAction<CostumeDesign[]>>;
   pieces: CostumePiece[];
   setPieces: Dispatch<SetStateAction<CostumePiece[]>>;
+  makers: { id: string; name: string; color: string }[];
 }) {
   const [open, setOpen] = usePersistentState<boolean>(`nada:prod:${productionId}:role:${role.id}:open`, false);
   const [activeTab, setActiveTab] = usePersistentState<RoleTab>(
@@ -273,6 +275,7 @@ export function RoleCard({
               setDesigns={setDesigns}
               pieces={pieces}
               setPieces={setPieces}
+              makers={makers}
             />
           )}
         </div>

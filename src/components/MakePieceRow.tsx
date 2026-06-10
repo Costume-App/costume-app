@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { formatHeight } from "@/lib/height";
+import { MakeAssignment } from "@/components/MakeAssignment";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
@@ -16,6 +17,7 @@ interface PiecePutBody {
   fabricSupplier: string | null;
   fabricYardage: number | null;
   fabricUnitCost: number | null;
+  makerId: string | null;
   made: boolean;
 }
 
@@ -23,11 +25,13 @@ export function MakePieceRow({
   productionId,
   item,
   measurements,
+  makers,
   onSaved,
 }: {
   productionId: string;
   item: MakeItem;
   measurements: MeasurementView[];
+  makers: { id: string; name: string; color: string }[];
   onSaved: (piece: PieceRow | null) => void;
 }) {
   // Persist per piece so the card stays open after a trip to the measurements page.
@@ -42,13 +46,14 @@ export function MakePieceRow({
   const [supplier, setSupplier] = useState(item.fabric.supplier ?? "");
   const [yardage, setYardage] = useState(item.fabric.yardage != null ? String(item.fabric.yardage) : "");
   const [unitCost, setUnitCost] = useState(item.fabric.unitCost != null ? String(item.fabric.unitCost) : "");
+  const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Serialize saves so a fast blur-then-toggle (or two quick blurs) can't drop an
   // edit: each call captures its values now and runs after the previous finishes.
   const saveChain = useRef<Promise<void>>(Promise.resolve());
 
-  function save(nextMade = made) {
+  function save(opts?: { made?: boolean; makerId?: string | null }) {
     const body: PiecePutBody = {
       designId: item.designId,
       castingId: item.castingId,
@@ -59,7 +64,8 @@ export function MakePieceRow({
       fabricSupplier: supplier.trim() || null,
       fabricYardage: yardage.trim() === "" ? null : Number(yardage),
       fabricUnitCost: unitCost.trim() === "" ? null : Number(unitCost),
-      made: nextMade,
+      makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
+      made: opts?.made !== undefined ? opts.made : made,
     };
     setBusy(true);
     saveChain.current = saveChain.current.then(() => sendSave(body));
@@ -90,7 +96,12 @@ export function MakePieceRow({
   function toggleMade() {
     const next = !made;
     setMade(next);
-    save(next);
+    save({ made: next });
+  }
+
+  function changeMaker(next: string | null) {
+    setMakerId(next);
+    save({ makerId: next });
   }
 
   const fabricLabel = [item.fabric.color, item.fabric.type].filter(Boolean).join(" ");
@@ -122,6 +133,14 @@ export function MakePieceRow({
       </div>
       {open && (
         <div className="space-y-2 px-3 pb-3">
+          <MakeAssignment
+            makers={makers}
+            makerId={makerId}
+            made={made}
+            showMade={false}
+            busy={busy}
+            onChangeMaker={changeMaker}
+          />
           <div className="rounded-md bg-[var(--bg)] px-2 py-1.5">
             <Link
               href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}

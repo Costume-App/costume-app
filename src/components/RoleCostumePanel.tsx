@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { MakeAssignment } from "@/components/MakeAssignment";
 import { COSTUME_SOURCES, DEFAULT_SOURCE } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
@@ -21,6 +22,7 @@ export function RoleCostumePanel({
   setDesigns,
   pieces,
   setPieces,
+  makers,
 }: {
   productionId: string;
   role: Role;
@@ -32,6 +34,7 @@ export function RoleCostumePanel({
   setDesigns: Dispatch<SetStateAction<CostumeDesign[]>>;
   pieces: CostumePiece[];
   setPieces: Dispatch<SetStateAction<CostumePiece[]>>;
+  makers: { id: string; name: string; color: string }[];
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +106,7 @@ export function RoleCostumePanel({
         fabricYardage: existing?.fabric_yardage ?? null,
         fabricUnitCost: existing?.fabric_unit_cost ?? null,
         made: existing?.made ?? false,
+        makerId: existing?.maker_id ?? null,
       }),
     });
     if (res.ok) {
@@ -114,6 +118,47 @@ export function RoleCostumePanel({
     } else {
       const msg = ((await res.json().catch(() => ({}))) as { error?: string }).error;
       setError(msg ?? "Couldn't update source");
+    }
+    setBusy(false);
+  }
+
+  async function setPieceField(
+    designId: string,
+    castingId: string,
+    patch: { makerId?: string | null; made?: boolean },
+  ) {
+    setBusy(true);
+    setError(null);
+    const existing = pieces.find(
+      (p) => p.costume_design_id === designId && p.casting_id === castingId,
+    );
+    const res = await fetch(`/api/productions/${productionId}/pieces`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        designId,
+        castingId,
+        source: "make",
+        sharedWithCastingId: null,
+        fabricType: existing?.fabric_type ?? null,
+        fabricColor: existing?.fabric_color ?? null,
+        fabricWidth: existing?.fabric_width ?? null,
+        fabricSupplier: existing?.fabric_supplier ?? null,
+        fabricYardage: existing?.fabric_yardage ?? null,
+        fabricUnitCost: existing?.fabric_unit_cost ?? null,
+        made: patch.made !== undefined ? patch.made : existing?.made ?? false,
+        makerId: patch.makerId !== undefined ? patch.makerId : existing?.maker_id ?? null,
+      }),
+    });
+    if (res.ok) {
+      const { piece } = (await res.json()) as { piece: CostumePiece | null };
+      setPieces((prev) => {
+        const without = prev.filter((p) => !(p.costume_design_id === designId && p.casting_id === castingId));
+        return piece ? [...without, piece] : without;
+      });
+    } else {
+      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't save");
     }
     setBusy(false);
   }
@@ -185,51 +230,66 @@ export function RoleCostumePanel({
                     c.id !== casting.id &&
                     sources[pieceKey(c.id, d.id)]?.source !== "shared",
                 );
+                const piece = pieces.find(
+                  (p) => p.costume_design_id === d.id && p.casting_id === casting.id,
+                );
                 return (
-                  <div key={d.id} className="flex items-center gap-2 py-1">
-                    <span className="min-w-0 flex-1 truncate">{d.name}</span>
-                    <select
-                      className="field !p-1.5 text-sm shrink-0"
-                      value={source}
-                      disabled={busy}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "shared") {
-                          setPendingShared((p) => ({ ...p, [key]: persistedShareCasting }));
-                        } else {
-                          setPendingShared((p) => {
-                            const next = { ...p };
-                            delete next[key];
-                            return next;
-                          });
-                          setSource(d.id, casting.id, v, null);
-                        }
-                      }}
-                    >
-                      {COSTUME_SOURCES.map((s) => (
-                        <option key={s.token} value={s.token}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                    {source === "shared" && (
+                  <div key={d.id} className="flex flex-col gap-1 py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate">{d.name}</span>
                       <select
-                        className="field !p-1.5 text-sm w-32 shrink-0 truncate"
-                        value={sharedCastingId}
+                        className="field !p-1.5 text-sm shrink-0"
+                        value={source}
                         disabled={busy}
                         onChange={(e) => {
                           const v = e.target.value;
-                          setPendingShared((p) => ({ ...p, [key]: v }));
-                          if (v) setSource(d.id, casting.id, "shared", v);
+                          if (v === "shared") {
+                            setPendingShared((p) => ({ ...p, [key]: persistedShareCasting }));
+                          } else {
+                            setPendingShared((p) => {
+                              const next = { ...p };
+                              delete next[key];
+                              return next;
+                            });
+                            setSource(d.id, casting.id, v, null);
+                          }
                         }}
                       >
-                        <option value="">Whose?</option>
-                        {shareCandidates.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {nameOf(c.performerId)} ({castNameOf(c.castId)})
+                        {COSTUME_SOURCES.map((s) => (
+                          <option key={s.token} value={s.token}>
+                            {s.label}
                           </option>
                         ))}
                       </select>
+                      {source === "shared" && (
+                        <select
+                          className="field !p-1.5 text-sm w-32 shrink-0 truncate"
+                          value={sharedCastingId}
+                          disabled={busy}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setPendingShared((p) => ({ ...p, [key]: v }));
+                            if (v) setSource(d.id, casting.id, "shared", v);
+                          }}
+                        >
+                          <option value="">Whose?</option>
+                          {shareCandidates.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {nameOf(c.performerId)} ({castNameOf(c.castId)})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    {source === "make" && (
+                      <MakeAssignment
+                        makers={makers}
+                        makerId={piece?.maker_id ?? null}
+                        made={piece?.made ?? false}
+                        busy={busy}
+                        onChangeMaker={(mk) => setPieceField(d.id, casting.id, { makerId: mk })}
+                        onToggleMade={(md) => setPieceField(d.id, casting.id, { made: md })}
+                      />
                     )}
                   </div>
                 );

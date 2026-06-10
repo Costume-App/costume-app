@@ -12,12 +12,14 @@ export function MakeWorklist({
   worklist,
   photosByRole,
   measurementsByCasting,
+  makers,
   onSaved,
 }: {
   productionId: string;
   worklist: Worklist;
   photosByRole: Record<string, RolePhoto[]>;
   measurementsByCasting: Record<string, MeasurementView[]>;
+  makers: { id: string; name: string; color: string }[];
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   if (worklist.totalItems === 0) {
@@ -36,6 +38,7 @@ export function MakeWorklist({
           role={role}
           photos={photosByRole[role.roleId] ?? []}
           measurementsByCasting={measurementsByCasting}
+          makers={makers}
           onSaved={onSaved}
         />
       ))}
@@ -48,12 +51,14 @@ function RoleSection({
   role,
   photos,
   measurementsByCasting,
+  makers,
   onSaved,
 }: {
   productionId: string;
   role: WorklistRole;
   photos: RolePhoto[];
   measurementsByCasting: Record<string, MeasurementView[]>;
+  makers: { id: string; name: string; color: string }[];
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   const [collapsed, setCollapsed] = usePersistentState<boolean>(
@@ -92,6 +97,7 @@ function RoleSection({
                     productionId={productionId}
                     item={item}
                     measurements={measurementsByCasting[item.castingId] ?? []}
+                    makers={makers}
                     onSaved={(piece) => onSaved(g.designId, item.castingId, piece)}
                   />
                 ))}
