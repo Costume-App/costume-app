@@ -130,3 +130,40 @@ test("POST coerces a non-string title to empty before calling the data layer", a
     notes: null,
   });
 });
+
+test("POST creates each provided showing with its time, in order", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
+  const res = await POST(
+    postReq({
+      title: "Newsies",
+      showings: [
+        { date: "2026-11-01", time: "19:00" },
+        { date: "2026-11-02", time: null },
+      ],
+    }),
+  );
+  expect(res.status).toBe(201);
+  expect(addShowDate).toHaveBeenCalledTimes(2);
+  expect(addShowDate).toHaveBeenNthCalledWith(1, "p2", "2026-11-01", "19:00");
+  expect(addShowDate).toHaveBeenNthCalledWith(2, "p2", "2026-11-02", null);
+});
+
+test("POST skips showings whose date is blank", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
+  const res = await POST(
+    postReq({ title: "Newsies", showings: [{ date: "", time: "19:00" }, { date: "2026-11-01" }] }),
+  );
+  expect(res.status).toBe(201);
+  expect(addShowDate).toHaveBeenCalledTimes(1);
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null);
+});
+
+test("POST prefers showings[] over a legacy showDate when both are present", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
+  await POST(postReq({ title: "Newsies", showDate: "2026-12-31", showings: [{ date: "2026-11-01" }] }));
+  expect(addShowDate).toHaveBeenCalledTimes(1);
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null);
+});

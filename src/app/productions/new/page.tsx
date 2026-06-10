@@ -2,13 +2,31 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { normalizeShowings } from "@/lib/showings";
+
+interface ShowingRow {
+  date: string;
+  time: string;
+}
 
 export default function NewProductionPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
-  const [showDate, setShowDate] = useState("");
+  const [showings, setShowings] = useState<ShowingRow[]>([{ date: "", time: "" }]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  function updateShowing(index: number, patch: Partial<ShowingRow>) {
+    setShowings((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  }
+
+  function addRow() {
+    setShowings((prev) => [...prev, { date: "", time: "" }]);
+  }
+
+  function removeRow(index: number) {
+    setShowings((prev) => prev.filter((_, i) => i !== index));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,7 +36,7 @@ export default function NewProductionPage() {
       method: "POST",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ title, showDate: showDate || null }),
+      body: JSON.stringify({ title, showings: normalizeShowings(showings) }),
     });
     if (res.ok) {
       router.push("/productions");
@@ -44,15 +62,37 @@ export default function NewProductionPage() {
             required
           />
         </label>
-        <label className="block">
-          <span className="mb-1 block font-medium">Show date</span>
-          <input
-            type="date"
-            className="field w-full"
-            value={showDate}
-            onChange={(e) => setShowDate(e.target.value)}
-          />
-        </label>
+
+        <div className="space-y-2">
+          <span className="mb-1 block font-medium">
+            Showings <span className="muted font-normal">(Optional)</span>
+          </span>
+          {showings.map((s, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                className="field min-w-0 flex-1"
+                value={s.date}
+                onChange={(e) => updateShowing(i, { date: e.target.value })}
+                aria-label="Showing date"
+              />
+              <input
+                type="time"
+                className="field w-32 shrink-0"
+                value={s.time}
+                onChange={(e) => updateShowing(i, { time: e.target.value })}
+                aria-label="Showing time (optional)"
+              />
+              <button type="button" onClick={() => removeRow(i)} className="link-muted text-sm">
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addRow} className="btn-ghost text-sm">
+            Add date
+          </button>
+        </div>
+
         {error && <p className="text-[var(--red)]">{error}</p>}
         <div className="flex gap-3">
           <button type="submit" disabled={saving} className="btn-primary flex-1">

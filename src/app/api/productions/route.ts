@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       title?: string;
       showDate?: string | null;
+      showings?: { date?: string; time?: string | null }[];
       notes?: string | null;
       orgName?: string;
     };
@@ -37,7 +38,14 @@ export async function POST(request: Request) {
     // existed; without this, new productions had no cast and cast-member adds
     // silently no-opped (no selected cast).
     await createCast({ productionId: production.id, name: "Main Cast" });
-    if (typeof body.showDate === "string" && body.showDate.trim()) {
+    if (Array.isArray(body.showings)) {
+      for (const s of body.showings) {
+        const date = typeof s?.date === "string" ? s.date.trim() : "";
+        if (!date) continue;
+        const time = typeof s?.time === "string" && s.time.trim() ? s.time.trim() : null;
+        await addShowDate(production.id, date, time);
+      }
+    } else if (typeof body.showDate === "string" && body.showDate.trim()) {
       await addShowDate(production.id, body.showDate, null);
     }
     return NextResponse.json({ production }, { status: 201 });
