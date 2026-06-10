@@ -13,15 +13,17 @@ vi.mock("@/lib/data/production-access", () => ({
 
 const listRoles = vi.fn();
 const createRole = vi.fn();
+const createRoles = vi.fn();
 vi.mock("@/lib/data/roles", () => ({
   listRoles: (...a: unknown[]) => listRoles(...a),
   createRole: (...a: unknown[]) => createRole(...a),
+  createRoles: (...a: unknown[]) => createRoles(...a),
 }));
 
 import { GET, POST } from "@/app/api/productions/[id]/roles/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, listRoles, createRole].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, listRoles, createRole, createRoles].forEach((m) => m.mockReset());
 });
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -66,4 +68,28 @@ test("POST 400 on empty name", async () => {
   createRole.mockRejectedValue(new ValidationError("Role name is required"));
   const res = await POST(postReq({ name: "" }), ctx("p1"));
   expect(res.status).toBe(400);
+});
+
+test("POST with names[] bulk-creates roles (201)", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  createRoles.mockResolvedValue([
+    { id: "r1", name: "Hamlet" },
+    { id: "r2", name: "Ophelia" },
+  ]);
+  const res = await POST(postReq({ names: ["Hamlet", "Ophelia"] }), ctx("p1"));
+  expect(res.status).toBe(201);
+  expect(await res.json()).toEqual({ roles: [{ id: "r1", name: "Hamlet" }, { id: "r2", name: "Ophelia" }] });
+  expect(createRoles).toHaveBeenCalledWith({ productionId: "p1", names: ["Hamlet", "Ophelia"] });
+  expect(createRole).not.toHaveBeenCalled();
+});
+
+test("POST still creates a single role when given name", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  createRole.mockResolvedValue({ id: "r9", name: "Solo" });
+  const res = await POST(postReq({ name: "Solo" }), ctx("p1"));
+  expect(res.status).toBe(201);
+  expect(await res.json()).toEqual({ role: { id: "r9", name: "Solo" } });
+  expect(createRoles).not.toHaveBeenCalled();
 });

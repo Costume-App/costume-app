@@ -14,6 +14,7 @@ import { CountdownBadge } from "@/components/CountdownBadge";
 import { formatShowDate, formatShowTime, todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
+import { findCuratedMatch } from "@/lib/data/play-catalog";
 import { roleIdsWithImages } from "@/lib/data/role-images";
 import { EditableProductionHeader } from "@/components/EditableProductionHeader";
 import { ShowingsList } from "@/components/ShowingsList";
@@ -68,6 +69,12 @@ export default async function ProductionDetailPage({
 
   const designs = await listCostumeDesigns(id);
   const pieces = await listCostumePieces(designs.map((d) => d.id));
+
+  const curated = findCuratedMatch(production.title);
+  const roleSuggestion = curated
+    ? { id: curated.id, title: curated.title, roles: curated.roles }
+    : null;
+  const aiEnabled = !!process.env.ANTHROPIC_API_KEY;
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -131,6 +138,8 @@ export default async function ProductionDetailPage({
         imageRoleIds={imageRoleIds}
         initialDesigns={designs}
         initialPieces={pieces}
+        roleSuggestion={roleSuggestion}
+        aiEnabled={aiEnabled}
       />
       <div className="mt-8 border-t border-[var(--field-line)] pt-4">
         <DeleteProductionButton productionId={id} />

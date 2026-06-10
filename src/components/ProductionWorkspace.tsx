@@ -11,6 +11,7 @@ import {
 import { RoleCard } from "@/components/RoleCard";
 import { RoleIconLegend } from "@/components/RoleIconLegend";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import { RoleSuggestionBanner, type RoleSuggestion } from "@/components/RoleSuggestionBanner";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 
@@ -36,6 +37,8 @@ export function ProductionWorkspace({
   imageRoleIds,
   initialDesigns,
   initialPieces,
+  roleSuggestion,
+  aiEnabled,
 }: {
   productionId: string;
   initialCasts: Cast[];
@@ -46,6 +49,8 @@ export function ProductionWorkspace({
   imageRoleIds: string[];
   initialDesigns: CostumeDesign[];
   initialPieces: CostumePiece[];
+  roleSuggestion: RoleSuggestion | null;
+  aiEnabled: boolean;
 }) {
   const imageRoleIdSet = new Set(imageRoleIds);
   const [casts, setCasts] = useState<Cast[]>(initialCasts);
@@ -69,6 +74,10 @@ export function ProductionWorkspace({
   const [renameColor, setRenameColor] = useState(DEFAULT_CAST_COLOR);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestDismissed, setSuggestDismissed] = usePersistentState<boolean>(
+    `nada:prod:${productionId}:roleSuggestDismissed`,
+    false,
+  );
 
   async function addRole(e: React.FormEvent) {
     e.preventDefault();
@@ -265,9 +274,20 @@ export function ProductionWorkspace({
       </div>
 
       {roles.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
-          No roles yet. Add the first character below.
-        </p>
+        <>
+          {!suggestDismissed && (
+            <RoleSuggestionBanner
+              productionId={productionId}
+              suggestion={roleSuggestion}
+              aiEnabled={aiEnabled}
+              onRolesCreated={(created) => setRoles((prev) => [...prev, ...created])}
+              onDismiss={() => setSuggestDismissed(true)}
+            />
+          )}
+          <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
+            No roles yet. Add the first character below.
+          </p>
+        </>
       ) : (
         <ul className="space-y-3">
           <li>
