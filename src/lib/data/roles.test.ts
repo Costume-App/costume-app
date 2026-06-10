@@ -76,9 +76,9 @@ test("createRoles trims, drops blanks, and appends after the max display_order",
     error: null,
   });
   const batchInsert = vi.fn(() => ({ select: batchInsertSelect }));
-  select.mockReturnValue({ eq: maxEq });
-  insert.mockReturnValue({ select: batchInsertSelect });
-  from.mockReturnValue({ select, insert: batchInsert });
+  select.mockReturnValue({ eq: maxEq } as unknown as ReturnType<typeof select>);
+  insert.mockReturnValue({ select: batchInsertSelect } as unknown as ReturnType<typeof insert>);
+  from.mockReturnValue({ select, insert: batchInsert } as unknown as ReturnType<typeof from>);
 
   const rows = await createRoles({ productionId: "p1", names: ["  Hamlet ", "Ophelia", "   "] });
 
@@ -98,8 +98,8 @@ test("createRoles starts at display_order 0 when the production has no roles", a
   const maxEq = vi.fn(() => ({ order: orderDesc }));
   const batchInsertSelect = vi.fn().mockResolvedValue({ data: [{ id: "r1", name: "A", display_order: 0 }], error: null });
   const batchInsert = vi.fn(() => ({ select: batchInsertSelect }));
-  select.mockReturnValue({ eq: maxEq });
-  from.mockReturnValue({ select, insert: batchInsert });
+  select.mockReturnValue({ eq: maxEq } as unknown as ReturnType<typeof select>);
+  from.mockReturnValue({ select, insert: batchInsert } as unknown as ReturnType<typeof from>);
 
   await createRoles({ productionId: "p1", names: ["A"] });
   expect(batchInsert).toHaveBeenCalledWith([{ production_id: "p1", name: "A", display_order: 0 }]);
