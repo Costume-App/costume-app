@@ -37,6 +37,7 @@ export function ProductionWorkspace({
   imageRoleIds,
   initialDesigns,
   initialPieces,
+  makers,
   roleSuggestion,
   aiEnabled,
 }: {
@@ -49,6 +50,7 @@ export function ProductionWorkspace({
   imageRoleIds: string[];
   initialDesigns: CostumeDesign[];
   initialPieces: CostumePiece[];
+  makers: { id: string; name: string; color: string }[];
   roleSuggestion: RoleSuggestion | null;
   aiEnabled: boolean;
 }) {
@@ -313,6 +315,7 @@ export function ProductionWorkspace({
               setDesigns={setDesigns}
               pieces={pieces}
               setPieces={setPieces}
+              makers={makers}
             />
           ))}
         </ul>
