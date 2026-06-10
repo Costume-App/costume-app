@@ -21,6 +21,10 @@ export async function suggestRolesForTitle(title: string): Promise<string[]> {
   const clean = title.trim();
   if (!clean) throw new ValidationError("Production title is required");
 
+  // The title is user-controlled, so it's interpolated into the prompt as data.
+  // Risk is contained: the response is schema-constrained to {roles: string[]},
+  // only role-name strings are ever surfaced, and nothing is persisted until the
+  // user confirms via "Add all roles" in the UI.
   const client = new Anthropic();
   const response = await client.messages.create({
     model: "claude-haiku-4-5",
