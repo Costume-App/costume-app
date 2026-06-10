@@ -28,6 +28,7 @@ export function TailorSummary({
   initialPieces,
   photosByRole,
   measurementsByCasting,
+  makers,
 }: {
   productionId: string;
   roles: Role[];
@@ -38,6 +39,7 @@ export function TailorSummary({
   initialPieces: PieceRow[];
   photosByRole: Record<string, RolePhoto[]>;
   measurementsByCasting: Record<string, MeasurementView[]>;
+  makers: { id: string; name: string; color: string }[];
 }) {
   const [tab, setTab] = useState<"make" | "fabric">("make");
   const [pieces, setPieces] = useState<PieceRow[]>(initialPieces);
@@ -81,6 +83,7 @@ export function TailorSummary({
           worklist={worklist}
           photosByRole={photosByRole}
           measurementsByCasting={measurementsByCasting}
+          makers={makers}
           onSaved={applySaved}
         />
       ) : (

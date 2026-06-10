@@ -13,6 +13,7 @@ import { listRoleImagesForRoles } from "@/lib/data/role-images";
 import { signRoleImageUrls } from "@/lib/storage";
 import { buildMeasurementsByCasting } from "@/lib/tailor-summary";
 import { NotFoundError } from "@/lib/errors";
+import { listMakers } from "@/lib/data/makers";
 import { TailorSummary } from "@/components/TailorSummary";
 import type { RolePhoto } from "@/components/RolePhotoStrip";
 
@@ -56,6 +57,7 @@ export default async function TailorSummaryPage({
     getMeasurementsForPerformers(performers.map((p) => p.id)),
   ]);
   const measurementsByCasting = buildMeasurementsByCasting(definitions, measurements, castings);
+  const makers = await listMakers(orgId);
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -84,6 +86,7 @@ export default async function TailorSummaryPage({
         initialPieces={pieces}
         photosByRole={photosByRole}
         measurementsByCasting={measurementsByCasting}
+        makers={makers.map((m) => ({ id: m.id, name: m.name, color: m.color }))}
       />
     </main>
   );
