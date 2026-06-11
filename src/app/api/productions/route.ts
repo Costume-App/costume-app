@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       title?: string;
       showDate?: string | null;
-      showings?: { date?: string; time?: string | null }[];
+      showings?: { date?: string; time?: string | null; label?: string | null }[];
       notes?: string | null;
       orgName?: string;
     };
@@ -43,7 +43,8 @@ export async function POST(request: Request) {
         const date = typeof s?.date === "string" ? s.date.trim() : "";
         if (!date) continue;
         const time = typeof s?.time === "string" && s.time.trim() ? s.time.trim() : null;
-        await addShowDate(production.id, date, time);
+        const label = typeof s?.label === "string" ? s.label : null;
+        await addShowDate(production.id, date, time, label);
       }
     } else if (typeof body.showDate === "string" && body.showDate.trim()) {
       await addShowDate(production.id, body.showDate, null);
