@@ -30,13 +30,19 @@ export function InventoryItemDetail({
   }, [item.id]);
 
   async function patch(body: Partial<InventoryRow>) {
-    onChange(body);
-    await fetch(`/api/inventory/${item.id}`, {
+    // Snapshot the prior values so we can roll the parent list back if the save fails.
+    const prev = (Object.keys(body) as (keyof InventoryRow)[]).reduce<Partial<InventoryRow>>(
+      (acc, k) => ({ ...acc, [k]: item[k] }),
+      {},
+    );
+    onChange(body); // optimistic
+    const res = await fetch(`/api/inventory/${item.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       credentials: "include",
       body: JSON.stringify(body),
-    });
+    }).catch(() => null);
+    if (!res || !res.ok) onChange(prev);
   }
 
   return (
