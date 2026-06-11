@@ -38,6 +38,16 @@ test("PATCH updates and returns the item", async () => {
   expect(updateInventoryItem).toHaveBeenCalledWith("org_1", "i1", { quantity: 2 });
 });
 
+test("PATCH clears a nullable field when sent null", async () => {
+  vi.mocked(updateInventoryItem).mockResolvedValue({
+    id: "i1", org_id: "org_1", name: "Cape", category: null, size: null, quantity: 1, location: null, notes: null, created_at: "",
+  });
+  const req = new Request("http://x", { method: "PATCH", body: JSON.stringify({ category: null, notes: null }) });
+  const res = await PATCH(req, ctx("i1"));
+  expect(res.status).toBe(200);
+  expect(updateInventoryItem).toHaveBeenCalledWith("org_1", "i1", { category: null, notes: null });
+});
+
 test("DELETE removes storage objects then the item", async () => {
   vi.mocked(getInventoryItem).mockResolvedValue({
     id: "i1", org_id: "org_1", name: "Cape", category: null, size: null, quantity: 1, location: null, notes: null, created_at: "",

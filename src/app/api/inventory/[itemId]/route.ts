@@ -12,15 +12,18 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { itemId } = await params;
     const body = (await request.json()) as {
-      name?: string; category?: string; size?: string; quantity?: number; location?: string; notes?: string;
+      name?: string; category?: string | null; size?: string | null; quantity?: number; location?: string | null; notes?: string | null;
     };
-    const patch: { name?: string; category?: string; size?: string; quantity?: number; location?: string; notes?: string } = {};
+    type NullableStr = string | null;
+    const patch: { name?: string; category?: NullableStr; size?: NullableStr; quantity?: number; location?: NullableStr; notes?: NullableStr } = {};
+    // Nullable fields accept null so the editor can clear them; absent (undefined) leaves them untouched.
+    const isStrOrNull = (v: unknown): v is NullableStr => v === null || typeof v === "string";
     if (typeof body.name === "string") patch.name = body.name;
-    if (typeof body.category === "string") patch.category = body.category;
-    if (typeof body.size === "string") patch.size = body.size;
+    if (isStrOrNull(body.category)) patch.category = body.category;
+    if (isStrOrNull(body.size)) patch.size = body.size;
     if (typeof body.quantity === "number") patch.quantity = body.quantity;
-    if (typeof body.location === "string") patch.location = body.location;
-    if (typeof body.notes === "string") patch.notes = body.notes;
+    if (isStrOrNull(body.location)) patch.location = body.location;
+    if (isStrOrNull(body.notes)) patch.notes = body.notes;
     const item = await updateInventoryItem(orgId, itemId, patch);
     return NextResponse.json({ item });
   } catch (err) {
