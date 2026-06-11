@@ -23,10 +23,11 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id, dateId } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { date?: string; time?: string };
-    const patch: { show_date?: string; show_time?: string | null } = {};
+    const body = (await request.json()) as { date?: string; time?: string; label?: string };
+    const patch: { show_date?: string; show_time?: string | null; label?: string | null } = {};
     if (typeof body.date === "string") patch.show_date = body.date;
     if (typeof body.time === "string") patch.show_time = body.time;
+    if (typeof body.label === "string") patch.label = body.label;
     const showDate = await updateShowDate(id, dateId, patch);
     return NextResponse.json({ showDate });
   } catch (err) {

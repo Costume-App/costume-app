@@ -145,8 +145,8 @@ test("POST creates each provided showing with its time, in order", async () => {
   );
   expect(res.status).toBe(201);
   expect(addShowDate).toHaveBeenCalledTimes(2);
-  expect(addShowDate).toHaveBeenNthCalledWith(1, "p2", "2026-11-01", "19:00");
-  expect(addShowDate).toHaveBeenNthCalledWith(2, "p2", "2026-11-02", null);
+  expect(addShowDate).toHaveBeenNthCalledWith(1, "p2", "2026-11-01", "19:00", null);
+  expect(addShowDate).toHaveBeenNthCalledWith(2, "p2", "2026-11-02", null, null);
 });
 
 test("POST skips showings whose date is blank", async () => {
@@ -157,7 +157,7 @@ test("POST skips showings whose date is blank", async () => {
   );
   expect(res.status).toBe(201);
   expect(addShowDate).toHaveBeenCalledTimes(1);
-  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null);
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null, null);
 });
 
 test("POST prefers showings[] over a legacy showDate when both are present", async () => {
@@ -165,5 +165,18 @@ test("POST prefers showings[] over a legacy showDate when both are present", asy
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   await POST(postReq({ title: "Newsies", showDate: "2026-12-31", showings: [{ date: "2026-11-01" }] }));
   expect(addShowDate).toHaveBeenCalledTimes(1);
-  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null);
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", null, null);
+});
+
+test("POST forwards showing label as the 4th arg to addShowDate", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
+  await POST(
+    postReq({
+      title: "Newsies",
+      showings: [{ date: "2026-11-01", time: "19:00", label: "Opening Night" }],
+    }),
+  );
+  expect(addShowDate).toHaveBeenCalledTimes(1);
+  expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", "19:00", "Opening Night");
 });

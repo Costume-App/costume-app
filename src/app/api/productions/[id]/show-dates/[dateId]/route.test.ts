@@ -67,6 +67,13 @@ test("PATCH updates the time (200)", async () => {
   expect(updateShowDate).toHaveBeenCalledWith("p1", "s1", { show_time: "14:00" });
 });
 
+test("PATCH updates the label (200)", async () => {
+  updateShowDate.mockResolvedValue({ id: "s1", show_date: "2026-08-05", show_time: null, label: "X" });
+  const res = await PATCH(patchReq({ label: "X" }), ctx("p1", "s1"));
+  expect(res.status).toBe(200);
+  expect(updateShowDate).toHaveBeenCalledWith("p1", "s1", { label: "X" });
+});
+
 test("PATCH 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));

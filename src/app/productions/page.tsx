@@ -34,7 +34,7 @@ export default async function ProductionsPage() {
   const pastAndInactive = inactive.map((p) => ({
     id: p.id,
     title: p.title,
-    showings: p.showings.map((s) => ({ id: s.id, show_date: s.show_date, show_time: s.show_time })),
+    showings: p.showings.map((s) => ({ id: s.id, show_date: s.show_date, show_time: s.show_time, label: s.label })),
   }));
 
   return (

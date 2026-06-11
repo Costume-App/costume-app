@@ -7,6 +7,7 @@ interface Showing {
   id: string;
   show_date: string;
   show_time: string | null;
+  label?: string | null;
 }
 
 // Read-only list of a production's showings (date + optional time) under a
@@ -30,6 +31,7 @@ export function ShowingsList({
         <li key={s.id} className="text-sm muted">
           {formatShowDate(s.show_date)}
           {s.show_time ? ` · ${formatShowTime(s.show_time)}` : ""}
+          {s.label ? ` · ${s.label}` : ""}
         </li>
       ))}
     </ul>

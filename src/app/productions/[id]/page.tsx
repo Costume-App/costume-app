@@ -87,7 +87,7 @@ export default async function ProductionDetailPage({
         <EditableProductionHeader
           productionId={id}
           title={production.title}
-          showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date, show_time: d.show_time }))}
+          showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date, show_time: d.show_time, label: d.label }))}
           isActive={production.is_active}
         />
         <div className="flex flex-col items-start gap-1 sm:items-end">
