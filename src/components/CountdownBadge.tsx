@@ -7,11 +7,12 @@ const toneClass: Record<string, string> = {
   none: "border border-[var(--field-line)] text-[var(--muted)]",
 };
 
-export function CountdownBadge({ showDate }: { showDate: string | null }) {
-  const c = countdown(showDate, todayIso());
-  return (
-    <span className={`inline-block rounded px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${toneClass[c.tone]}`}>
-      {c.label}
-    </span>
-  );
+// Shared badge styling so other countdown-style chips (e.g. costumes-due) match.
+export function countdownBadgeClass(tone: string): string {
+  return `inline-block rounded px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${toneClass[tone]}`;
+}
+
+export function CountdownBadge({ showDate, today }: { showDate: string | null; today?: string }) {
+  const c = countdown(showDate, today ?? todayIso());
+  return <span className={countdownBadgeClass(c.tone)}>{c.label}</span>;
 }

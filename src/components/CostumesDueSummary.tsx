@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { countdown } from "@/lib/countdown";
+import { countdownBadgeClass } from "@/components/CountdownBadge";
 
-// Countdown to the costumes-due date + an outstanding roll-up. Server-renderable
-// (no state). `total`/`made` come from the make worklist; `href` (optional) links
-// the roll-up to the Tailor's summary.
+// Costumes-due countdown + outstanding roll-up. When `href` is given the whole
+// card links there (the Tailor's summary), with a hover highlight; without `href`
+// it's a plain card. Renders only when it has a countdown or roll-up to show.
 export function CostumesDueSummary({
   dueDate,
   today,
@@ -34,30 +35,34 @@ export function CostumesDueSummary({
         ? `All ${total} costumes made`
         : `${made} of ${total} made · ${outstanding} still to make`;
 
+  // Nothing to say → render nothing (the summary is empty in that case too).
   if (!dueText && !rollup) return null;
 
-  const toneColor =
-    cd.tone === "past" ? "var(--red)" : cd.tone === "today" ? "var(--red)" : "var(--ink)";
-
-  const rollupEl = rollup ? (
-    href ? (
-      <Link href={href} className="link-muted hover:underline">
-        {rollup}
-      </Link>
-    ) : (
-      <span className="muted">{rollup}</span>
-    )
-  ) : null;
-
-  return (
-    <div className="rounded-xl border border-[var(--field-line)] p-3 text-sm">
+  const body = (
+    <>
       {dueText && (
-        <span className="font-medium" style={{ color: toneColor }}>
-          {dueText}
-        </span>
+        <p>
+          <span className={countdownBadgeClass(cd.tone)}>{dueText}</span>
+        </p>
       )}
-      {dueText && rollupEl && <span className="muted"> · </span>}
-      {rollupEl}
-    </div>
+      {rollup && <p className={`muted ${dueText ? "mt-1.5" : ""}`}>{rollup}</p>}
+    </>
   );
+
+  const cardBase = "rounded-xl border border-[var(--field-line)] p-3 text-sm";
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`${cardBase} flex items-center gap-3 transition-colors hover:border-[var(--red)]`}
+      >
+        <div className="min-w-0 flex-1">{body}</div>
+        <span aria-hidden className="shrink-0 text-[var(--muted)]">
+          →
+        </span>
+      </Link>
+    );
+  }
+  return <div className={cardBase}>{body}</div>;
 }

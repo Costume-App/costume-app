@@ -4,19 +4,19 @@ import { countdown, todayIso, formatShowDate, formatShowTime } from "@/lib/count
 test("future date shows days to go", () => {
   expect(countdown("2026-07-16", "2026-06-04")).toEqual({
     days: 42,
-    label: "42 days to go",
+    label: "42 days to next showing",
     tone: "future",
   });
 });
 
 test("one day away is singular", () => {
-  expect(countdown("2026-06-05", "2026-06-04").label).toBe("1 day to go");
+  expect(countdown("2026-06-05", "2026-06-04").label).toBe("1 day to next showing");
 });
 
-test("same day opens today", () => {
+test("same day shows performing today", () => {
   expect(countdown("2026-06-04", "2026-06-04")).toEqual({
     days: 0,
-    label: "Opens today!",
+    label: "Performing today!",
     tone: "today",
   });
 });

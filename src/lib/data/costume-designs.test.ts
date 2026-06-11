@@ -19,7 +19,7 @@ const select = vi.fn(() => ({ eq: listEq }));
 const from = vi.fn(() => ({ select, insert, delete: del, update }));
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: () => from() } }));
 
-import { listCostumeDesigns, createCostumeDesign, deleteCostumeDesign } from "@/lib/data/costume-designs";
+import { listCostumeDesigns, createCostumeDesign, deleteCostumeDesign, setCostumeDesignNotes } from "@/lib/data/costume-designs";
 
 beforeEach(() => {
   [order2, order1, listEq, insertSingle, insertSelect, insert, deleteEqProd, deleteEqId, del,
@@ -57,4 +57,19 @@ test("deleteCostumeDesign is scoped to the production", async () => {
   await deleteCostumeDesign("p1", "d1");
   expect(deleteEqId).toHaveBeenCalledWith("id", "d1");
   expect(deleteEqProd).toHaveBeenCalledWith("production_id", "p1");
+});
+
+test("setCostumeDesignNotes updates notes scoped by id + production", async () => {
+  updateMaybeSingle.mockResolvedValue({ data: { id: "d1", notes: "Use the blue trim" }, error: null });
+  const row = await setCostumeDesignNotes("p1", "d1", "Use the blue trim");
+  expect(update).toHaveBeenCalledWith({ notes: "Use the blue trim" });
+  expect(updateEqId).toHaveBeenCalledWith("id", "d1");
+  expect(updateEqProd).toHaveBeenCalledWith("production_id", "p1");
+  expect(row).toEqual({ id: "d1", notes: "Use the blue trim" });
+});
+
+test("setCostumeDesignNotes stores null for blank notes", async () => {
+  updateMaybeSingle.mockResolvedValue({ data: { id: "d1", notes: null }, error: null });
+  await setCostumeDesignNotes("p1", "d1", "");
+  expect(update).toHaveBeenCalledWith({ notes: null });
 });
