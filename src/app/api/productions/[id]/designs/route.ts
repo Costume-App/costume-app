@@ -5,6 +5,7 @@ import { assertProductionInOrg } from "@/lib/data/production-access";
 import { listCostumeDesigns, createCostumeDesign } from "@/lib/data/costume-designs";
 import { listRoles } from "@/lib/data/roles";
 import { ValidationError, NotFoundError } from "@/lib/errors";
+import { getInventoryItem } from "@/lib/data/inventory-items";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -25,17 +26,20 @@ export async function POST(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { roleId?: string; name?: string };
+    const body = (await request.json()) as { roleId?: string; name?: string; inventoryItemId?: string };
     if (typeof body.roleId !== "string" || !body.roleId) throw new ValidationError("roleId is required");
     const roles = await listRoles(id);
     if (!roles.some((r) => r.id === body.roleId)) {
       throw new NotFoundError("Role not found in this production");
     }
-    const design = await createCostumeDesign({
-      productionId: id,
-      roleId: body.roleId,
-      name: typeof body.name === "string" ? body.name : "",
-    });
+    let name = typeof body.name === "string" ? body.name : "";
+    let inventoryItemId: string | undefined;
+    if (typeof body.inventoryItemId === "string" && body.inventoryItemId) {
+      const item = await getInventoryItem(orgId, body.inventoryItemId);
+      inventoryItemId = item.id;
+      if (!name.trim()) name = item.name; // default the piece name from the item
+    }
+    const design = await createCostumeDesign({ productionId: id, roleId: body.roleId, name, inventoryItemId });
     return NextResponse.json({ design }, { status: 201 });
   } catch (err) {
     return errorResponse(err);
