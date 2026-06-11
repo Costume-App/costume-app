@@ -52,6 +52,12 @@ test("createCostumeDesign trims and requires a name", async () => {
   expect(insert).toHaveBeenCalledWith({ production_id: "p1", role_id: "r1", name: "Jacket" });
 });
 
+test("createCostumeDesign includes inventory_item_id when linked", async () => {
+  insertSingle.mockResolvedValue({ data: { id: "d2", name: "Cloak", inventory_item_id: "i1" }, error: null });
+  await createCostumeDesign({ productionId: "p1", roleId: "r1", name: "Cloak", inventoryItemId: "i1" });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", role_id: "r1", name: "Cloak", inventory_item_id: "i1" });
+});
+
 test("deleteCostumeDesign is scoped to the production", async () => {
   deleteEqProd.mockResolvedValue({ error: null });
   await deleteCostumeDesign("p1", "d1");
