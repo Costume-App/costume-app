@@ -52,12 +52,11 @@ export function CostumesDueSummary({
   return (
     <div className="rounded-xl border border-[var(--field-line)] p-3 text-sm">
       {dueText && (
-        <span className="font-medium" style={{ color: toneColor }}>
+        <p className="font-medium" style={{ color: toneColor }}>
           {dueText}
-        </span>
+        </p>
       )}
-      {dueText && rollupEl && <span className="muted"> · </span>}
-      {rollupEl}
+      {rollupEl && <p className={dueText ? "mt-0.5" : ""}>{rollupEl}</p>}
     </div>
   );
 }
