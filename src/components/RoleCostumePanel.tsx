@@ -3,9 +3,11 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import Link from "next/link";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { MakeAssignment } from "@/components/MakeAssignment";
-import { COSTUME_SOURCES, DEFAULT_SOURCE } from "@/lib/costume-sources";
+import { AddFromInventory } from "@/components/AddFromInventory";
+import { COSTUME_SOURCES, defaultSourceFor } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
@@ -63,6 +65,22 @@ export function RoleCostumePanel({
       const { design } = (await res.json()) as { design: CostumeDesign };
       setDesigns((prev) => [...prev, design]);
     } else setError("Couldn't add piece");
+    setBusy(false);
+  }
+
+  async function addFromInventory(inventoryItemId: string) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/designs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ roleId: role.id, inventoryItemId }),
+    });
+    if (res.ok) {
+      const { design } = (await res.json()) as { design: CostumeDesign };
+      setDesigns((prev) => [...prev, design]);
+    } else setError("Couldn't add from inventory");
     setBusy(false);
   }
 
@@ -206,16 +224,30 @@ export function RoleCostumePanel({
       <PieceEditor
         designs={roleDesigns}
         onAdd={addDesign}
+        onAddFromInventory={addFromInventory}
         onRemove={removeDesign}
         onRename={renameDesign}
         busy={busy}
         storageKey={`nada:prod:${productionId}:role:${role.id}:piececollapsed`}
         renderExtra={(d) => (
           <div className="space-y-1.5">
-            <PhotoStrip
-              endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
-              max={6}
-            />
+            {d.inventory_item_id ? (
+              <>
+                <PhotoStrip
+                  endpoint={`/api/inventory/${d.inventory_item_id}/images`}
+                  max={6}
+                  readOnly
+                />
+                <Link href="/inventory" className="link-muted inline-block text-xs">
+                  From inventory ↗
+                </Link>
+              </>
+            ) : (
+              <PhotoStrip
+                endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
+                max={6}
+              />
+            )}
             <textarea
               className="field w-full text-sm"
               rows={2}
@@ -236,7 +268,7 @@ export function RoleCostumePanel({
           <p className="text-sm muted">Assign the source for each piece for each performer.</p>
           {ordered.map((casting) => {
           const makeCount = roleDesigns.filter(
-            (d) => (sources[pieceKey(casting.id, d.id)]?.source ?? DEFAULT_SOURCE) === "make",
+            (d) => (sources[pieceKey(casting.id, d.id)]?.source ?? defaultSourceFor(d)) === "make",
           ).length;
           return (
           <div key={casting.id} className="surface !shadow-none p-3">
@@ -266,7 +298,7 @@ export function RoleCostumePanel({
                 const key = pieceKey(casting.id, d.id);
                 const resolved = sources[key];
                 const pending = key in pendingShared;
-                const source = pending ? "shared" : resolved?.source ?? DEFAULT_SOURCE;
+                const source = pending ? "shared" : resolved?.source ?? defaultSourceFor(d);
                 const persistedShareCasting = resolved?.sharedWithPieceId
                   ? pieces.find((p) => p.id === resolved.sharedWithPieceId)?.casting_id ?? ""
                   : "";
@@ -355,6 +387,7 @@ export function RoleCostumePanel({
 function PieceEditor({
   designs,
   onAdd,
+  onAddFromInventory,
   onRemove,
   onRename,
   busy,
@@ -363,6 +396,7 @@ function PieceEditor({
 }: {
   designs: CostumeDesign[];
   onAdd: (name: string) => void;
+  onAddFromInventory?: (itemId: string) => void;
   onRemove: (designId: string) => void;
   onRename: (designId: string, name: string) => void;
   busy: boolean;
@@ -483,6 +517,7 @@ function PieceEditor({
           + add piece
         </button>
       )}
+      {onAddFromInventory && <AddFromInventory onPick={onAddFromInventory} busy={busy} />}
     </div>
   );
 }
