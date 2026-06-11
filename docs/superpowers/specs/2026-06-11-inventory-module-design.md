@@ -47,7 +47,8 @@ shape closely.
 
 ## Data model
 
-### Migration 0018 — inventory tables
+A single migration **0018** creates both inventory tables and adds the link column to
+`costume_designs`.
 
 `inventory_items` (mirrors `makers`):
 
@@ -83,7 +84,7 @@ Photos live in the existing **`role-images`** Storage bucket under an
 `inventory/${itemId}/…` path prefix (no new bucket), reusing the generic
 `uploadImage` / `signImageUrls` / `removeImages` helpers in `src/lib/storage.ts`.
 
-### Migration 0019 — the link
+### The link (same migration 0018)
 
 ```sql
 alter table costume_designs
@@ -169,7 +170,7 @@ Following the repo's existing `*.test.ts` mock patterns:
 
 ## Build order
 
-1. Migration 0018 (inventory tables) + 0019 (link column).
+1. Migration 0018 (inventory tables + link column).
 2. Data layer + tests (`inventory-items`, `inventory-item-images`), extend `costume-designs`.
 3. API routes.
 4. `/inventory` page + `InventoryManager` + productions-list link.
