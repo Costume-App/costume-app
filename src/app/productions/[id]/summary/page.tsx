@@ -74,6 +74,7 @@ export default async function TailorSummaryPage({
           role_id: d.role_id,
           name: d.name,
           display_order: d.display_order,
+          inventory_item_id: d.inventory_item_id,
         }))}
         castings={castings.map((c) => ({
           id: c.id,
