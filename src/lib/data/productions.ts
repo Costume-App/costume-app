@@ -8,6 +8,7 @@ export interface Production {
   title: string;
   notes: string | null;
   is_active: boolean;
+  costumes_due_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,6 +94,20 @@ export async function setProductionNotes(orgId: string, id: string, notes: strin
   const { data, error } = await supabaseAdmin
     .from("productions")
     .update({ notes: notes || null })
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Production not found");
+  return data as Production;
+}
+
+export async function setCostumesDue(orgId: string, id: string, date: string | null): Promise<Production> {
+  const value = date && date.trim() ? date.trim() : null;
+  const { data, error } = await supabaseAdmin
+    .from("productions")
+    .update({ costumes_due_date: value })
     .eq("id", id)
     .eq("org_id", orgId)
     .select()

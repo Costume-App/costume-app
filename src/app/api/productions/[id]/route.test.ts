@@ -15,17 +15,19 @@ const deleteProduction = vi.fn();
 const updateProduction = vi.fn();
 const setProductionActive = vi.fn();
 const setProductionNotes = vi.fn();
+const setCostumesDue = vi.fn();
 vi.mock("@/lib/data/productions", () => ({
   deleteProduction: (...a: unknown[]) => deleteProduction(...a),
   updateProduction: (...a: unknown[]) => updateProduction(...a),
   setProductionActive: (...a: unknown[]) => setProductionActive(...a),
   setProductionNotes: (...a: unknown[]) => setProductionNotes(...a),
+  setCostumesDue: (...a: unknown[]) => setCostumesDue(...a),
 }));
 
 import { DELETE, PATCH } from "@/app/api/productions/[id]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction, setProductionActive, setProductionNotes].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction, setProductionActive, setProductionNotes, setCostumesDue].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
 });
@@ -102,4 +104,13 @@ test("PATCH with notes saves via setProductionNotes (200)", async () => {
   expect(await res.json()).toEqual({ production: { id: "p1", notes: "strike set Sun" } });
   expect(setProductionNotes).toHaveBeenCalledWith("org_1", "p1", "strike set Sun");
   expect(updateProduction).not.toHaveBeenCalled();
+});
+
+test("PATCH sets the costumes-due date", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  setCostumesDue.mockResolvedValue({ id: "p1", costumes_due_date: "2026-11-01" });
+  const res = await PATCH(patchReq({ costumesDueDate: "2026-11-01" }), ctx("p1"));
+  expect(res.status).toBe(200);
+  expect(setCostumesDue).toHaveBeenCalledWith("org_1", "p1", "2026-11-01");
 });
