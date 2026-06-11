@@ -49,14 +49,20 @@ export function CostumesDueSummary({
     </>
   );
 
-  const cardClass = "block rounded-xl border border-[var(--field-line)] p-3 text-sm";
+  const cardBase = "rounded-xl border border-[var(--field-line)] p-3 text-sm";
 
   if (href) {
     return (
-      <Link href={href} className={`${cardClass} transition-colors hover:border-[var(--red)]`}>
-        {body}
+      <Link
+        href={href}
+        className={`${cardBase} flex items-center gap-3 transition-colors hover:border-[var(--red)]`}
+      >
+        <div className="min-w-0 flex-1">{body}</div>
+        <span aria-hidden className="shrink-0 text-[var(--muted)]">
+          →
+        </span>
       </Link>
     );
   }
-  return <div className={cardClass}>{body}</div>;
+  return <div className={cardBase}>{body}</div>;
 }
