@@ -18,11 +18,11 @@ export function countdown(showDate: string | null, today: string): Countdown {
   }
   const days = toEpochDay(showDate) - toEpochDay(today);
   if (days === 0) {
-    return { days: 0, label: "Opens today!", tone: "today" };
+    return { days: 0, label: "Performing today!", tone: "today" };
   }
   if (days > 0) {
     const unit = days === 1 ? "day" : "days";
-    return { days, label: `${days} ${unit} to go`, tone: "future" };
+    return { days, label: `${days} ${unit} to next showing`, tone: "future" };
   }
   const ago = -days;
   const unit = ago === 1 ? "day" : "days";
