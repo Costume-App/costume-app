@@ -11,8 +11,7 @@ import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { listMakers } from "@/lib/data/makers";
 import { NotFoundError } from "@/lib/errors";
-import { CountdownBadge } from "@/components/CountdownBadge";
-import { formatShowDate, formatShowTime, todayIso } from "@/lib/countdown";
+import { todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
 import { findCuratedMatch } from "@/lib/data/play-catalog";
@@ -54,11 +53,6 @@ export default async function ProductionDetailPage({
 
   const status = classifyProduction(production.is_active, showDates.map((d) => d.show_date), todayIso());
   const statusLabel = status === "inactive" ? "Inactive" : null;
-  // showDates arrive sorted by date then time. The next showing is the first one
-  // dated today-or-later; for a past production, fall back to the last showing.
-  const today = todayIso();
-  const upcomingShowings = showDates.filter((s) => s.show_date >= today);
-  const nextShowing = upcomingShowings[0] ?? showDates[showDates.length - 1] ?? null;
 
   // Per-performer measurement progress for the cast-list indicators.
   const filledCounts = await getFilledMeasurementCounts(performers.map((p) => p.id));
@@ -102,21 +96,18 @@ export default async function ProductionDetailPage({
           isActive={production.is_active}
           costumesDue={production.costumes_due_date}
         />
-        <div className="flex flex-col items-start gap-1 sm:items-end">
-          {statusLabel && (
-            <span className="inline-flex items-center rounded-full border border-[var(--field-line)] px-2.5 py-0.5 text-xs muted">
-              {statusLabel}
-            </span>
-          )}
-          {nextShowing && (
-            <span className="text-sm muted">
-              {formatShowDate(nextShowing.show_date)}
-              {nextShowing.show_time ? ` · ${formatShowTime(nextShowing.show_time)}` : ""}
-            </span>
-          )}
-          <CountdownBadge showDate={nextShowing ? nextShowing.show_date : null} />
-        </div>
+        {statusLabel && (
+          <span className="inline-flex items-center self-start rounded-full border border-[var(--field-line)] px-2.5 py-0.5 text-xs muted sm:self-end">
+            {statusLabel}
+          </span>
+        )}
       </div>
+
+      {showDates.length > 0 && (
+        <div className="mb-6">
+          <ShowingsList showings={showDates} collapsible />
+        </div>
+      )}
 
       <div className="mb-6">
         <CostumesDueSummary
@@ -127,12 +118,6 @@ export default async function ProductionDetailPage({
           href={`/productions/${id}/summary`}
         />
       </div>
-
-      {showDates.length > 0 && (
-        <div className="mb-6">
-          <ShowingsList showings={showDates} collapsible />
-        </div>
-      )}
 
       <div className="mb-6">
         <ProductionNotes productionId={id} notes={production.notes} />
