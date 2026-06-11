@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { countdown } from "@/lib/countdown";
+import { countdownBadgeClass } from "@/components/CountdownBadge";
 
 // Countdown to the costumes-due date + an outstanding roll-up. Server-renderable
 // (no state). `total`/`made` come from the make worklist; `href` (optional) links
@@ -36,9 +37,6 @@ export function CostumesDueSummary({
 
   if (!dueText && !rollup) return null;
 
-  const toneColor =
-    cd.tone === "past" ? "var(--red)" : cd.tone === "today" ? "var(--red)" : "var(--ink)";
-
   const rollupEl = rollup ? (
     href ? (
       <Link href={href} className="link-muted hover:underline">
@@ -52,11 +50,11 @@ export function CostumesDueSummary({
   return (
     <div className="rounded-xl border border-[var(--field-line)] p-3 text-sm">
       {dueText && (
-        <p className="font-medium" style={{ color: toneColor }}>
-          {dueText}
+        <p>
+          <span className={countdownBadgeClass(cd.tone)}>{dueText}</span>
         </p>
       )}
-      {rollupEl && <p className={dueText ? "mt-0.5" : ""}>{rollupEl}</p>}
+      {rollupEl && <p className={dueText ? "mt-1.5" : ""}>{rollupEl}</p>}
     </div>
   );
 }
