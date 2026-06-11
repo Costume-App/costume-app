@@ -12,6 +12,7 @@ import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { listRoleImagesForRoles } from "@/lib/data/role-images";
 import { signRoleImageUrls } from "@/lib/storage";
 import { buildMeasurementsByCasting } from "@/lib/tailor-summary";
+import { todayIso } from "@/lib/countdown";
 import { NotFoundError } from "@/lib/errors";
 import { listMakers } from "@/lib/data/makers";
 import { TailorSummary } from "@/components/TailorSummary";
@@ -87,6 +88,8 @@ export default async function TailorSummaryPage({
         photosByRole={photosByRole}
         measurementsByCasting={measurementsByCasting}
         makers={makers.map((m) => ({ id: m.id, name: m.name, color: m.color }))}
+        costumesDueDate={production.costumes_due_date}
+        today={todayIso()}
       />
     </main>
   );
