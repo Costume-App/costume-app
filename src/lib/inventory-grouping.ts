@@ -56,8 +56,8 @@ export function uniqueCategories(items: InventoryRow[]): string[] {
   const seen = new Map<string, string>(); // normalized -> first-seen display
   for (const item of items) {
     const display = (item.category ?? "").trim();
-    if (!display) continue;
-    const key = display.toLowerCase();
+    const key = normalizeCategory(item.category);
+    if (!key) continue;
     if (!seen.has(key)) seen.set(key, display);
   }
   return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));

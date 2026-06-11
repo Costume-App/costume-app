@@ -51,9 +51,10 @@ test("groupItemsByCategory: merges mixed-casing categories under first-seen labe
   expect(hats.items.map((i) => i.name)).toEqual(["Bowler", "Top hat"]); // sorted by name
 });
 
-test("groupItemsByCategory: blank and null categories share the Uncategorized group", () => {
+test("groupItemsByCategory: blank and null categories share the Uncategorized group, sorted by name", () => {
   const uncat = groupItemsByCategory(ITEMS).find((g) => g.key === "")!;
-  expect(uncat.items.map((i) => i.id).sort()).toEqual(["4", "5"]);
+  // "Apron" (id 5) sorts before "Mystery prop" (id 4)
+  expect(uncat.items.map((i) => i.id)).toEqual(["5", "4"]);
 });
 
 test("groupItemsByCategory: empty input returns empty array", () => {
@@ -66,4 +67,13 @@ test("uniqueCategories: distinct non-blank categories, sorted, first-seen casing
 
 test("uniqueCategories: empty when all uncategorized", () => {
   expect(uniqueCategories([row({ id: "x", name: "x" })])).toEqual([]);
+});
+
+test("uniqueCategories: collapses 3+ casing variants to a single first-seen label", () => {
+  const items = [
+    row({ id: "a", name: "a", category: "HATS" }),
+    row({ id: "b", name: "b", category: "hats" }),
+    row({ id: "c", name: "c", category: "Hats" }),
+  ];
+  expect(uniqueCategories(items)).toEqual(["HATS"]);
 });
