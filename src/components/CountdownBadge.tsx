@@ -7,8 +7,8 @@ const toneClass: Record<string, string> = {
   none: "border border-[var(--field-line)] text-[var(--muted)]",
 };
 
-export function CountdownBadge({ showDate }: { showDate: string | null }) {
-  const c = countdown(showDate, todayIso());
+export function CountdownBadge({ showDate, today }: { showDate: string | null; today?: string }) {
+  const c = countdown(showDate, today ?? todayIso());
   return (
     <span className={`inline-block rounded px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${toneClass[c.tone]}`}>
       {c.label}
