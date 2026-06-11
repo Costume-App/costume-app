@@ -2,9 +2,9 @@ import Link from "next/link";
 import { countdown } from "@/lib/countdown";
 import { countdownBadgeClass } from "@/components/CountdownBadge";
 
-// Countdown to the costumes-due date + an outstanding roll-up. Server-renderable
-// (no state). `total`/`made` come from the make worklist; `href` (optional) links
-// the roll-up to the Tailor's summary.
+// Costumes-due countdown + outstanding roll-up. When `href` is given the whole
+// card links there (the Tailor's summary) and shows a link affordance; without
+// `href` it's a plain card (rendered only when it has something to say).
 export function CostumesDueSummary({
   dueDate,
   today,
@@ -35,26 +35,33 @@ export function CostumesDueSummary({
         ? `All ${total} costumes made`
         : `${made} of ${total} made · ${outstanding} still to make`;
 
-  if (!dueText && !rollup) return null;
+  // Nothing to show and nowhere to link → render nothing.
+  if (!href && !dueText && !rollup) return null;
 
-  const rollupEl = rollup ? (
-    href ? (
-      <Link href={href} className="link-muted hover:underline">
-        {rollup}
-      </Link>
-    ) : (
-      <span className="muted">{rollup}</span>
-    )
-  ) : null;
-
-  return (
-    <div className="rounded-xl border border-[var(--field-line)] p-3 text-sm">
+  const body = (
+    <>
       {dueText && (
         <p>
           <span className={countdownBadgeClass(cd.tone)}>{dueText}</span>
         </p>
       )}
-      {rollupEl && <p className={dueText ? "mt-1.5" : ""}>{rollupEl}</p>}
-    </div>
+      {rollup && <p className={`muted ${dueText ? "mt-1.5" : ""}`}>{rollup}</p>}
+      {href && (
+        <p className={`link-muted text-sm ${dueText || rollup ? "mt-1.5" : ""}`}>
+          Tailor&apos;s summary →
+        </p>
+      )}
+    </>
   );
+
+  const cardClass = "block rounded-xl border border-[var(--field-line)] p-3 text-sm";
+
+  if (href) {
+    return (
+      <Link href={href} className={`${cardClass} transition-colors hover:border-[var(--red)]`}>
+        {body}
+      </Link>
+    );
+  }
+  return <div className={cardClass}>{body}</div>;
 }

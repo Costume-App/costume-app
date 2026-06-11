@@ -121,14 +121,6 @@ export default async function ProductionDetailPage({
 
       <div className="mb-6">
         <ProductionNotes productionId={id} notes={production.notes} />
-        <div className="mt-1 flex justify-end">
-          <Link
-            href={`/productions/${id}/summary`}
-            className="link-muted whitespace-nowrap text-sm"
-          >
-            Tailor&apos;s summary →
-          </Link>
-        </div>
       </div>
 
       <ProductionWorkspace
