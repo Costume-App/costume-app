@@ -212,6 +212,10 @@ export function RoleCostumePanel({
         storageKey={`nada:prod:${productionId}:role:${role.id}:piececollapsed`}
         renderExtra={(d) => (
           <div className="space-y-1.5">
+            <PhotoStrip
+              endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
+              max={6}
+            />
             <textarea
               className="field w-full text-sm"
               rows={2}
@@ -221,10 +225,6 @@ export function RoleCostumePanel({
               }}
               placeholder="Notes (optional)"
               aria-label={`Notes for ${d.name}`}
-            />
-            <PhotoStrip
-              endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
-              max={6}
             />
           </div>
         )}
