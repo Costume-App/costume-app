@@ -3,8 +3,8 @@ import { countdown } from "@/lib/countdown";
 import { countdownBadgeClass } from "@/components/CountdownBadge";
 
 // Costumes-due countdown + outstanding roll-up. When `href` is given the whole
-// card links there (the Tailor's summary) and shows a link affordance; without
-// `href` it's a plain card (rendered only when it has something to say).
+// card links there (the Tailor's summary), with a hover highlight; without `href`
+// it's a plain card. Renders only when it has a countdown or roll-up to show.
 export function CostumesDueSummary({
   dueDate,
   today,
@@ -35,8 +35,8 @@ export function CostumesDueSummary({
         ? `All ${total} costumes made`
         : `${made} of ${total} made · ${outstanding} still to make`;
 
-  // Nothing to show and nowhere to link → render nothing.
-  if (!href && !dueText && !rollup) return null;
+  // Nothing to say → render nothing (the summary is empty in that case too).
+  if (!dueText && !rollup) return null;
 
   const body = (
     <>
@@ -46,11 +46,6 @@ export function CostumesDueSummary({
         </p>
       )}
       {rollup && <p className={`muted ${dueText ? "mt-1.5" : ""}`}>{rollup}</p>}
-      {href && (
-        <p className={`link-muted text-sm ${dueText || rollup ? "mt-1.5" : ""}`}>
-          Tailor&apos;s summary →
-        </p>
-      )}
     </>
   );
 
