@@ -9,6 +9,7 @@ interface ShowDateItem {
   id: string;
   show_date: string;
   show_time: string | null;
+  label: string | null;
 }
 
 export function EditableProductionHeader({
@@ -27,6 +28,7 @@ export function EditableProductionHeader({
   const [name, setName] = useState(title);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [newLabel, setNewLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Synchronous in-flight guard: state updates are async, so `busy` alone can't
@@ -73,13 +75,14 @@ export function EditableProductionHeader({
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ date: newDate, time: newTime || null }),
+        body: JSON.stringify({ date: newDate, time: newTime || null, label: newLabel || null }),
       },
       "Couldn't add showing",
     );
     if (ok) {
       setNewDate("");
       setNewTime("");
+      setNewLabel("");
     }
   }
 
@@ -91,7 +94,7 @@ export function EditableProductionHeader({
     );
   }
 
-  function saveShowing(dateId: string, patch: { date?: string; time?: string }) {
+  function saveShowing(dateId: string, patch: { date?: string; time?: string; label?: string }) {
     return send(
       `/api/productions/${productionId}/show-dates/${dateId}`,
       { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) },
@@ -147,6 +150,14 @@ export function EditableProductionHeader({
               onChange={(e) => saveShowing(d.id, { time: e.target.value })}
               aria-label="Showing time"
             />
+            <input
+              type="text"
+              className="field min-w-0 flex-1"
+              defaultValue={d.label ?? ""}
+              onChange={(e) => saveShowing(d.id, { label: e.target.value })}
+              aria-label="Showing label"
+              placeholder="Label — e.g. Tech rehearsal"
+            />
             <button type="button" onClick={() => removeDate(d.id)} disabled={busy} className="link-muted text-sm">
               Remove
             </button>
@@ -165,6 +176,14 @@ export function EditableProductionHeader({
             value={newTime}
             onChange={(e) => setNewTime(e.target.value)}
             aria-label="Showing time (optional)"
+          />
+          <input
+            type="text"
+            className="field min-w-0 flex-1"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            aria-label="Showing label (optional)"
+            placeholder="Label (optional)"
           />
           <button type="button" onClick={addDate} disabled={busy || !newDate} className="btn-ghost text-sm">
             Add
@@ -185,6 +204,7 @@ export function EditableProductionHeader({
             setName(title);
             setNewDate("");
             setNewTime("");
+            setNewLabel("");
             setError(null);
           }}
           disabled={busy}

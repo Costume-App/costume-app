@@ -7,12 +7,13 @@ import { normalizeShowings } from "@/lib/showings";
 interface ShowingRow {
   date: string;
   time: string;
+  label: string;
 }
 
 export default function NewProductionPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
-  const [showings, setShowings] = useState<ShowingRow[]>([{ date: "", time: "" }]);
+  const [showings, setShowings] = useState<ShowingRow[]>([{ date: "", time: "", label: "" }]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -21,7 +22,7 @@ export default function NewProductionPage() {
   }
 
   function addRow() {
-    setShowings((prev) => [...prev, { date: "", time: "" }]);
+    setShowings((prev) => [...prev, { date: "", time: "", label: "" }]);
   }
 
   function removeRow(index: number) {
@@ -82,6 +83,14 @@ export default function NewProductionPage() {
                 value={s.time}
                 onChange={(e) => updateShowing(i, { time: e.target.value })}
                 aria-label="Showing time (optional)"
+              />
+              <input
+                type="text"
+                className="field min-w-0 flex-1"
+                value={s.label}
+                onChange={(e) => updateShowing(i, { label: e.target.value })}
+                aria-label="Showing label (optional)"
+                placeholder="Label (optional)"
               />
               <button type="button" onClick={() => removeRow(i)} className="link-muted text-sm">
                 Remove
