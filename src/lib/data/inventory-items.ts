@@ -31,7 +31,7 @@ interface InventoryInput {
   notes?: string | null;
 }
 
-const clean = (s: string | null | undefined): string | null => (s && s.trim() ? s.trim() : null);
+const clean = (s: string | null | undefined): string | null => s?.trim() || null;
 const cleanQuantity = (q: number | undefined): number =>
   typeof q === "number" && Number.isFinite(q) && q >= 0 ? Math.floor(q) : 1;
 

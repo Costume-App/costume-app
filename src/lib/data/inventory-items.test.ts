@@ -130,6 +130,7 @@ test("listInventoryUsage flattens production+role names per linked design", asyn
   });
   const usage = await listInventoryUsage("i1");
   expect(from).toHaveBeenCalledWith("costume_designs");
+  expect(select).toHaveBeenCalledWith("id, name, production_id, role_id, productions(title), roles(name)");
   expect(firstEq).toHaveBeenCalledWith("inventory_item_id", "i1");
   expect(usage).toEqual([
     { designId: "d1", designName: "Cloak", productionId: "p1", productionName: "Hamlet", roleId: "r1", roleName: "Ophelia" },
