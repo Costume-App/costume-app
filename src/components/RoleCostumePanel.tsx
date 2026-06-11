@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, SetStateAction, ReactNode } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { MakeAssignment } from "@/components/MakeAssignment";
@@ -170,20 +170,18 @@ export function RoleCostumePanel({
 
   return (
     <div className="space-y-2">
-      <PieceEditor designs={roleDesigns} onAdd={addDesign} onRemove={removeDesign} busy={busy} />
-      {roleDesigns.length > 0 && (
-        <div className="space-y-2">
-          {roleDesigns.map((d) => (
-            <div key={d.id} className="rounded-md border border-[var(--field-line)] p-2">
-              <span className="lbl mb-1 block">{d.name}</span>
-              <PhotoStrip
-                endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
-                max={6}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      <PieceEditor
+        designs={roleDesigns}
+        onAdd={addDesign}
+        onRemove={removeDesign}
+        busy={busy}
+        renderExtra={(d) => (
+          <PhotoStrip
+            endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
+            max={6}
+          />
+        )}
+      />
       {ordered.length === 0 ? (
         <p className="text-sm muted">No one cast in this role yet.</p>
       ) : (
@@ -309,69 +307,72 @@ function PieceEditor({
   onAdd,
   onRemove,
   busy,
+  renderExtra,
 }: {
   designs: CostumeDesign[];
   onAdd: (name: string) => void;
   onRemove: (designId: string) => void;
   busy: boolean;
+  renderExtra?: (design: CostumeDesign) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   return (
-    <div className="mb-1 space-y-1">
+    <div className="mb-1 space-y-2">
       <span className="lbl block">Pieces</span>
-      <div className="flex flex-wrap items-center gap-2">
-        {designs.map((d) => (
-          <span key={d.id} className="chip">
-            {d.name}
+      {designs.map((d) => (
+        <div key={d.id} className="space-y-1.5 rounded-md border border-[var(--field-line)] p-2">
+          <div className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 font-medium">{d.name}</span>
             <button
               type="button"
               aria-label={`Remove ${d.name}`}
               disabled={busy}
               onClick={() => onRemove(d.id)}
-              className="ml-1 text-[var(--red)]"
+              className="shrink-0 text-lg leading-none text-[var(--red)] disabled:opacity-50"
             >
               ×
             </button>
-          </span>
-        ))}
-        {open ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              onAdd(name);
-              setName("");
-              setOpen(false);
-            }}
-            className="inline-flex items-center gap-1.5"
-          >
-            <input
-              autoFocus
-              className="field w-28 !p-1.5 text-sm"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Piece name"
-            />
-            <button type="submit" disabled={busy} className="btn-ghost text-sm">
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                setName("");
-              }}
-              className="link-muted text-sm"
-            >
-              Cancel
-            </button>
-          </form>
-        ) : (
-          <button type="button" onClick={() => setOpen(true)} className="link-muted text-sm">
-            + add
+          </div>
+          {renderExtra?.(d)}
+        </div>
+      ))}
+      {open ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onAdd(name);
+            setName("");
+            setOpen(false);
+          }}
+          className="flex items-center gap-1.5"
+        >
+          <input
+            autoFocus
+            className="field w-full !p-1.5 text-sm sm:w-48"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Piece name"
+          />
+          <button type="submit" disabled={busy} className="btn-ghost shrink-0 text-sm">
+            Add
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setName("");
+            }}
+            className="link-muted shrink-0 text-sm"
+          >
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} className="link-muted text-sm">
+          + add piece
+        </button>
+      )}
     </div>
   );
 }
