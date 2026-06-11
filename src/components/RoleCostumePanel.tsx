@@ -232,7 +232,9 @@ export function RoleCostumePanel({
       {ordered.length === 0 ? (
         <p className="text-sm muted">No one cast in this role yet.</p>
       ) : (
-        ordered.map((casting) => {
+        <>
+          <p className="text-sm muted">Assign the source for each piece for each performer.</p>
+          {ordered.map((casting) => {
           const makeCount = roleDesigns.filter(
             (d) => (sources[pieceKey(casting.id, d.id)]?.source ?? DEFAULT_SOURCE) === "make",
           ).length;
@@ -342,7 +344,8 @@ export function RoleCostumePanel({
               ))}
           </div>
           );
-        })
+          })}
+        </>
       )}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
     </div>
