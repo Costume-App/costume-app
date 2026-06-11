@@ -5,7 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { aggregateMeasureStatus } from "@/lib/measurement-aggregate";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
-import { DEFAULT_SOURCE } from "@/lib/costume-sources";
+import { defaultSourceFor } from "@/lib/costume-sources";
 import { MeasurementDot } from "@/components/MeasurementDot";
 import { NoteIcon, ImageIcon, ShirtIcon } from "@/components/role-icons";
 import { Tabs } from "@/components/Tabs";
@@ -86,7 +86,7 @@ export function RoleCard({
   const hasPieces = roleDesigns.length > 0;
   const roleCastings = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
   const needsMake = roleCastings.some((c) =>
-    roleDesigns.some((d) => (sources[pieceKey(c.id, d.id)]?.source ?? DEFAULT_SOURCE) === "make"),
+    roleDesigns.some((d) => (sources[pieceKey(c.id, d.id)]?.source ?? defaultSourceFor(d)) === "make"),
   );
 
   async function saveName(e: React.FormEvent) {
