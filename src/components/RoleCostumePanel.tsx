@@ -82,6 +82,23 @@ export function RoleCostumePanel({
     setBusy(false);
   }
 
+  async function renameDesign(designId: string, name: string) {
+    if (!name.trim()) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/designs/${designId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      const { design } = (await res.json()) as { design: CostumeDesign };
+      setDesigns((prev) => prev.map((d) => (d.id === designId ? design : d)));
+    } else setError("Couldn't rename piece");
+    setBusy(false);
+  }
+
   async function removeDesign(designId: string) {
     if (!confirm("Remove this piece from the costume? Removes it for every performer.")) return;
     setBusy(true);
@@ -190,7 +207,9 @@ export function RoleCostumePanel({
         designs={roleDesigns}
         onAdd={addDesign}
         onRemove={removeDesign}
+        onRename={renameDesign}
         busy={busy}
+        storageKey={`nada:prod:${productionId}:role:${role.id}:piececollapsed`}
         renderExtra={(d) => (
           <div className="space-y-1.5">
             <textarea
@@ -334,44 +353,104 @@ function PieceEditor({
   designs,
   onAdd,
   onRemove,
+  onRename,
   busy,
+  storageKey,
   renderExtra,
 }: {
   designs: CostumeDesign[];
   onAdd: (name: string) => void;
   onRemove: (designId: string) => void;
+  onRename: (designId: string, name: string) => void;
   busy: boolean;
+  storageKey: string;
   renderExtra?: (design: CostumeDesign) => ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [expanded, setExpanded] = usePersistentState<Record<string, boolean>>(storageKey, {});
+
   return (
     <div className="mb-1 space-y-2">
       <span className="lbl block">Pieces</span>
-      {designs.map((d) => (
-        <div key={d.id} className="space-y-1.5 rounded-md border border-[var(--field-line)] p-2">
-          <div className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 font-medium">{d.name}</span>
-            <button
-              type="button"
-              aria-label={`Remove ${d.name}`}
-              disabled={busy}
-              onClick={() => onRemove(d.id)}
-              className="shrink-0 text-lg leading-none text-[var(--red)] disabled:opacity-50"
-            >
-              ×
-            </button>
+      {designs.map((d) => {
+        const open = !!expanded[d.id];
+        return (
+          <div key={d.id} className="space-y-1.5 rounded-md border border-[var(--field-line)] p-2">
+            {renamingId === d.id ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (renameValue.trim()) onRename(d.id, renameValue);
+                  setRenamingId(null);
+                }}
+                className="flex items-center gap-1.5"
+              >
+                <input
+                  autoFocus
+                  className="field w-full !p-1.5 text-sm"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  aria-label="Piece name"
+                />
+                <button type="submit" disabled={busy} className="btn-ghost shrink-0 text-sm">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRenamingId(null)}
+                  className="link-muted shrink-0 text-sm"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExpanded((m) => ({ ...m, [d.id]: !m[d.id] }))}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                  <span className="text-sm text-[var(--muted)]">{open ? "▾" : "▸"}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Rename ${d.name}`}
+                  title="Rename piece"
+                  disabled={busy}
+                  onClick={() => {
+                    setRenameValue(d.name);
+                    setRenamingId(d.id);
+                  }}
+                  className="shrink-0 text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-50"
+                >
+                  <PencilIcon />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Remove ${d.name}`}
+                  disabled={busy}
+                  onClick={() => onRemove(d.id)}
+                  className="shrink-0 text-lg leading-none text-[var(--red)] disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {open && renderExtra?.(d)}
           </div>
-          {renderExtra?.(d)}
-        </div>
-      ))}
-      {open ? (
+        );
+      })}
+      {adding ? (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             onAdd(name);
             setName("");
-            setOpen(false);
+            setAdding(false);
           }}
           className="flex items-center gap-1.5"
         >
@@ -388,7 +467,7 @@ function PieceEditor({
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              setAdding(false);
               setName("");
             }}
             className="link-muted shrink-0 text-sm"
@@ -397,10 +476,29 @@ function PieceEditor({
           </button>
         </form>
       ) : (
-        <button type="button" onClick={() => setOpen(true)} className="link-muted text-sm">
+        <button type="button" onClick={() => setAdding(true)} className="link-muted text-sm">
           + add piece
         </button>
       )}
     </div>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
