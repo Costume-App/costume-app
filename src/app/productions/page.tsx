@@ -3,17 +3,20 @@ import { UserButton } from "@clerk/nextjs";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { listProductions } from "@/lib/data/productions";
+import { listInventoryItems } from "@/lib/data/inventory-items";
 import { listShowDates } from "@/lib/data/show-dates";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { PastAndInactiveProductions } from "@/components/PastAndInactiveProductions";
+import { InventoryQuickAddCard } from "@/components/InventoryQuickAddCard";
 import { ShowingsList } from "@/components/ShowingsList";
 import { nextUpcomingDate, todayIso } from "@/lib/countdown";
 import { partitionProductions } from "@/lib/production-status";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
-  const [productions, user, org] = await Promise.all([
+  const [productions, inventoryItems, user, org] = await Promise.all([
     listProductions(orgId),
+    listInventoryItems(orgId),
     currentUser(),
     clerkClient().then((c) => c.organizations.getOrganization({ organizationId: orgId })),
   ]);
@@ -88,6 +91,8 @@ export default async function ProductionsPage() {
           <PastAndInactiveProductions productions={pastAndInactive} />
         </>
       )}
+
+      <InventoryQuickAddCard itemCount={inventoryItems.length} />
     </main>
   );
 }
