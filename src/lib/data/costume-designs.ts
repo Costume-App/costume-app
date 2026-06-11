@@ -6,6 +6,7 @@ export interface CostumeDesign {
   production_id: string;
   role_id: string;
   name: string;
+  notes: string | null;
   display_order: number;
   created_at: string;
 }
@@ -47,6 +48,23 @@ export async function updateCostumeDesign(
   const { data, error } = await supabaseAdmin
     .from("costume_designs")
     .update({ name: trimmed })
+    .eq("id", id)
+    .eq("production_id", productionId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Costume piece not found");
+  return data as CostumeDesign;
+}
+
+export async function setCostumeDesignNotes(
+  productionId: string,
+  id: string,
+  notes: string,
+): Promise<CostumeDesign> {
+  const { data, error } = await supabaseAdmin
+    .from("costume_designs")
+    .update({ notes: notes || null })
     .eq("id", id)
     .eq("production_id", productionId)
     .select()

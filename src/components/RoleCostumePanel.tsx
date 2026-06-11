@@ -66,6 +66,22 @@ export function RoleCostumePanel({
     setBusy(false);
   }
 
+  async function setDesignNotes(designId: string, notes: string) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/designs/${designId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ notes }),
+    });
+    if (res.ok) {
+      const { design } = (await res.json()) as { design: CostumeDesign };
+      setDesigns((prev) => prev.map((d) => (d.id === designId ? design : d)));
+    } else setError("Couldn't save notes");
+    setBusy(false);
+  }
+
   async function removeDesign(designId: string) {
     if (!confirm("Remove this piece from the costume? Removes it for every performer.")) return;
     setBusy(true);
@@ -176,10 +192,22 @@ export function RoleCostumePanel({
         onRemove={removeDesign}
         busy={busy}
         renderExtra={(d) => (
-          <PhotoStrip
-            endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
-            max={6}
-          />
+          <div className="space-y-1.5">
+            <textarea
+              className="field w-full text-sm"
+              rows={2}
+              defaultValue={d.notes ?? ""}
+              onBlur={(e) => {
+                if (e.target.value !== (d.notes ?? "")) setDesignNotes(d.id, e.target.value);
+              }}
+              placeholder="Notes (optional)"
+              aria-label={`Notes for ${d.name}`}
+            />
+            <PhotoStrip
+              endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
+              max={6}
+            />
+          </div>
         )}
       />
       {ordered.length === 0 ? (
