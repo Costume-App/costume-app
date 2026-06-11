@@ -51,3 +51,9 @@ test("updateShowDate throws NotFoundError when no row matches", async () => {
   maybeSingle.mockResolvedValue({ data: null, error: null });
   await expect(updateShowDate("p1", "nope", { show_date: "2026-08-05" })).rejects.toBeInstanceOf(NotFoundError);
 });
+
+test("updateShowDate updates a provided label", async () => {
+  maybeSingle.mockResolvedValue({ data: { id: "s1", label: "X" }, error: null });
+  await updateShowDate("p1", "s1", { label: "X" });
+  expect(update).toHaveBeenCalledWith({ label: "X" });
+});

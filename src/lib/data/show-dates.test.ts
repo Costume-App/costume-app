@@ -50,18 +50,30 @@ test("listShowDates queries show_dates by production_id, ordered by date then ti
 test("addShowDate inserts date + time and returns the row", async () => {
   single.mockResolvedValue({ data: { id: "s2", production_id: "p1", show_date: "2026-08-01", show_time: "14:00:00" }, error: null });
   const row = await addShowDate("p1", "2026-08-01", "14:00");
-  expect(insert).toHaveBeenCalledWith({ production_id: "p1", show_date: "2026-08-01", show_time: "14:00" });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", show_date: "2026-08-01", show_time: "14:00", label: null });
   expect(row).toEqual({ id: "s2", production_id: "p1", show_date: "2026-08-01", show_time: "14:00:00" });
 });
 
 test("addShowDate stores null time when none given", async () => {
   single.mockResolvedValue({ data: { id: "s3", production_id: "p1", show_date: "2026-08-02", show_time: null }, error: null });
   await addShowDate("p1", "2026-08-02", null);
-  expect(insert).toHaveBeenCalledWith({ production_id: "p1", show_date: "2026-08-02", show_time: null });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", show_date: "2026-08-02", show_time: null, label: null });
 });
 
 test("addShowDate rejects an empty date with ValidationError", async () => {
   await expect(addShowDate("p1", "  ", null)).rejects.toBeInstanceOf(ValidationError);
+});
+
+test("addShowDate inserts a trimmed label when provided", async () => {
+  single.mockResolvedValue({ data: { id: "s4", production_id: "p1", show_date: "2026-09-01", show_time: null, label: "Tech rehearsal" }, error: null });
+  await addShowDate("p1", "2026-09-01", null, "  Tech rehearsal  ");
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", show_date: "2026-09-01", show_time: null, label: "Tech rehearsal" });
+});
+
+test("addShowDate inserts null label when label is blank", async () => {
+  single.mockResolvedValue({ data: { id: "s5", production_id: "p1", show_date: "2026-09-02", show_time: null, label: null }, error: null });
+  await addShowDate("p1", "2026-09-02", null, "   ");
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", show_date: "2026-09-02", show_time: null, label: null });
 });
 
 test("deleteShowDate deletes scoped by id and production_id", async () => {
