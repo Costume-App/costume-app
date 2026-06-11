@@ -45,6 +45,9 @@ export default async function ProductionsPage() {
           <Link href="/makers" className="link-muted text-sm">
             Makers
           </Link>
+          <Link href="/inventory" className="link-muted text-sm">
+            Inventory
+          </Link>
           {userName && <span className="text-sm muted">{userName}</span>}
           <UserButton />
         </div>

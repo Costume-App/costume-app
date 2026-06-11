@@ -1,4 +1,5 @@
 import { pieceKey } from "@/lib/costume-merge";
+import { defaultSourceFor } from "@/lib/costume-sources";
 
 export interface PieceRow {
   costume_design_id: string;
@@ -81,7 +82,7 @@ export interface PurchaseList {
 }
 
 interface RoleLike { id: string; name: string; notes: string | null }
-interface DesignLike { id: string; role_id: string; name: string; display_order: number }
+interface DesignLike { id: string; role_id: string; name: string; display_order: number; inventory_item_id: string | null }
 interface CastingLike { id: string; cast_id: string; role_id: string; performer_id: string; assignment: "primary" | "understudy" }
 interface PerformerLike { id: string; name: string }
 interface CastLike { id: string; name: string }
@@ -147,7 +148,8 @@ function fabricFromRow(row: PieceRow | undefined): Fabric {
 
 // Build the production-wide make worklist: for every (design × casting of that
 // design's role, across all casts), include it unless its stored source is
-// on_hand/shared. Absence of a row means "make" (the lazy default).
+// on_hand/shared. Absence of a row uses defaultSourceFor — inventory-linked
+// designs default to on_hand, everything else to make.
 export function buildMakeWorklist(
   roles: RoleLike[],
   designs: DesignLike[],
@@ -176,7 +178,7 @@ export function buildMakeWorklist(
       const items: MakeItem[] = [];
       for (const casting of roleCastings) {
         const row = pieceMap.get(pieceKey(casting.id, design.id));
-        const source = row?.source ?? "make";
+        const source = row?.source ?? defaultSourceFor(design);
         if (source === "on_hand" || source === "shared") continue;
         const made = row?.made ?? false;
         items.push({

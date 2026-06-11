@@ -20,3 +20,9 @@ export function isCostumeSource(value: string): value is CostumeSource {
 export function sourceLabel(token: string): string {
   return COSTUME_SOURCES.find((s) => s.token === token)?.label ?? "Make";
 }
+
+// The lazy default source for a design when no costume_pieces row exists:
+// inventory-linked pieces are on-hand; everything else defaults to make.
+export function defaultSourceFor(design: { inventory_item_id?: string | null }): CostumeSource {
+  return design.inventory_item_id ? "on_hand" : DEFAULT_SOURCE;
+}

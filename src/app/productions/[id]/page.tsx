@@ -70,7 +70,7 @@ export default async function ProductionDetailPage({
 
   const worklist = buildMakeWorklist(
     roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes })),
-    designs.map((d) => ({ id: d.id, role_id: d.role_id, name: d.name, display_order: d.display_order })),
+    designs.map((d) => ({ id: d.id, role_id: d.role_id, name: d.name, display_order: d.display_order, inventory_item_id: d.inventory_item_id })),
     castings.map((c) => ({ id: c.id, cast_id: c.cast_id, role_id: c.role_id, performer_id: c.performer_id, assignment: c.assignment })),
     performers.map((p) => ({ id: p.id, name: p.label })),
     casts.map((c) => ({ id: c.id, name: c.name })),

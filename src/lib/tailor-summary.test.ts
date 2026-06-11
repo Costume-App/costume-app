@@ -35,9 +35,9 @@ const roles = [
   { id: "r2", name: "Page", notes: null },
 ];
 const designs = [
-  { id: "d1", role_id: "r1", name: "Cloak", display_order: 0 },
-  { id: "d2", role_id: "r1", name: "Hat", display_order: 1 },
-  { id: "d3", role_id: "r2", name: "Tunic", display_order: 0 },
+  { id: "d1", role_id: "r1", name: "Cloak", display_order: 0, inventory_item_id: null },
+  { id: "d2", role_id: "r1", name: "Hat", display_order: 1, inventory_item_id: null },
+  { id: "d3", role_id: "r2", name: "Tunic", display_order: 0, inventory_item_id: null },
 ];
 const castings = [
   { id: "c1", cast_id: "castA", role_id: "r1", performer_id: "p1", assignment: "primary" as const },
@@ -160,4 +160,21 @@ test("buildFabricPurchaseList: pieces without a fabric type go to unspecified", 
   const pl = buildFabricPurchaseList(items);
   expect(pl.groups).toHaveLength(0);
   expect(pl.unspecified).toHaveLength(items.length);
+});
+
+test("buildMakeWorklist excludes inventory-linked designs with no piece row", () => {
+  const roles = [{ id: "r1", name: "Ophelia", notes: null }];
+  const designs = [
+    { id: "d1", role_id: "r1", name: "Gown", display_order: 0, inventory_item_id: null },
+    { id: "d2", role_id: "r1", name: "Cloak", display_order: 1, inventory_item_id: "i1" },
+  ];
+  const castings = [
+    { id: "c1", cast_id: "ca1", role_id: "r1", performer_id: "p1", assignment: "primary" as const },
+  ];
+  const performers = [{ id: "p1", name: "Mia" }];
+  const casts = [{ id: "ca1", name: "Cast A" }];
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, []);
+  const designIds = wl.roles.flatMap((r) => r.garments.map((g) => g.designId));
+  expect(designIds).toEqual(["d1"]); // Cloak (linked) defaults to on_hand, so it's excluded
+  expect(wl.totalItems).toBe(1);
 });

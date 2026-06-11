@@ -7,6 +7,7 @@ export interface CostumeDesign {
   role_id: string;
   name: string;
   notes: string | null;
+  inventory_item_id: string | null;
   display_order: number;
   created_at: string;
 }
@@ -26,12 +27,19 @@ export async function createCostumeDesign(input: {
   productionId: string;
   roleId: string;
   name: string;
+  inventoryItemId?: string | null;
 }): Promise<CostumeDesign> {
   const name = input.name.trim();
   if (!name) throw new ValidationError("Piece name is required");
+  const row: Record<string, unknown> = {
+    production_id: input.productionId,
+    role_id: input.roleId,
+    name,
+  };
+  if (input.inventoryItemId) row.inventory_item_id = input.inventoryItemId;
   const { data, error } = await supabaseAdmin
     .from("costume_designs")
-    .insert({ production_id: input.productionId, role_id: input.roleId, name })
+    .insert(row)
     .select()
     .single();
   if (error) throw new Error(error.message);

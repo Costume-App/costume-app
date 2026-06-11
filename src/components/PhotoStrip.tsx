@@ -15,10 +15,12 @@ export function PhotoStrip({
   endpoint,
   max,
   label,
+  readOnly = false,
 }: {
   endpoint: string;
   max: number;
   label?: string;
+  readOnly?: boolean;
 }) {
   const [images, setImages] = useState<ImageView[]>([]);
   const [busy, setBusy] = useState(false);
@@ -111,20 +113,22 @@ export function PhotoStrip({
               ) : (
                 <div className="h-[72px] w-[72px] rounded bg-[var(--bg)]" />
               )}
-              <button
-                type="button"
-                onClick={() => remove(img.id)}
-                disabled={busy}
-                aria-label={`Remove photo ${i + 1}`}
-                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--red)] text-xs leading-none text-[var(--red-fg)] disabled:opacity-50"
-              >
-                ×
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => remove(img.id)}
+                  disabled={busy}
+                  aria-label={`Remove photo ${i + 1}`}
+                  className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--red)] text-xs leading-none text-[var(--red-fg)] disabled:opacity-50"
+                >
+                  ×
+                </button>
+              )}
             </div>
             <span className="text-xs muted">#{i + 1}</span>
           </div>
         ))}
-        {images.length < max && (
+        {!readOnly && images.length < max && (
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
