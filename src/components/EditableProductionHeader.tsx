@@ -145,59 +145,63 @@ export function EditableProductionHeader({
         <span className="lbl block">Showings</span>
         {showDates.length === 0 && <p className="text-sm muted">No showings yet.</p>}
         {showDates.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-2">
-            <input
-              type="date"
-              className="field min-w-0 flex-1"
-              defaultValue={d.show_date}
-              onChange={(e) => e.target.value && saveShowing(d.id, { date: e.target.value })}
-              aria-label="Showing date"
-            />
-            <input
-              type="time"
-              className="field w-32 shrink-0"
-              defaultValue={(d.show_time ?? "").slice(0, 5)}
-              onChange={(e) => saveShowing(d.id, { time: e.target.value })}
-              aria-label="Showing time"
-            />
+          <div key={d.id} className="flex flex-col gap-1.5 border-b border-[var(--field-line)] pb-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="field min-w-0 flex-1"
+                defaultValue={d.show_date}
+                onChange={(e) => e.target.value && saveShowing(d.id, { date: e.target.value })}
+                aria-label="Showing date"
+              />
+              <input
+                type="time"
+                className="field w-32 shrink-0"
+                defaultValue={(d.show_time ?? "").slice(0, 5)}
+                onChange={(e) => saveShowing(d.id, { time: e.target.value })}
+                aria-label="Showing time"
+              />
+              <button type="button" onClick={() => removeDate(d.id)} disabled={busy} className="link-muted shrink-0 text-sm">
+                Remove
+              </button>
+            </div>
             <input
               type="text"
-              className="field min-w-0 flex-1"
+              className="field w-full"
               defaultValue={d.label ?? ""}
               onChange={(e) => saveShowing(d.id, { label: e.target.value })}
               aria-label="Showing label"
               placeholder="Label — e.g. Tech rehearsal"
             />
-            <button type="button" onClick={() => removeDate(d.id)} disabled={busy} className="link-muted text-sm">
-              Remove
-            </button>
           </div>
         ))}
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            className="field min-w-0 flex-1"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-          />
-          <input
-            type="time"
-            className="field w-32 shrink-0"
-            value={newTime}
-            onChange={(e) => setNewTime(e.target.value)}
-            aria-label="Showing time (optional)"
-          />
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              className="field min-w-0 flex-1"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+            <input
+              type="time"
+              className="field w-32 shrink-0"
+              value={newTime}
+              onChange={(e) => setNewTime(e.target.value)}
+              aria-label="Showing time (optional)"
+            />
+            <button type="button" onClick={addDate} disabled={busy || !newDate} className="btn-ghost shrink-0 text-sm">
+              Add
+            </button>
+          </div>
           <input
             type="text"
-            className="field min-w-0 flex-1"
+            className="field w-full"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             aria-label="Showing label (optional)"
             placeholder="Label (optional)"
           />
-          <button type="button" onClick={addDate} disabled={busy || !newDate} className="btn-ghost text-sm">
-            Add
-          </button>
         </div>
       </div>
       <label className="block">

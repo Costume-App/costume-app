@@ -69,32 +69,34 @@ export default function NewProductionPage() {
             Showings <span className="muted font-normal">(Optional)</span>
           </span>
           {showings.map((s, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2">
-              <input
-                type="date"
-                className="field min-w-0 flex-1"
-                value={s.date}
-                onChange={(e) => updateShowing(i, { date: e.target.value })}
-                aria-label="Showing date"
-              />
-              <input
-                type="time"
-                className="field w-32 shrink-0"
-                value={s.time}
-                onChange={(e) => updateShowing(i, { time: e.target.value })}
-                aria-label="Showing time (optional)"
-              />
+            <div key={i} className="flex flex-col gap-1.5 border-b border-[var(--field-line)] pb-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  className="field min-w-0 flex-1"
+                  value={s.date}
+                  onChange={(e) => updateShowing(i, { date: e.target.value })}
+                  aria-label="Showing date"
+                />
+                <input
+                  type="time"
+                  className="field w-32 shrink-0"
+                  value={s.time}
+                  onChange={(e) => updateShowing(i, { time: e.target.value })}
+                  aria-label="Showing time (optional)"
+                />
+                <button type="button" onClick={() => removeRow(i)} className="link-muted shrink-0 text-sm">
+                  Remove
+                </button>
+              </div>
               <input
                 type="text"
-                className="field min-w-0 flex-1"
+                className="field w-full"
                 value={s.label}
                 onChange={(e) => updateShowing(i, { label: e.target.value })}
                 aria-label="Showing label (optional)"
                 placeholder="Label (optional)"
               />
-              <button type="button" onClick={() => removeRow(i)} className="link-muted text-sm">
-                Remove
-              </button>
             </div>
           ))}
           <button type="button" onClick={addRow} className="btn-ghost text-sm">
