@@ -1,7 +1,6 @@
 "use client";
 
 import { castColorHex } from "@/lib/cast-colors";
-import { makeStatus } from "@/lib/maker-status";
 
 export interface MakerOption {
   id: string;
@@ -9,14 +8,8 @@ export interface MakerOption {
   color: string;
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  done: "#3f7d4f",
-  outstanding: "var(--red)",
-  unassigned: "var(--muted)",
-};
-
-// Maker selector + a done/outstanding/unassigned status dot, with an optional
-// "Made" toggle. Presentational: persistence is the parent's job.
+// Maker selector (with the maker's colour dot) + an optional "Made" toggle.
+// Presentational: persistence is the parent's job.
 export function MakeAssignment({
   makers,
   makerId,
@@ -34,19 +27,15 @@ export function MakeAssignment({
   onChangeMaker: (makerId: string | null) => void;
   onToggleMade?: (made: boolean) => void;
 }) {
-  const status = makeStatus(made, makerId);
   const selected = makers.find((m) => m.id === makerId) ?? null;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span
-        className="h-2.5 w-2.5 shrink-0 rounded-full"
-        style={{ background: STATUS_COLOR[status] }}
-        title={status === "done" ? "Done" : status === "outstanding" ? "Outstanding" : "Unassigned"}
-        aria-label={`Status: ${status}`}
-      />
       <span className="inline-flex items-center gap-1.5">
         {selected && (
-          <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: castColorHex(selected.color) }} />
+          <span
+            className="h-3 w-3 shrink-0 rounded-full"
+            style={{ background: castColorHex(selected.color) }}
+          />
         )}
         <select
           className="field !p-1.5 text-sm"
