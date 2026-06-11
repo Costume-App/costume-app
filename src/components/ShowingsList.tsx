@@ -63,27 +63,51 @@ export function ShowingsList({
     ? showings.find((s) => s.show_date >= today) ?? showings[showings.length - 1]
     : null;
 
+  // Without a `today` reference we can't pick a "next" — fall back to a plain
+  // count header that toggles the full list.
+  if (!next) {
+    return (
+      <div className="space-y-1">
+        <button type="button" onClick={() => setOpen((o) => !o)} className="lbl flex items-center gap-1">
+          <span>{open ? "▾" : "▸"}</span>
+          {countLabel}
+        </button>
+        {open && list}
+      </div>
+    );
+  }
+
+  // Next showing shows on its own line; the remaining showings collapse under a
+  // "N other showing(s)" toggle.
+  const others = showings.filter((s) => s.id !== next.id);
+
   return (
     <div className="space-y-1">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 text-left"
-      >
-        <span className="text-sm text-[var(--muted)]">{open ? "▾" : "▸"}</span>
-        {next ? (
-          <>
-            <span className="text-sm">{showingText(next)}</span>
-            <CountdownBadge showDate={next.show_date} today={today} />
-            {showings.length > 1 && (
-              <span className="ml-auto text-xs muted">{showings.length} showings</span>
-            )}
-          </>
-        ) : (
-          <span className="lbl">{countLabel}</span>
-        )}
-      </button>
-      {open && list}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm">{showingText(next)}</span>
+        <CountdownBadge showDate={next.show_date} today={today} />
+      </div>
+      {others.length > 0 && (
+        <div className="space-y-0.5">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="flex items-center gap-1 text-sm muted hover:text-[var(--ink)]"
+          >
+            <span>{open ? "▾" : "▸"}</span>
+            {others.length} other showing{others.length === 1 ? "" : "s"}
+          </button>
+          {open && (
+            <ul className="space-y-0.5 pl-4">
+              {others.map((s) => (
+                <li key={s.id} className="text-sm muted">
+                  {showingText(s)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
