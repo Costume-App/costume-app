@@ -148,7 +148,8 @@ function fabricFromRow(row: PieceRow | undefined): Fabric {
 
 // Build the production-wide make worklist: for every (design × casting of that
 // design's role, across all casts), include it unless its stored source is
-// on_hand/shared. Absence of a row means "make" (the lazy default).
+// on_hand/shared. Absence of a row uses defaultSourceFor — inventory-linked
+// designs default to on_hand, everything else to make.
 export function buildMakeWorklist(
   roles: RoleLike[],
   designs: DesignLike[],
