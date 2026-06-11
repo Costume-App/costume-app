@@ -22,6 +22,8 @@ import { ShowingsList } from "@/components/ShowingsList";
 import { ProductionNotes } from "@/components/ProductionNotes";
 import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 import { classifyProduction } from "@/lib/production-status";
+import { buildMakeWorklist } from "@/lib/tailor-summary";
+import { CostumesDueSummary } from "@/components/CostumesDueSummary";
 
 export default async function ProductionDetailPage({
   params,
@@ -72,6 +74,15 @@ export default async function ProductionDetailPage({
   const pieces = await listCostumePieces(designs.map((d) => d.id));
   const makers = await listMakers(orgId);
 
+  const worklist = buildMakeWorklist(
+    roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes })),
+    designs.map((d) => ({ id: d.id, role_id: d.role_id, name: d.name, display_order: d.display_order })),
+    castings.map((c) => ({ id: c.id, cast_id: c.cast_id, role_id: c.role_id, performer_id: c.performer_id, assignment: c.assignment })),
+    performers.map((p) => ({ id: p.id, name: p.label })),
+    casts.map((c) => ({ id: c.id, name: c.name })),
+    pieces,
+  );
+
   const curated = findCuratedMatch(production.title);
   const roleSuggestion = curated
     ? { id: curated.id, title: curated.title, roles: curated.roles }
@@ -89,6 +100,7 @@ export default async function ProductionDetailPage({
           title={production.title}
           showDates={showDates.map((d) => ({ id: d.id, show_date: d.show_date, show_time: d.show_time, label: d.label }))}
           isActive={production.is_active}
+          costumesDue={production.costumes_due_date}
         />
         <div className="flex flex-col items-start gap-1 sm:items-end">
           {statusLabel && (
@@ -104,6 +116,16 @@ export default async function ProductionDetailPage({
           )}
           <CountdownBadge showDate={nextShowing ? nextShowing.show_date : null} />
         </div>
+      </div>
+
+      <div className="mb-6">
+        <CostumesDueSummary
+          dueDate={production.costumes_due_date}
+          today={todayIso()}
+          total={worklist.totalItems}
+          made={worklist.madeItems}
+          href={`/productions/${id}/summary`}
+        />
       </div>
 
       {showDates.length > 0 && (

@@ -11,6 +11,7 @@ import {
   type MeasurementView,
 } from "@/lib/tailor-summary";
 import type { RolePhoto } from "@/components/RolePhotoStrip";
+import { CostumesDueSummary } from "@/components/CostumesDueSummary";
 
 interface Role { id: string; name: string; notes: string | null }
 interface Design { id: string; role_id: string; name: string; display_order: number }
@@ -29,6 +30,8 @@ export function TailorSummary({
   photosByRole,
   measurementsByCasting,
   makers,
+  costumesDueDate,
+  today,
 }: {
   productionId: string;
   roles: Role[];
@@ -40,6 +43,8 @@ export function TailorSummary({
   photosByRole: Record<string, RolePhoto[]>;
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
+  costumesDueDate: string | null;
+  today: string;
 }) {
   const [tab, setTab] = useState<"make" | "fabric">("make");
   const [pieces, setPieces] = useState<PieceRow[]>(initialPieces);
@@ -66,6 +71,12 @@ export function TailorSummary({
 
   return (
     <div className="space-y-4">
+      <CostumesDueSummary
+        dueDate={costumesDueDate}
+        today={today}
+        total={worklist.totalItems}
+        made={worklist.madeItems}
+      />
       <Tabs
         tabs={[
           {

@@ -17,11 +17,13 @@ export function EditableProductionHeader({
   title,
   showDates,
   isActive,
+  costumesDue,
 }: {
   productionId: string;
   title: string;
   showDates: ShowDateItem[];
   isActive: boolean;
+  costumesDue?: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -58,6 +60,14 @@ export function EditableProductionHeader({
       `/api/productions/${productionId}`,
       { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: name }) },
       "Couldn't save name",
+    );
+  }
+
+  function saveCostumesDue(value: string) {
+    return send(
+      `/api/productions/${productionId}`,
+      { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ costumesDueDate: value || null }) },
+      "Couldn't save costumes-due date",
     );
   }
 
@@ -190,6 +200,15 @@ export function EditableProductionHeader({
           </button>
         </div>
       </div>
+      <label className="block">
+        <span className="lbl mb-1 block">Costumes due</span>
+        <input
+          type="date"
+          className="field w-full"
+          defaultValue={costumesDue ?? ""}
+          onChange={(e) => saveCostumesDue(e.target.value)}
+        />
+      </label>
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
       <div className="flex items-center justify-between gap-3 border-t border-[var(--field-line)] pt-3">
         {isActive && isPast ? (
