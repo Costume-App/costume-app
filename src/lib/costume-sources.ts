@@ -1,4 +1,4 @@
-export type CostumeSource = "make" | "on_hand" | "shared";
+export type CostumeSource = "make" | "on_hand" | "shared" | "purchase";
 
 export interface CostumeSourceOption {
   token: CostumeSource;
@@ -9,6 +9,7 @@ export const COSTUME_SOURCES: CostumeSourceOption[] = [
   { token: "make", label: "Make" },
   { token: "on_hand", label: "On hand" },
   { token: "shared", label: "Shared" },
+  { token: "purchase", label: "Purchase" },
 ];
 
 export const DEFAULT_SOURCE: CostumeSource = "make";

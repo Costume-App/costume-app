@@ -1,3 +1,5 @@
+import type { CostumeSource } from "@/lib/costume-sources";
+
 interface DesignLike {
   id: string;
   role_id: string;
@@ -6,13 +8,13 @@ interface PieceRowLike {
   id?: string;
   costume_design_id: string;
   casting_id: string;
-  source: "make" | "on_hand" | "shared";
+  source: CostumeSource;
   shared_with_piece_id: string | null;
   source_note: string | null;
 }
 
 export interface ResolvedSource {
-  source: "make" | "on_hand" | "shared";
+  source: CostumeSource;
   sharedWithPieceId: string | null;
   sourceNote: string | null;
 }
@@ -45,7 +47,7 @@ export function pieceCountByRole(designs: DesignLike[]): Record<string, number> 
 // (the lazy default: absence of a row means "make"). Note must already be trimmed
 // to null when blank.
 export function pieceRowIsEmpty(input: {
-  source: "make" | "on_hand" | "shared";
+  source: CostumeSource;
   sourceNote: string | null;
   fabricType: string | null;
   fabricColor: string | null;
