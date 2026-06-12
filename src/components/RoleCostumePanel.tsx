@@ -363,17 +363,18 @@ export function RoleCostumePanel({
                           {d.inventory_location}
                         </span>
                       )}
+                      {source === "make" && (
+                        <MakeAssignment
+                          makers={makers}
+                          makerId={piece?.maker_id ?? null}
+                          made={piece?.made ?? false}
+                          madeLabel=""
+                          busy={busy}
+                          onChangeMaker={(mk) => setPieceField(d.id, casting.id, { makerId: mk })}
+                          onToggleMade={(md) => setPieceField(d.id, casting.id, { made: md })}
+                        />
+                      )}
                     </div>
-                    {source === "make" && (
-                      <MakeAssignment
-                        makers={makers}
-                        makerId={piece?.maker_id ?? null}
-                        made={piece?.made ?? false}
-                        busy={busy}
-                        onChangeMaker={(mk) => setPieceField(d.id, casting.id, { makerId: mk })}
-                        onToggleMade={(md) => setPieceField(d.id, casting.id, { made: md })}
-                      />
-                    )}
                   </div>
                 );
               })

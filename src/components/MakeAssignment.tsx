@@ -15,6 +15,7 @@ export function MakeAssignment({
   makerId,
   made,
   showMade = true,
+  madeLabel = "Made",
   busy = false,
   onChangeMaker,
   onToggleMade,
@@ -23,6 +24,7 @@ export function MakeAssignment({
   makerId: string | null;
   made: boolean;
   showMade?: boolean;
+  madeLabel?: string;
   busy?: boolean;
   onChangeMaker: (makerId: string | null) => void;
   onToggleMade?: (made: boolean) => void;
@@ -60,8 +62,10 @@ export function MakeAssignment({
             disabled={busy}
             onChange={(e) => onToggleMade?.(e.target.checked)}
             className="h-4 w-4 accent-[var(--red)]"
+            aria-label="Made"
+            title="Made"
           />
-          Made
+          {madeLabel}
         </label>
       )}
     </div>
