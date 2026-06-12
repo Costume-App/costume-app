@@ -129,10 +129,7 @@ export function MakePieceRow({
           {fabricLabel && <span className="ml-auto text-xs muted">{fabricLabel}</span>}
           <span className="text-[var(--muted)]">{open ? "▾" : "▸"}</span>
         </button>
-        {busy && <span className="text-xs muted">Saving…</span>}
-      </div>
-      {open && (
-        <div className="space-y-2 px-3 pb-3">
+        <div className="shrink-0">
           <MakeAssignment
             makers={makers}
             makerId={makerId}
@@ -141,6 +138,11 @@ export function MakePieceRow({
             busy={busy}
             onChangeMaker={changeMaker}
           />
+        </div>
+        {busy && <span className="text-xs muted">Saving…</span>}
+      </div>
+      {open && (
+        <div className="space-y-2 px-3 pb-3">
           <div className="rounded-md bg-[var(--bg)] px-2 py-1.5">
             <Link
               href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}
