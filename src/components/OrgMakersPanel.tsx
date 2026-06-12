@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { MakersManager } from "@/components/MakersManager";
 
-type MakerRow = { id: string; name: string; color: string };
+type MakerRow = { id: string; name: string; color: string; clerk_user_id: string | null };
 
 export function MakersTabIcon() {
   // Small scissors glyph for the custom profile-page label.
@@ -37,7 +37,7 @@ export function OrgMakersPanel() {
     fetch("/api/makers", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("load failed"))))
       .then((d: { makers?: MakerRow[] }) => {
-        if (active) setMakers((d.makers ?? []).map((m) => ({ id: m.id, name: m.name, color: m.color })));
+        if (active) setMakers((d.makers ?? []).map((m) => ({ id: m.id, name: m.name, color: m.color, clerk_user_id: m.clerk_user_id ?? null })));
       })
       .catch(() => {
         if (active) setError(true);

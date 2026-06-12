@@ -19,7 +19,7 @@ export default async function MakersPage() {
         </p>
       </div>
       <MakersManager
-        initialMakers={makers.map((m) => ({ id: m.id, name: m.name, color: m.color }))}
+        initialMakers={makers.map((m) => ({ id: m.id, name: m.name, color: m.color, clerk_user_id: m.clerk_user_id ?? null }))}
       />
     </main>
   );
