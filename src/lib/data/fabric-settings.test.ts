@@ -11,6 +11,10 @@ for (const m of ["select", "insert", "update", "delete", "eq", "order"]) {
 }
 chain.single = vi.fn(() => Promise.resolve(result));
 chain.maybeSingle = vi.fn(() => Promise.resolve(result));
+// Supabase's builder always RESOLVES to { data, error } (it doesn't reject on a
+// query error); the data layer reads `error` off that object. So resolving the
+// `result` (mutated per-test, read here at call time) faithfully drives both the
+// happy path and the `if (error) throw` path.
 (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve(result);
 const from = vi.fn((_table: string) => chain);
 function setResult(data: unknown, error: unknown = null) {
@@ -27,6 +31,7 @@ import {
   deleteFabricWidth,
   listFabricSuppliers,
   createFabricSupplier,
+  updateFabricSupplier,
 } from "@/lib/data/fabric-settings";
 
 beforeEach(() => {
@@ -70,6 +75,42 @@ test("updateFabricWidth patches value scoped by id and org", async () => {
   expect(chain.eq).toHaveBeenCalledWith("id", "w1");
   expect(chain.eq).toHaveBeenCalledWith("org_id", "org_1");
   expect(row.value).toBe('50\"');
+});
+
+test("updateFabricWidth with isDefault:true clears the prior default then sets its own", async () => {
+  setResult({ id: "w1", value: '54\"', is_default: true });
+  await updateFabricWidth("org_1", "w1", { isDefault: true });
+  expect(chain.update).toHaveBeenCalledWith({ is_default: false }); // clearDefault pass
+  expect(chain.update).toHaveBeenCalledWith({ is_default: true }); // the row's own update
+});
+
+test("updateFabricWidth with isDefault:false does not run the clear-default pass", async () => {
+  setResult({ id: "w1", value: '54\"', is_default: false });
+  await updateFabricWidth("org_1", "w1", { isDefault: false });
+  expect(chain.update).toHaveBeenCalledWith({ is_default: false });
+  // clearDefault is the only path that scopes by ("is_default", true) — never hit here
+  expect(chain.eq).not.toHaveBeenCalledWith("is_default", true);
+});
+
+test("updateFabricSupplier with isDefault:true clears the prior default first", async () => {
+  setResult({ id: "s1", name: "Mood", price_per_yard: 4, is_default: true });
+  await updateFabricSupplier("org_1", "s1", { isDefault: true });
+  expect(chain.update).toHaveBeenCalledWith({ is_default: false }); // clearDefault pass
+  expect(chain.eq).toHaveBeenCalledWith("is_default", true);
+  expect(chain.update).toHaveBeenCalledWith({ is_default: true });
+});
+
+test("updateFabricSupplier patches price scoped by id and org", async () => {
+  setResult({ id: "s1", name: "Mood", price_per_yard: 5, is_default: false });
+  await updateFabricSupplier("org_1", "s1", { pricePerYard: 5 });
+  expect(chain.update).toHaveBeenCalledWith({ price_per_yard: 5 });
+  expect(chain.eq).toHaveBeenCalledWith("id", "s1");
+  expect(chain.eq).toHaveBeenCalledWith("org_id", "org_1");
+});
+
+test("listFabricWidths propagates a DB error", async () => {
+  setResult(null, { message: "boom" });
+  await expect(listFabricWidths("org_1")).rejects.toThrow("boom");
 });
 
 test("updateFabricWidth throws NotFound when the row is missing", async () => {
