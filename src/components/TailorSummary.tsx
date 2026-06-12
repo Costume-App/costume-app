@@ -30,6 +30,8 @@ export function TailorSummary({
   photosByRole,
   measurementsByCasting,
   makers,
+  fabricWidths,
+  fabricSuppliers,
   costumesDueDate,
   today,
   filterMakerId,
@@ -45,6 +47,8 @@ export function TailorSummary({
   photosByRole: Record<string, RolePhoto[]>;
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
+  fabricWidths: { id: string; value: string; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
   costumesDueDate: string | null;
   today: string;
   filterMakerId?: string;
@@ -124,6 +128,8 @@ export function TailorSummary({
           photosByRole={photosByRole}
           measurementsByCasting={measurementsByCasting}
           makers={makers}
+          fabricWidths={fabricWidths}
+          fabricSuppliers={fabricSuppliers}
           onSaved={applySaved}
         />
       ) : (

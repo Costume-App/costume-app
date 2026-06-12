@@ -13,6 +13,8 @@ export function MakeWorklist({
   photosByRole,
   measurementsByCasting,
   makers,
+  fabricWidths,
+  fabricSuppliers,
   onSaved,
 }: {
   productionId: string;
@@ -20,6 +22,8 @@ export function MakeWorklist({
   photosByRole: Record<string, RolePhoto[]>;
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
+  fabricWidths: { id: string; value: string; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   if (worklist.totalItems === 0) {
@@ -39,6 +43,8 @@ export function MakeWorklist({
           photos={photosByRole[role.roleId] ?? []}
           measurementsByCasting={measurementsByCasting}
           makers={makers}
+          fabricWidths={fabricWidths}
+          fabricSuppliers={fabricSuppliers}
           onSaved={onSaved}
         />
       ))}
@@ -52,6 +58,8 @@ function RoleSection({
   photos,
   measurementsByCasting,
   makers,
+  fabricWidths,
+  fabricSuppliers,
   onSaved,
 }: {
   productionId: string;
@@ -59,6 +67,8 @@ function RoleSection({
   photos: RolePhoto[];
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
+  fabricWidths: { id: string; value: string; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   const [collapsed, setCollapsed] = usePersistentState<boolean>(
@@ -98,6 +108,8 @@ function RoleSection({
                     item={item}
                     measurements={measurementsByCasting[item.castingId] ?? []}
                     makers={makers}
+                    fabricWidths={fabricWidths}
+                    fabricSuppliers={fabricSuppliers}
                     onSaved={(piece) => onSaved(g.designId, item.castingId, piece)}
                   />
                 ))}
