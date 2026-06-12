@@ -9,31 +9,14 @@ const delResolve = vi.fn();      // .delete().eq().eq()
 const updateMaybe = vi.fn();     // .update().eq().eq().select("id").maybeSingle()
 const insertResolve = vi.fn();   // .insert(make link) awaited directly (no .select())
 
-const upsert = vi.fn(() => ({ select: () => ({ single: upsertSingle }) }));
-const del = vi.fn(() => ({ eq: () => ({ eq: delResolve }) }));
-// insert is used two ways: `.insert(...).select("id").single()` (share target) and
-// `await .insert(...)` directly (setPieceInventoryItem). Make the return both awaitable
-// (a thenable backed by insertResolve) and chainable (.select().single()).
-const insert = vi.fn(() => ({
-  select: () => ({ single: insertIdSingle }),
-  then: (...args: unknown[]) =>
-    (insertResolve() as Promise<unknown>).then(...(args as [never])),
-}));
+// All builder spies are fully wired in beforeEach (mockReset wipes any inline body),
+// so declare them bare here and keep a single source of truth for each behavior below.
+const upsert = vi.fn();
+const del = vi.fn();
+const insert = vi.fn();
 const updateEq = vi.fn();        // tracks the .eq(col, val) calls on the update path
-const update = vi.fn(() => {
-  const chain = {
-    eq: (...a: unknown[]) => {
-      updateEq(...a);
-      return { ...chain, select: () => ({ maybeSingle: updateMaybe }) };
-    },
-  };
-  return chain;
-});
-const select = vi.fn((cols: string) =>
-  cols === "*"
-    ? { in: listIn }
-    : { eq: () => ({ eq: () => ({ maybeSingle: lookupMaybe }) }) },
-);
+const update = vi.fn();
+const select = vi.fn();
 
 vi.mock("@/lib/supabase-admin", () => ({
   supabaseAdmin: { from: () => ({ select, insert, upsert, update, delete: del }) },
@@ -41,6 +24,9 @@ vi.mock("@/lib/supabase-admin", () => ({
 
 import { listCostumePieces, upsertPieceSource, setPieceInventoryItem } from "@/lib/data/costume-pieces";
 
+// insert is used two ways: `.insert(...).select("id").single()` (share target) and
+// `await .insert(...)` directly (setPieceInventoryItem). Make the return both chainable
+// (.select().single()) and awaitable (a thenable backed by insertResolve).
 const makeInsertReturn = () => ({
   select: () => ({ single: insertIdSingle }),
   then: (...args: unknown[]) =>
