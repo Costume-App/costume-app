@@ -95,7 +95,9 @@ export function RoleCostumePanel({
     });
     if (res.ok) {
       const { design } = (await res.json()) as { design: CostumeDesign };
-      setDesigns((prev) => prev.map((d) => (d.id === designId ? design : d)));
+      // Merge (not replace) so the derived inventory_location survives a PATCH
+      // response, which only returns DB columns.
+      setDesigns((prev) => prev.map((d) => (d.id === designId ? { ...d, ...design } : d)));
     } else setError("Couldn't save notes");
     setBusy(false);
   }
@@ -112,7 +114,9 @@ export function RoleCostumePanel({
     });
     if (res.ok) {
       const { design } = (await res.json()) as { design: CostumeDesign };
-      setDesigns((prev) => prev.map((d) => (d.id === designId ? design : d)));
+      // Merge (not replace) so the derived inventory_location survives a PATCH
+      // response, which only returns DB columns.
+      setDesigns((prev) => prev.map((d) => (d.id === designId ? { ...d, ...design } : d)));
     } else setError("Couldn't rename piece");
     setBusy(false);
   }
