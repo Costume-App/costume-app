@@ -16,6 +16,7 @@ export interface CostumePiece {
   fabric_supplier: string | null;
   fabric_yardage: number | null;
   fabric_unit_cost: number | null;
+  purchase_price: number | null;
   made: boolean;
   made_at: string | null;
   maker_id: string | null;
@@ -74,6 +75,7 @@ export async function upsertPieceSource(input: {
   fabricSupplier?: string | null;
   fabricYardage?: number | null;
   fabricUnitCost?: number | null;
+  purchasePrice?: number | null;
   made?: boolean;
   makerId?: string | null;
 }): Promise<CostumePiece | null> {
@@ -88,6 +90,7 @@ export async function upsertPieceSource(input: {
   const fabricSupplier = clean(input.fabricSupplier);
   const fabricYardage = num(input.fabricYardage);
   const fabricUnitCost = num(input.fabricUnitCost);
+  const purchasePrice = num(input.purchasePrice);
   const made = input.made ?? false;
   const makerId = input.makerId !== undefined ? input.makerId : null;
 
@@ -138,6 +141,7 @@ export async function upsertPieceSource(input: {
         fabric_supplier: fabricSupplier,
         fabric_yardage: fabricYardage,
         fabric_unit_cost: fabricUnitCost,
+        purchase_price: purchasePrice,
         made,
         maker_id: makerId,
         made_at: made ? new Date().toISOString() : null,
