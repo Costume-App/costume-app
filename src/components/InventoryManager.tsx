@@ -92,6 +92,25 @@ export function InventoryManager({
 
   return (
     <div className="space-y-3">
+      {adding ? (
+        <form onSubmit={add} className="surface !shadow-none flex flex-wrap items-center gap-2 p-3">
+          <input
+            autoFocus
+            className="field min-w-0 flex-1"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Item name (e.g. Top hat)"
+          />
+          <button type="submit" disabled={busy} className="btn-primary shrink-0 text-sm">Add item</button>
+          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="link-muted shrink-0 text-sm">
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <button type="button" onClick={() => setAdding(true)} className="btn-primary text-sm">
+          + Add item
+        </button>
+      )}
       <input
         className="field w-full"
         placeholder="Search inventory…"
@@ -160,21 +179,7 @@ export function InventoryManager({
         );
       })}
 
-      {adding ? (
-        <form onSubmit={add} className="surface !shadow-none flex flex-wrap items-center gap-2 p-3">
-          <input
-            autoFocus
-            className="field min-w-0 flex-1"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Item name (e.g. Top hat)"
-          />
-          <button type="submit" disabled={busy} className="btn-primary shrink-0 text-sm">Add item</button>
-          <button type="button" onClick={() => { setAdding(false); setNewName(""); }} className="link-muted shrink-0 text-sm">
-            Cancel
-          </button>
-        </form>
-      ) : (
+      {!adding && (
         <button type="button" onClick={() => setAdding(true)} className="link-muted text-sm">
           + add item
         </button>
