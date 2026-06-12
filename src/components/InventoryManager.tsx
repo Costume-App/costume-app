@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   filterItemsByName,
   groupItemsByCategory,
@@ -11,7 +11,13 @@ import { CATEGORY_DATALIST_ID, InventoryItemDetail } from "@/components/Inventor
 
 export type { InventoryRow };
 
-export function InventoryManager({ initialItems }: { initialItems: InventoryRow[] }) {
+export function InventoryManager({
+  initialItems,
+  focusItemId,
+}: {
+  initialItems: InventoryRow[];
+  focusItemId?: string;
+}) {
   const [items, setItems] = useState<InventoryRow[]>(initialItems);
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -24,6 +30,15 @@ export function InventoryManager({ initialItems }: { initialItems: InventoryRow[
   const searching = query.trim().length > 0;
   const groups = useMemo(() => groupItemsByCategory(filterItemsByName(items, query)), [items, query]);
   const categories = useMemo(() => uniqueCategories(items), [items]);
+
+  useEffect(() => {
+    if (!focusItemId || !items.some((i) => i.id === focusItemId)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedId(focusItemId);
+    document.getElementById(`inv-item-${focusItemId}`)?.scrollIntoView({ block: "center" });
+    // run once on mount for the deep-linked item
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -115,7 +130,7 @@ export function InventoryManager({ initialItems }: { initialItems: InventoryRow[
             {!isCollapsed && (
               <ul className="space-y-1.5">
                 {group.items.map((item) => (
-                  <li key={item.id}>
+                  <li key={item.id} id={`inv-item-${item.id}`}>
                     <button
                       type="button"
                       onClick={() => setExpandedId((cur) => (cur === item.id ? null : item.id))}
