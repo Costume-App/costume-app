@@ -5,8 +5,10 @@ import { updateFabricSupplier, deleteFabricSupplier } from "@/lib/data/fabric-se
 
 type Ctx = { params: Promise<{ id: string }> };
 
+// Accepts a numeric string (e.g. "4.99") so a typed price isn't silently dropped.
 function parsePrice(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+  const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 export async function PATCH(request: Request, { params }: Ctx) {

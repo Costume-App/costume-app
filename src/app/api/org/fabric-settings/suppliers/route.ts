@@ -4,9 +4,11 @@ import { errorResponse } from "@/lib/api";
 import { ensureOrganization } from "@/lib/data/organizations";
 import { createFabricSupplier } from "@/lib/data/fabric-settings";
 
-// Parse a price field: a finite number ≥ 0, else null.
+// Parse a price field to a finite number ≥ 0, else null. Accepts a numeric
+// string (e.g. "4.99" from a text input) so a typed price isn't silently dropped.
 function parsePrice(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+  const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 export async function POST(request: Request) {
