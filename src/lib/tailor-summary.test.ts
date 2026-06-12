@@ -204,6 +204,16 @@ test("buildFabricPurchaseList still prefers a typed unit cost over the supplier 
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(20); // typed $10 wins
 });
 
+test("buildFabricPurchaseList: a typed unitCost of 0 wins over the supplier price (not treated as absent)", async () => {
+  const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
+  const item = {
+    designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
+    assignment: "primary" as const, made: false, makerId: null,
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 0 },
+  };
+  expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(0); // ?? keeps a real 0, never falls to $4
+});
+
 test("buildMakeWorklist excludes inventory-linked designs with no piece row", () => {
   const roles = [{ id: "r1", name: "Ophelia", notes: null }];
   const designs = [
