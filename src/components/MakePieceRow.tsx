@@ -226,8 +226,6 @@ export function MakePieceRow({
             designId={item.designId}
             castingId={item.castingId}
             pieceLabel={`${garmentName} (${item.performerName})`}
-            addedItemId={addedItemId}
-            mode="prompt"
             onAdded={(id) => { setAddedItemId(id); setPromptOpen(false); }}
             onDismiss={() => setPromptOpen(false)}
           />

@@ -426,17 +426,6 @@ export function RoleCostumePanel({
                           <span className="muted text-xs">Purchased</span>
                         </label>
                       )}
-                      {(source === "make" || source === "purchase") && (
-                        <AddToInventoryControl
-                          productionId={productionId}
-                          designId={d.id}
-                          castingId={casting.id}
-                          pieceLabel={`${d.name} (${nameOf(casting.performerId)})`}
-                          addedItemId={piece?.added_inventory_item_id ?? null}
-                          mode="button"
-                          onAdded={(itemId) => markAddedToInventory(d.id, casting.id, itemId)}
-                        />
-                      )}
                     </div>
                     {justCompleted[key] && (source === "make" || source === "purchase") && (
                       <AddToInventoryControl
@@ -444,8 +433,6 @@ export function RoleCostumePanel({
                         designId={d.id}
                         castingId={casting.id}
                         pieceLabel={`${d.name} (${nameOf(casting.performerId)})`}
-                        addedItemId={piece?.added_inventory_item_id ?? null}
-                        mode="prompt"
                         onAdded={(itemId) => markAddedToInventory(d.id, casting.id, itemId)}
                         onDismiss={() => setJustCompleted((m) => ({ ...m, [key]: false }))}
                       />
