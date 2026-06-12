@@ -8,6 +8,7 @@ export interface CostumeDesign {
   name: string;
   notes: string | null;
   inventory_item_id: string | null;
+  inventory_location?: string | null;
   display_order: number;
   created_at: string;
 }
@@ -20,7 +21,22 @@ export async function listCostumeDesigns(productionId: string): Promise<CostumeD
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
-  return (data ?? []) as CostumeDesign[];
+  const designs = (data ?? []) as CostumeDesign[];
+
+  const itemIds = [...new Set(designs.map((d) => d.inventory_item_id).filter(Boolean))] as string[];
+  if (itemIds.length === 0) return designs;
+
+  const { data: items, error: itemErr } = await supabaseAdmin
+    .from("inventory_items")
+    .select("id, location")
+    .in("id", itemIds);
+  if (itemErr) throw new Error(itemErr.message);
+  const locById = new Map(
+    ((items ?? []) as { id: string; location: string | null }[]).map((i) => [i.id, i.location]),
+  );
+  return designs.map((d) =>
+    d.inventory_item_id ? { ...d, inventory_location: locById.get(d.inventory_item_id) ?? null } : d,
+  );
 }
 
 export async function createCostumeDesign(input: {

@@ -15,7 +15,8 @@ const updateSelect = vi.fn(() => ({ maybeSingle: updateMaybeSingle }));
 const updateEqProd = vi.fn(() => ({ select: updateSelect }));
 const updateEqId = vi.fn(() => ({ eq: updateEqProd }));
 const update = vi.fn(() => ({ eq: updateEqId }));
-const select = vi.fn(() => ({ eq: listEq }));
+const invIn = vi.fn();
+const select = vi.fn(() => ({ eq: listEq, in: invIn }));
 const from = vi.fn(() => ({ select, insert, delete: del, update }));
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: () => from() } }));
 
@@ -23,7 +24,7 @@ import { listCostumeDesigns, createCostumeDesign, deleteCostumeDesign, setCostum
 
 beforeEach(() => {
   [order2, order1, listEq, insertSingle, insertSelect, insert, deleteEqProd, deleteEqId, del,
-    updateMaybeSingle, updateSelect, updateEqProd, updateEqId, update, select, from].forEach((m) => m.mockReset());
+    updateMaybeSingle, updateSelect, updateEqProd, updateEqId, update, select, from, invIn].forEach((m) => m.mockReset());
   order1.mockReturnValue({ order: order2 });
   listEq.mockReturnValue({ order: order1 });
   insertSelect.mockReturnValue({ single: insertSingle });
@@ -34,7 +35,7 @@ beforeEach(() => {
   updateEqProd.mockReturnValue({ select: updateSelect });
   updateEqId.mockReturnValue({ eq: updateEqProd });
   update.mockReturnValue({ eq: updateEqId });
-  select.mockReturnValue({ eq: listEq });
+  select.mockReturnValue({ eq: listEq, in: invIn });
   from.mockReturnValue({ select, insert, delete: del, update });
 });
 
@@ -78,4 +79,30 @@ test("setCostumeDesignNotes stores null for blank notes", async () => {
   updateMaybeSingle.mockResolvedValue({ data: { id: "d1", notes: null }, error: null });
   await setCostumeDesignNotes("p1", "d1", "");
   expect(update).toHaveBeenCalledWith({ notes: null });
+});
+
+test("listCostumeDesigns attaches inventory_location to linked designs only", async () => {
+  order2.mockResolvedValue({
+    data: [
+      { id: "d1", inventory_item_id: null },
+      { id: "d2", inventory_item_id: "i1" },
+    ],
+    error: null,
+  });
+  invIn.mockResolvedValue({ data: [{ id: "i1", location: "Bin A" }], error: null });
+
+  const rows = await listCostumeDesigns("p1");
+
+  expect(invIn).toHaveBeenCalledWith("id", ["i1"]);
+  expect(rows).toEqual([
+    { id: "d1", inventory_item_id: null },
+    { id: "d2", inventory_item_id: "i1", inventory_location: "Bin A" },
+  ]);
+});
+
+test("listCostumeDesigns skips the inventory lookup when nothing is linked", async () => {
+  order2.mockResolvedValue({ data: [{ id: "d1", inventory_item_id: null }], error: null });
+  const rows = await listCostumeDesigns("p1");
+  expect(invIn).not.toHaveBeenCalled();
+  expect(rows).toEqual([{ id: "d1", inventory_item_id: null }]);
 });
