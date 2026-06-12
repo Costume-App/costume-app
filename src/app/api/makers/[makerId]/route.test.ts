@@ -46,3 +46,13 @@ test("DELETE removes a maker", async () => {
   expect(res.status).toBe(200);
   expect(deleteMaker).toHaveBeenCalledWith("org_1", "m1");
 });
+
+test("PATCH passes clerkUserId through (link) and null (unlink)", async () => {
+  vi.mocked(updateMaker).mockResolvedValue({ id: "m1", org_id: "org_1", name: "Jo", color: "slate", clerk_user_id: "user_1", created_at: "" });
+  const link = await PATCH(new Request("http://x", { method: "PATCH", body: JSON.stringify({ clerkUserId: "user_1" }) }), ctx("m1"));
+  expect(link.status).toBe(200);
+  expect(updateMaker).toHaveBeenCalledWith("org_1", "m1", { clerkUserId: "user_1" });
+
+  await PATCH(new Request("http://x", { method: "PATCH", body: JSON.stringify({ clerkUserId: null }) }), ctx("m1"));
+  expect(updateMaker).toHaveBeenCalledWith("org_1", "m1", { clerkUserId: null });
+});

@@ -17,11 +17,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { orgId } = await getAuthContext();
-    const body = (await request.json()) as { name?: string; color?: string; orgName?: string };
+    const body = (await request.json()) as { name?: string; color?: string; orgName?: string; clerkUserId?: string | null };
     await ensureOrganization(orgId, body.orgName ?? "My School");
     const maker = await createMaker(orgId, {
       name: typeof body.name === "string" ? body.name : "",
       color: typeof body.color === "string" ? body.color : undefined,
+      clerkUserId: body.clerkUserId === null || typeof body.clerkUserId === "string" ? body.clerkUserId : undefined,
     });
     return NextResponse.json({ maker }, { status: 201 });
   } catch (err) {

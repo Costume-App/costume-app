@@ -9,10 +9,11 @@ export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
     const { makerId } = await params;
-    const body = (await request.json()) as { name?: string; color?: string };
-    const patch: { name?: string; color?: string } = {};
+    const body = (await request.json()) as { name?: string; color?: string; clerkUserId?: string | null };
+    const patch: { name?: string; color?: string; clerkUserId?: string | null } = {};
     if (typeof body.name === "string") patch.name = body.name;
     if (typeof body.color === "string") patch.color = body.color;
+    if (body.clerkUserId === null || typeof body.clerkUserId === "string") patch.clerkUserId = body.clerkUserId;
     const maker = await updateMaker(orgId, makerId, patch);
     return NextResponse.json({ maker });
   } catch (err) {
