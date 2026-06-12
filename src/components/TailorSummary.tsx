@@ -32,6 +32,7 @@ export function TailorSummary({
   makers,
   costumesDueDate,
   today,
+  filterMakerId,
 }: {
   productionId: string;
   roles: Role[];
@@ -45,13 +46,14 @@ export function TailorSummary({
   makers: { id: string; name: string; color: string }[];
   costumesDueDate: string | null;
   today: string;
+  filterMakerId?: string;
 }) {
   const [tab, setTab] = useState<"make" | "fabric">("make");
   const [pieces, setPieces] = useState<PieceRow[]>(initialPieces);
 
   const worklist = useMemo(
-    () => buildMakeWorklist(roles, designs, castings, performers, casts, pieces),
-    [roles, designs, castings, performers, casts, pieces],
+    () => buildMakeWorklist(roles, designs, castings, performers, casts, pieces, { makerId: filterMakerId }),
+    [roles, designs, castings, performers, casts, pieces, filterMakerId],
   );
   const purchase = useMemo(() => {
     const items = worklist.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
