@@ -34,13 +34,20 @@ export async function POST(request: Request, { params }: Ctx) {
     }
     let name = typeof body.name === "string" ? body.name : "";
     let inventoryItemId: string | undefined;
+    let inventoryLocation: string | null = null;
     if (typeof body.inventoryItemId === "string" && body.inventoryItemId) {
       const item = await getInventoryItem(orgId, body.inventoryItemId);
       inventoryItemId = item.id;
+      inventoryLocation = item.location;
       if (!name.trim()) name = item.name; // default the piece name from the item
     }
     const design = await createCostumeDesign({ productionId: id, roleId: body.roleId, name, inventoryItemId });
-    return NextResponse.json({ design }, { status: 201 });
+    // Enrich the response for inventory-linked adds so the panel shows the location
+    // immediately, matching listCostumeDesigns (which the panel uses on reload/refetch).
+    return NextResponse.json(
+      { design: inventoryItemId ? { ...design, inventory_location: inventoryLocation } : design },
+      { status: 201 },
+    );
   } catch (err) {
     return errorResponse(err);
   }

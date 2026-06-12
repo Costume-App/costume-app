@@ -49,6 +49,16 @@ test("POST creates a design (201)", async () => {
   expect(createCostumeDesign).toHaveBeenCalledWith(expect.objectContaining({ productionId: "p1", roleId: "r1", name: "Jacket" }));
 });
 
+test("POST from inventory returns the design enriched with inventory_location", async () => {
+  getInventoryItem.mockResolvedValue({ id: "i1", name: "Top hat", location: "Bin A" });
+  createCostumeDesign.mockResolvedValue({ id: "d2", name: "Top hat", inventory_item_id: "i1" });
+  const res = await POST(post({ roleId: "r1", inventoryItemId: "i1" }), ctx("p1"));
+  expect(res.status).toBe(201);
+  expect(await res.json()).toEqual({
+    design: { id: "d2", name: "Top hat", inventory_item_id: "i1", inventory_location: "Bin A" },
+  });
+});
+
 test("POST 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
