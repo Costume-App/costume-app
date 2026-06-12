@@ -113,3 +113,24 @@ test("PUT 400 on non-string makerId", async () => {
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
 });
+
+test("PUT forwards purchasePrice", async () => {
+  upsertPieceSource.mockResolvedValue({ id: "pp1", source: "purchase" });
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "purchase", purchasePrice: 45 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(200);
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ source: "purchase", purchasePrice: 45 }),
+  );
+});
+
+test("PUT 400 on negative purchasePrice", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "purchase", purchasePrice: -5 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});

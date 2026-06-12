@@ -39,6 +39,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricSupplier?: string | null;
       fabricYardage?: number | null;
       fabricUnitCost?: number | null;
+      purchasePrice?: number | null;
       made?: boolean;
       makerId?: string | null;
     };
@@ -56,6 +57,7 @@ export async function PUT(request: Request, { params }: Ctx) {
     };
     checkNum(body.fabricYardage, "Yardage");
     checkNum(body.fabricUnitCost, "Unit cost");
+    checkNum(body.purchasePrice, "Purchase price");
     if (body.made !== undefined && typeof body.made !== "boolean") {
       throw new ValidationError("made must be a boolean");
     }
@@ -84,6 +86,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricSupplier: body.fabricSupplier ?? null,
       fabricYardage: body.fabricYardage ?? null,
       fabricUnitCost: body.fabricUnitCost ?? null,
+      purchasePrice: body.purchasePrice ?? null,
       made: body.made ?? false,
       makerId: body.makerId ?? null,
     });
