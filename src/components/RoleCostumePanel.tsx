@@ -205,7 +205,7 @@ export function RoleCostumePanel({
       body: JSON.stringify({
         designId,
         castingId,
-        source: "make",
+        source: existing?.source ?? "make", // preserve source (e.g. "purchase") when toggling made/maker
         sharedWithCastingId: null,
         fabricType: existing?.fabric_type ?? null,
         fabricColor: existing?.fabric_color ?? null,
@@ -387,6 +387,19 @@ export function RoleCostumePanel({
                           onChangeMaker={(mk) => setPieceField(d.id, casting.id, { makerId: mk })}
                           onToggleMade={(md) => setPieceField(d.id, casting.id, { made: md })}
                         />
+                      )}
+                      {source === "purchase" && (
+                        <label className="inline-flex shrink-0 items-center gap-1 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={piece?.made ?? false}
+                            disabled={busy}
+                            onChange={(e) => setPieceField(d.id, casting.id, { made: e.target.checked })}
+                            className="h-4 w-4 accent-[var(--red)]"
+                            aria-label="Purchased"
+                          />
+                          <span className="muted text-xs">Purchased</span>
+                        </label>
                       )}
                     </div>
                   </div>
