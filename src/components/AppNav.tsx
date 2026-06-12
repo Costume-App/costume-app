@@ -25,7 +25,7 @@ export async function AppNav() {
           <Link href="/inventory" className="link-muted text-sm">
             Inventory
           </Link>
-          {userName && <span className="text-sm muted">{userName}</span>}
+          {userName && <span className="hidden text-sm muted sm:inline">{userName}</span>}
           <UserButton />
         </div>
       </div>

@@ -82,3 +82,12 @@ body {
 .chip-selected { background: #fff7ea; border-color: var(--red); color: var(--red); font-weight: 600; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #cbb890; }
 .dot-selected { background: var(--red); }
+
+/* Mobile nav: hide the org name in the OrganizationSwitcher trigger to keep the
+   bar on one line (the avatar + chevron remain; the org name still shows in the
+   switcher dropdown, which Clerk portals outside this trigger). */
+@media (max-width: 639px) {
+  .cl-organizationSwitcherTrigger .cl-organizationPreviewMainIdentifier {
+    display: none;
+  }
+}
