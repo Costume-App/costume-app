@@ -69,6 +69,11 @@ export default async function ProductionsPage() {
       )}
 
       <InventoryQuickAddCard itemCount={inventoryItems.length} />
+
+      <Link href="/guide" className="surface mt-3 block p-4 transition-transform hover:-translate-y-0.5">
+        <span className="font-display text-xl font-semibold">User Guide →</span>
+        <span className="mt-0.5 block text-sm muted">How to use every feature, step by step</span>
+      </Link>
     </main>
   );
 }
