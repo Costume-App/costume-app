@@ -12,13 +12,24 @@ export async function POST(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { designId?: string; castingId?: string };
+    const body = (await request.json()) as {
+      designId?: string;
+      castingId?: string;
+      category?: string | null;
+      location?: string | null;
+      size?: string | null;
+    };
     if (typeof body.designId !== "string" || typeof body.castingId !== "string") {
       throw new ValidationError("designId and castingId are required");
     }
     await assertDesignInProduction(id, body.designId);
     await assertCastingInProduction(id, body.castingId);
-    const result = await addPieceToInventory(orgId, id, body.designId, body.castingId);
+    const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+    const result = await addPieceToInventory(orgId, id, body.designId, body.castingId, {
+      category: str(body.category),
+      location: str(body.location),
+      size: str(body.size),
+    });
     return NextResponse.json(result);
   } catch (err) {
     return errorResponse(err);

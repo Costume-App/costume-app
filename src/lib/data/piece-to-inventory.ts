@@ -9,11 +9,14 @@ import { copyImage } from "@/lib/storage";
 
 // Create a House Inventory item from one performer's costume piece (make/purchase).
 // Copies the design's photos and notes; links the piece so it's idempotent.
+// `opts` carries the category/location/size the user enters in the add prompt;
+// everything else (name, notes, quantity, photos) comes from the piece.
 export async function addPieceToInventory(
   orgId: string,
   productionId: string,
   designId: string,
   castingId: string,
+  opts: { category?: string | null; location?: string | null; size?: string | null } = {},
 ): Promise<{ item: InventoryItem; addedInventoryItemId: string }> {
   const [designs, castings, pieces] = await Promise.all([
     listCostumeDesigns(productionId),
@@ -38,14 +41,30 @@ export async function addPieceToInventory(
   const linkedSibling = pieces.find((p) => p.added_inventory_item_id);
   if (linkedSibling?.added_inventory_item_id) {
     const existing = await getInventoryItem(orgId, linkedSibling.added_inventory_item_id);
-    const item = await updateInventoryItem(orgId, existing.id, { quantity: existing.quantity + 1 });
+    // Bump quantity; fill any of category/location/size the existing item lacks
+    // (never overwrite values already set on a previous add).
+    const patch: { quantity: number; category?: string; location?: string; size?: string } = {
+      quantity: existing.quantity + 1,
+    };
+    if (!existing.category && opts.category) patch.category = opts.category;
+    if (!existing.location && opts.location) patch.location = opts.location;
+    if (!existing.size && opts.size) patch.size = opts.size;
+    const item = await updateInventoryItem(orgId, existing.id, patch);
     await setPieceInventoryItem(designId, castingId, existing.id);
     return { item, addedInventoryItemId: existing.id };
   }
 
   // 3. First piece of this design → create a new item (qty 1) named for the garment
-  // only (no performer); provenance (production + role) is shown via the link.
-  const item = await createInventoryItem(orgId, { name: design.name, notes: design.notes, quantity: 1 });
+  // only (no performer); category/location/size come from the prompt, the rest from
+  // the piece. Provenance (production + role) is shown via the link.
+  const item = await createInventoryItem(orgId, {
+    name: design.name,
+    notes: design.notes,
+    quantity: 1,
+    category: opts.category ?? null,
+    location: opts.location ?? null,
+    size: opts.size ?? null,
+  });
 
   // Link the piece before copying photos: if a photo copy then fails, the link is
   // already set, so a retry is caught by the idempotency check above (returns this

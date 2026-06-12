@@ -33,12 +33,13 @@ test("POST adds the piece to inventory and returns the item", async () => {
   assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
   addPieceToInventory.mockResolvedValue({ item: { id: "item1", name: "Cloak (Ana)" }, addedInventoryItemId: "item1" });
 
-  const res = await POST(req({ designId: "d1", castingId: "c1" }), ctx("p1"));
+  const res = await POST(req({ designId: "d1", castingId: "c1", category: " Outerwear ", location: "Rack 3", size: "" }), ctx("p1"));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ item: { id: "item1", name: "Cloak (Ana)" }, addedInventoryItemId: "item1" });
   expect(assertCastingInProduction).toHaveBeenCalledWith("p1", "c1");
   expect(assertDesignInProduction).toHaveBeenCalledWith("p1", "d1");
-  expect(addPieceToInventory).toHaveBeenCalledWith("org_1", "p1", "d1", "c1");
+  // category trimmed, blank size → null
+  expect(addPieceToInventory).toHaveBeenCalledWith("org_1", "p1", "d1", "c1", { category: "Outerwear", location: "Rack 3", size: null });
 });
 
 test("POST 400 when designId or castingId is missing", async () => {
