@@ -232,16 +232,11 @@ export function RoleCostumePanel({
         renderExtra={(d) => (
           <div className="space-y-1.5">
             {d.inventory_item_id ? (
-              <>
-                <PhotoStrip
-                  endpoint={`/api/inventory/${d.inventory_item_id}/images`}
-                  max={6}
-                  readOnly
-                />
-                <Link href="/inventory" className="link-muted inline-block text-xs">
-                  From inventory ↗
-                </Link>
-              </>
+              <PhotoStrip
+                endpoint={`/api/inventory/${d.inventory_item_id}/images`}
+                max={6}
+                readOnly
+              />
             ) : (
               <PhotoStrip
                 endpoint={`/api/productions/${productionId}/designs/${d.id}/images`}
@@ -359,6 +354,11 @@ export function RoleCostumePanel({
                           ))}
                         </select>
                       )}
+                      {d.inventory_item_id && d.inventory_location && (
+                        <span className="shrink-0 whitespace-nowrap text-xs muted">
+                          {d.inventory_location}
+                        </span>
+                      )}
                     </div>
                     {source === "make" && (
                       <MakeAssignment
@@ -453,6 +453,14 @@ function PieceEditor({
                   <span className="text-sm text-[var(--muted)]">{open ? "▾" : "▸"}</span>
                   <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
                 </button>
+                {d.inventory_item_id && (
+                  <Link
+                    href={`/inventory?item=${d.inventory_item_id}`}
+                    className="link-muted shrink-0 whitespace-nowrap text-xs"
+                  >
+                    From inventory ↗
+                  </Link>
+                )}
                 <button
                   type="button"
                   aria-label={`Rename ${d.name}`}
