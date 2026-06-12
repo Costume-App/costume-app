@@ -113,32 +113,36 @@ export function MakersManager({ initialMakers }: { initialMakers: MakerRow[] }) 
       {makers.length === 0 && <p className="text-sm muted">No makers yet. Add your costume team below.</p>}
       <ul className="space-y-2">
         {makers.map((mk) => (
-          <li key={mk.id} className="surface !shadow-none flex flex-wrap items-center gap-2 p-3">
+          <li key={mk.id} className="surface !shadow-none flex flex-col gap-2 p-3">
+            {/* Row 1: name on its own full-width line (so it doesn't collapse next to the swatches on mobile) */}
             <input
-              className="field min-w-0 flex-1"
+              className="field w-full"
               defaultValue={mk.name}
               onBlur={(e) => e.target.value.trim() && e.target.value !== mk.name && patch(mk.id, { name: e.target.value })}
               aria-label="Maker name"
             />
-            <Swatches value={mk.color} onChange={(color) => patch(mk.id, { color })} />
-            <select
-              className="field !p-1.5 text-sm"
-              value={mk.clerk_user_id ?? ""}
-              disabled={busy}
-              onChange={(e) => setMakerUser(mk.id, e.target.value || null)}
-              aria-label="Link maker to member"
-            >
-              <option value="">Not linked</option>
-              {mk.clerk_user_id && !memberByUser.has(mk.clerk_user_id) && (
-                <option value={mk.clerk_user_id}>Linked user</option>
-              )}
-              {members.map((m) => (
-                <option key={m.userId} value={m.userId}>{m.name}</option>
-              ))}
-            </select>
-            <button type="button" onClick={() => remove(mk.id)} disabled={busy} className="text-sm text-[var(--red)] hover:underline disabled:opacity-50">
-              Remove
-            </button>
+            {/* Row 2: color swatches + link status + remove */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Swatches value={mk.color} onChange={(color) => patch(mk.id, { color })} />
+              <select
+                className="field !p-1.5 text-sm"
+                value={mk.clerk_user_id ?? ""}
+                disabled={busy}
+                onChange={(e) => setMakerUser(mk.id, e.target.value || null)}
+                aria-label="Link maker to member"
+              >
+                <option value="">Not linked</option>
+                {mk.clerk_user_id && !memberByUser.has(mk.clerk_user_id) && (
+                  <option value={mk.clerk_user_id}>Linked user</option>
+                )}
+                {members.map((m) => (
+                  <option key={m.userId} value={m.userId}>{m.name}</option>
+                ))}
+              </select>
+              <button type="button" onClick={() => remove(mk.id)} disabled={busy} className="ml-auto text-sm text-[var(--red)] hover:underline disabled:opacity-50">
+                Remove
+              </button>
+            </div>
           </li>
         ))}
       </ul>
