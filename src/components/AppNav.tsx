@@ -19,11 +19,11 @@ export async function AppNav() {
           <Link href="/productions" className="link-muted text-sm">
             Productions
           </Link>
-          <Link href="/my-work" className="link-muted text-sm">
-            My Work
-          </Link>
           <Link href="/inventory" className="link-muted text-sm">
             Inventory
+          </Link>
+          <Link href="/my-work" className="link-muted text-sm">
+            My Work
           </Link>
           {userName && <span className="hidden text-sm muted sm:inline">{userName}</span>}
           <UserButton />
