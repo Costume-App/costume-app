@@ -23,6 +23,7 @@ export function OrgFabricPanel() {
   const [newWidth, setNewWidth] = useState("");
   const [newSupplier, setNewSupplier] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -41,27 +42,36 @@ export function OrgFabricPanel() {
 
   async function reload() {
     const r = await fetch("/api/org/fabric-settings", { credentials: "include" });
-    if (r.ok) {
-      const d = (await r.json()) as { widths?: Width[]; suppliers?: Supplier[] };
-      setWidths(d.widths ?? []);
-      setSuppliers(d.suppliers ?? []);
+    if (!r.ok) {
+      setError("Couldn't refresh the list.");
+      return;
     }
+    const d = (await r.json()) as { widths?: Width[]; suppliers?: Supplier[] };
+    setWidths(d.widths ?? []);
+    setSuppliers(d.suppliers ?? []);
   }
 
+  // Serialize writes behind a busy flag so a double-click can't duplicate a row
+  // or fire a redundant default-toggle (mirrors MakersManager).
   async function send(path: string, method: string, body?: unknown) {
     setError(null);
-    const res = await fetch(path, {
-      method,
-      credentials: "include",
-      headers: body ? { "content-type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!res.ok) {
-      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Action failed (admins only).");
-      return false;
+    setBusy(true);
+    try {
+      const res = await fetch(path, {
+        method,
+        credentials: "include",
+        headers: body ? { "content-type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!res.ok) {
+        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Action failed (admins only).");
+        return false;
+      }
+      await reload();
+      return true;
+    } finally {
+      setBusy(false);
     }
-    await reload();
-    return true;
   }
 
   async function addWidth() {
@@ -71,7 +81,12 @@ export function OrgFabricPanel() {
 
   async function addSupplier() {
     if (!newSupplier.trim()) return;
-    const price = newPrice.trim() === "" ? null : Number(newPrice);
+    const parsed = parseFloat(newPrice);
+    if (newPrice.trim() !== "" && !(Number.isFinite(parsed) && parsed >= 0)) {
+      setError("Price must be a number.");
+      return;
+    }
+    const price = newPrice.trim() === "" ? null : parsed;
     if (await send("/api/org/fabric-settings/suppliers", "POST", { name: newSupplier, pricePerYard: price })) {
       setNewSupplier("");
       setNewPrice("");
@@ -94,18 +109,18 @@ export function OrgFabricPanel() {
           {widths.map((w) => (
             <li key={w.id} className="flex items-center gap-2 text-sm">
               <span className="flex-1">{w.value}</span>
-              <button type="button" className="link-muted text-xs" onClick={() => void send(`/api/org/fabric-settings/widths/${w.id}`, "PATCH", { isDefault: true })}>
+              <button type="button" className="link-muted text-xs" disabled={busy || w.is_default} aria-label={`Set ${w.value} as the default width`} onClick={() => void send(`/api/org/fabric-settings/widths/${w.id}`, "PATCH", { isDefault: true })}>
                 {w.is_default ? "★ default" : "set default"}
               </button>
-              <button type="button" className="link-muted text-xs" onClick={() => void send(`/api/org/fabric-settings/widths/${w.id}`, "DELETE")}>
+              <button type="button" className="link-muted text-xs" disabled={busy} aria-label={`Remove width ${w.value}`} onClick={() => void send(`/api/org/fabric-settings/widths/${w.id}`, "DELETE")}>
                 remove
               </button>
             </li>
           ))}
         </ul>
         <div className="mt-2 flex gap-2">
-          <input className="field !p-1.5 text-sm" value={newWidth} onChange={(e) => setNewWidth(e.target.value)} placeholder='e.g. 54"' />
-          <button type="button" className="btn-primary" onClick={() => void addWidth()}>Add width</button>
+          <input className="field !p-1.5 text-sm" value={newWidth} onChange={(e) => setNewWidth(e.target.value)} placeholder='e.g. 54"' aria-label="New width" />
+          <button type="button" className="btn-primary" disabled={busy} onClick={() => void addWidth()}>Add width</button>
         </div>
       </section>
 
@@ -116,19 +131,19 @@ export function OrgFabricPanel() {
             <li key={s.id} className="flex items-center gap-2 text-sm">
               <span className="flex-1">{s.name}</span>
               <span className="muted">{s.price_per_yard != null ? `$${s.price_per_yard}/yd` : "—"}</span>
-              <button type="button" className="link-muted text-xs" onClick={() => void send(`/api/org/fabric-settings/suppliers/${s.id}`, "PATCH", { isDefault: true })}>
+              <button type="button" className="link-muted text-xs" disabled={busy || s.is_default} aria-label={`Set ${s.name} as the default supplier`} onClick={() => void send(`/api/org/fabric-settings/suppliers/${s.id}`, "PATCH", { isDefault: true })}>
                 {s.is_default ? "★ default" : "set default"}
               </button>
-              <button type="button" className="link-muted text-xs" onClick={() => void send(`/api/org/fabric-settings/suppliers/${s.id}`, "DELETE")}>
+              <button type="button" className="link-muted text-xs" disabled={busy} aria-label={`Remove supplier ${s.name}`} onClick={() => void send(`/api/org/fabric-settings/suppliers/${s.id}`, "DELETE")}>
                 remove
               </button>
             </li>
           ))}
         </ul>
         <div className="mt-2 flex flex-wrap gap-2">
-          <input className="field !p-1.5 text-sm" value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Supplier name" />
-          <input className="field !p-1.5 text-sm w-28" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} inputMode="decimal" placeholder="$/yd" />
-          <button type="button" className="btn-primary" onClick={() => void addSupplier()}>Add supplier</button>
+          <input className="field !p-1.5 text-sm" value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Supplier name" aria-label="New supplier name" />
+          <input className="field !p-1.5 text-sm w-28" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} inputMode="decimal" placeholder="$/yd" aria-label="New supplier price per yard" />
+          <button type="button" className="btn-primary" disabled={busy} onClick={() => void addSupplier()}>Add supplier</button>
         </div>
       </section>
 
