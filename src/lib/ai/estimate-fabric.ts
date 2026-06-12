@@ -38,7 +38,10 @@ export async function estimateFabricYardage(items: EstimateItem[]): Promise<Map<
 
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
+    // Configurable via env (set FABRIC_ESTIMATE_MODEL in Vercel to switch models
+    // without a code change); defaults to the cheap Haiku tier. `||` so a blank
+    // value falls back rather than sending an empty model id.
+    model: process.env.FABRIC_ESTIMATE_MODEL || "claude-haiku-4-5",
     max_tokens: 1024,
     output_config: { format: { type: "json_schema", schema: ESTIMATE_SCHEMA } },
     messages: [

@@ -14,6 +14,7 @@ import { estimateFabricYardage, type EstimateItem } from "@/lib/ai/estimate-fabr
 
 beforeEach(() => {
   create.mockReset();
+  vi.unstubAllEnvs();
 });
 
 const aiText = (obj: unknown) => ({ content: [{ type: "text", text: JSON.stringify(obj) }] });
@@ -32,6 +33,24 @@ test("parses estimates into a Map, rounding to one decimal", async () => {
   create.mockResolvedValue(aiText({ estimates: [{ key: "c1:d1", yardage: 3.46 }] }));
   const out = await estimateFabricYardage(items);
   expect(out.get("c1:d1")).toBe(3.5);
+  expect(create).toHaveBeenCalledWith(
+    expect.objectContaining({ model: "claude-haiku-4-5" }),
+  );
+});
+
+test("uses FABRIC_ESTIMATE_MODEL when set, overriding the default", async () => {
+  vi.stubEnv("FABRIC_ESTIMATE_MODEL", "claude-sonnet-4-6");
+  create.mockResolvedValue(aiText({ estimates: [] }));
+  await estimateFabricYardage(items);
+  expect(create).toHaveBeenCalledWith(
+    expect.objectContaining({ model: "claude-sonnet-4-6" }),
+  );
+});
+
+test("falls back to the default model when FABRIC_ESTIMATE_MODEL is blank", async () => {
+  vi.stubEnv("FABRIC_ESTIMATE_MODEL", "");
+  create.mockResolvedValue(aiText({ estimates: [] }));
+  await estimateFabricYardage(items);
   expect(create).toHaveBeenCalledWith(
     expect.objectContaining({ model: "claude-haiku-4-5" }),
   );
