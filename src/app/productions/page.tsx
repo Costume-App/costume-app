@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { currentUser, clerkClient } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { listProductions } from "@/lib/data/productions";
 import { listInventoryItems } from "@/lib/data/inventory-items";
@@ -8,17 +8,17 @@ import { listShowDates } from "@/lib/data/show-dates";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { PastAndInactiveProductions } from "@/components/PastAndInactiveProductions";
 import { InventoryQuickAddCard } from "@/components/InventoryQuickAddCard";
+import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { ShowingsList } from "@/components/ShowingsList";
 import { nextUpcomingDate, todayIso } from "@/lib/countdown";
 import { partitionProductions } from "@/lib/production-status";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
-  const [productions, inventoryItems, user, org] = await Promise.all([
+  const [productions, inventoryItems, user] = await Promise.all([
     listProductions(orgId),
     listInventoryItems(orgId),
     currentUser(),
-    clerkClient().then((c) => c.organizations.getOrganization({ organizationId: orgId })),
   ]);
 
   const userName =
@@ -43,11 +43,8 @@ export default async function ProductionsPage() {
   return (
     <main className="mx-auto max-w-2xl p-6">
       <div className="mb-5 flex items-center justify-between gap-3 border-b border-[var(--field-line)] pb-3">
-        <span className="lbl">{org.name}</span>
+        <OrgSwitcher />
         <div className="flex items-center gap-2.5">
-          <Link href="/makers" className="link-muted text-sm">
-            Makers
-          </Link>
           <Link href="/inventory" className="link-muted text-sm">
             Inventory
           </Link>
