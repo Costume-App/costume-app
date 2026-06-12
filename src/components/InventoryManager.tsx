@@ -24,11 +24,17 @@ export function InventoryManager({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
+  // A freshly added item being filled in inline at the add form (hidden from the
+  // list below until done, so it isn't shown twice).
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const searching = query.trim().length > 0;
-  const groups = useMemo(() => groupItemsByCategory(filterItemsByName(items, query)), [items, query]);
+  const groups = useMemo(
+    () => groupItemsByCategory(filterItemsByName(items.filter((i) => i.id !== justAddedId), query)),
+    [items, query, justAddedId],
+  );
   const categories = useMemo(() => uniqueCategories(items), [items]);
 
   useEffect(() => {
@@ -56,7 +62,8 @@ export function InventoryManager({
       setItems((prev) => [...prev, item]);
       setNewName("");
       setAdding(false);
-      setExpandedId(item.id);
+      // Show the full editor inline right here (instead of expanding it down the list).
+      setJustAddedId(item.id);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add item");
     }
@@ -92,7 +99,28 @@ export function InventoryManager({
 
   return (
     <div className="space-y-3">
-      {adding ? (
+      {justAddedId ? (
+        (() => {
+          const justAdded = items.find((i) => i.id === justAddedId);
+          if (!justAdded) return null;
+          return (
+            <div className="space-y-2">
+              <p className="text-sm muted">
+                Added ✓ <strong>{justAdded.name}</strong> — add details &amp; photos:
+              </p>
+              <InventoryItemDetail
+                item={justAdded}
+                busy={busy}
+                onChange={(patch) => updateItem(justAdded.id, patch)}
+                onRemove={() => { remove(justAdded.id); setJustAddedId(null); }}
+              />
+              <button type="button" onClick={() => setJustAddedId(null)} className="btn-primary text-sm">
+                Done
+              </button>
+            </div>
+          );
+        })()
+      ) : adding ? (
         <form onSubmit={add} className="surface !shadow-none flex flex-wrap items-center gap-2 p-3">
           <input
             autoFocus
