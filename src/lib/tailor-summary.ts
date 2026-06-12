@@ -157,6 +157,7 @@ export function buildMakeWorklist(
   performers: PerformerLike[],
   casts: CastLike[],
   pieces: PieceRow[],
+  opts: { makerId?: string } = {},
 ): Worklist {
   const pieceMap = new Map<string, PieceRow>();
   for (const p of pieces) pieceMap.set(pieceKey(p.casting_id, p.costume_design_id), p);
@@ -180,6 +181,7 @@ export function buildMakeWorklist(
         const row = pieceMap.get(pieceKey(casting.id, design.id));
         const source = row?.source ?? defaultSourceFor(design);
         if (source !== "make") continue; // only make pieces are tailor work (on_hand/shared/purchase excluded)
+        if (opts.makerId && row?.maker_id !== opts.makerId) continue; // My Work: only this maker's pieces
         const made = row?.made ?? false;
         items.push({
           designId: design.id,

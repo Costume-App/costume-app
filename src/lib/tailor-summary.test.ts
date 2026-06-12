@@ -188,3 +188,27 @@ test("buildMakeWorklist excludes inventory-linked designs with no piece row", ()
   expect(designIds).toEqual(["d1"]); // Cloak (linked) defaults to on_hand, so it's excluded
   expect(wl.totalItems).toBe(1);
 });
+
+test("buildMakeWorklist: makerId filter includes only that maker's pieces", () => {
+  const pieces = [
+    row({ costume_design_id: "d1", casting_id: "c1", maker_id: "m1" }),
+    row({ costume_design_id: "d1", casting_id: "c2", maker_id: "m2" }),
+    row({ costume_design_id: "d2", casting_id: "c1", maker_id: "m1", made: true }),
+  ];
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces, { makerId: "m1" });
+  expect(wl.totalItems).toBe(2);
+  expect(wl.madeItems).toBe(1);
+  const items = wl.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
+  expect(items.every((i) => i.makerId === "m1")).toBe(true);
+});
+
+test("buildMakeWorklist: makerId filter excludes lazy/no-maker items", () => {
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, [], { makerId: "m1" });
+  expect(wl.totalItems).toBe(0);
+  expect(wl.roles).toEqual([]);
+});
+
+test("buildMakeWorklist: no makerId keeps the whole-production behavior", () => {
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, []);
+  expect(wl.totalItems).toBe(5); // unchanged lazy-default count
+});
