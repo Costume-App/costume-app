@@ -43,9 +43,14 @@ export async function listAssignmentsForMaker(orgId: string, makerId: string): P
   if (cErr) throw new Error(cErr.message);
   const castings = (castingRows ?? []) as { id: string; performer_id: string }[];
 
+  // performers store the display name in `label` (not `name`); map it for the builder.
   const { data: performerRows, error: peErr } = await supabaseAdmin
-    .from("performers").select("id, name").in("id", ids(castings, "performer_id"));
+    .from("performers").select("id, label").in("id", ids(castings, "performer_id"));
   if (peErr) throw new Error(peErr.message);
+  const performers = ((performerRows ?? []) as { id: string; label: string }[]).map((p) => ({
+    id: p.id,
+    name: p.label,
+  }));
 
   return buildMakerAssignments({
     pieces,
@@ -53,6 +58,6 @@ export async function listAssignmentsForMaker(orgId: string, makerId: string): P
     productions,
     roles: (roleRows ?? []) as { id: string; name: string }[],
     castings,
-    performers: (performerRows ?? []) as { id: string; name: string }[],
+    performers,
   });
 }
