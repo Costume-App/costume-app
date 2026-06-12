@@ -38,8 +38,8 @@ export async function loadCostumeCreationsData(orgId: string, production: Produc
     getMeasurementsForPerformers(performers.map((p) => p.id)),
   ]);
   const measurementsByCasting = buildMeasurementsByCasting(definitions, measurements, castings);
-  const makers = await listMakers(orgId);
-  const [fabricWidths, fabricSuppliers] = await Promise.all([
+  const [makers, fabricWidths, fabricSuppliers] = await Promise.all([
+    listMakers(orgId),
     listFabricWidths(orgId),
     listFabricSuppliers(orgId),
   ]);
