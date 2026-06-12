@@ -30,6 +30,12 @@ export async function removeImages(paths: string[]): Promise<void> {
   await supabaseAdmin.storage.from(ROLE_IMAGES_BUCKET).remove(paths);
 }
 
+// Copy an object within the bucket (design photo → inventory photo live here).
+export async function copyImage(fromPath: string, toPath: string): Promise<void> {
+  const { error } = await supabaseAdmin.storage.from(ROLE_IMAGES_BUCKET).copy(fromPath, toPath);
+  if (error) throw new Error(error.message);
+}
+
 // Backwards-compatible aliases used by the role-image routes (same bucket).
 export const uploadRoleImage = uploadImage;
 export const signRoleImageUrls = signImageUrls;
