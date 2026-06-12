@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { Tabs } from "@/components/Tabs";
 import { MakeWorklist } from "@/components/MakeWorklist";
 import { FabricPurchaseList } from "@/components/FabricPurchaseList";
+import { PurchasedList } from "@/components/PurchasedList";
 import {
   buildMakeWorklist,
   buildFabricPurchaseList,
+  buildPurchaseWorklist,
   type PieceRow,
   type MeasurementView,
 } from "@/lib/tailor-summary";
@@ -92,6 +94,13 @@ export function TailorSummary({
     for (const s of fabricSuppliers) if (s.pricePerYard != null) supplierPrices[s.name] = s.pricePerYard;
     return buildFabricPurchaseList(items, supplierPrices);
   }, [worklist, fabricSuppliers]);
+  const purchased = useMemo(
+    () => buildPurchaseWorklist(roles, designs, castings, performers, casts, pieces),
+    [roles, designs, castings, performers, casts, pieces],
+  );
+  // purchase.totalCost is maker-filtered (derived from worklist), so grandTotal
+  // is only meaningful in the full view — its render is gated on !filterMakerId.
+  const grandTotal = purchase.totalCost + purchased.totalCost;
 
   // Reflect a saved piece into local state so both tabs stay live (or drop it
   // when the row was cleared back to the empty default).
@@ -118,7 +127,7 @@ export function TailorSummary({
             id: "make",
             label: `To make${worklist.totalItems ? ` (${worklist.madeItems}/${worklist.totalItems})` : ""}`,
           },
-          { id: "fabric", label: "Fabric list" },
+          { id: "fabric", label: "Shopping" },
         ]}
         active={tab}
         onChange={(id) => setTab(id as "make" | "fabric")}
@@ -151,6 +160,20 @@ export function TailorSummary({
           )}
           {estimateError && <p className="text-sm text-[var(--red)]">{estimateError}</p>}
           <FabricPurchaseList purchase={purchase} />
+          {!filterMakerId && (
+            <PurchasedList
+              productionId={productionId}
+              items={purchased.items}
+              totalCost={purchased.totalCost}
+              onSaved={applySaved}
+            />
+          )}
+          {!filterMakerId && (purchase.totalCost > 0 || purchased.totalCost > 0) && (
+            <div className="flex justify-between border-t-2 border-[var(--ink)] pt-2 font-semibold">
+              <span>Total (fabric + purchased)</span>
+              <span>${grandTotal.toFixed(2)}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
