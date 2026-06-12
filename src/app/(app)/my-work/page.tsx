@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getAuthContext } from "@/lib/auth-context";
 import { findMakerByUser } from "@/lib/data/makers";
 import { listAssignmentsForMaker } from "@/lib/data/maker-assignments";
@@ -11,10 +10,7 @@ export default async function MyWorkPage() {
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <Link href="/productions" className="link-muted text-sm">
-        ← Productions
-      </Link>
-      <div className="mt-2 mb-6">
+      <div className="mb-6">
         <h1 className="font-display text-3xl font-semibold">My Work</h1>
         <p className="mt-1 text-sm muted">Costume pieces assigned to you, across productions.</p>
       </div>
