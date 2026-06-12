@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { formatHeight } from "@/lib/height";
 import { MakeAssignment } from "@/components/MakeAssignment";
+import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
@@ -24,6 +25,7 @@ interface PiecePutBody {
 export function MakePieceRow({
   productionId,
   item,
+  garmentName,
   measurements,
   makers,
   fabricWidths,
@@ -32,6 +34,7 @@ export function MakePieceRow({
 }: {
   productionId: string;
   item: MakeItem;
+  garmentName: string;
   measurements: MeasurementView[];
   makers: { id: string; name: string; color: string }[];
   fabricWidths: { id: string; value: string; isDefault: boolean }[];
@@ -44,6 +47,8 @@ export function MakePieceRow({
     false,
   );
   const [made, setMade] = useState(item.made);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [addedItemId, setAddedItemId] = useState<string | null>(item.addedInventoryItemId);
   const defaultWidth = fabricWidths.find((w) => w.isDefault)?.value ?? "";
   const defaultSupplier = fabricSuppliers.find((s) => s.isDefault) ?? null;
   const [type, setType] = useState(item.fabric.type ?? "");
@@ -115,6 +120,7 @@ export function MakePieceRow({
   function toggleMade(next: boolean) {
     setMade(next);
     save({ made: next });
+    if (next && !addedItemId) setPromptOpen(true);
   }
 
   function changeMaker(next: string | null) {
@@ -211,6 +217,20 @@ export function MakePieceRow({
             )}
             {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
           </div>
+        </div>
+      )}
+      {promptOpen && (
+        <div className="px-3 pb-3">
+          <AddToInventoryControl
+            productionId={productionId}
+            designId={item.designId}
+            castingId={item.castingId}
+            pieceLabel={`${garmentName} (${item.performerName})`}
+            addedItemId={addedItemId}
+            mode="prompt"
+            onAdded={(id) => { setAddedItemId(id); setPromptOpen(false); }}
+            onDismiss={() => setPromptOpen(false)}
+          />
         </div>
       )}
     </li>
