@@ -22,10 +22,12 @@ export function AddToInventoryControl({
   castingId: string;
   pieceLabel: string;
   addedItemId: string | null;
-  mode: "button" | "prompt";
   onAdded: (itemId: string) => void;
-  onDismiss?: () => void;
-}) {
+} & (
+  // "prompt" must supply onDismiss (the "Not now" handler); "button" never does.
+  | { mode: "button"; onDismiss?: never }
+  | { mode: "prompt"; onDismiss: () => void }
+)) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +67,7 @@ export function AddToInventoryControl({
         <button type="button" onClick={add} disabled={busy} className="text-xs text-[var(--red)] hover:underline disabled:opacity-50">
           {busy ? "Adding…" : "+ to House Inventory"}
         </button>
-        {error && <span className="text-xs text-[var(--red)]">{error}</span>}
+        {error && <span role="alert" className="text-xs text-[var(--red)]">{error}</span>}
       </div>
     );
   }
@@ -78,10 +80,16 @@ export function AddToInventoryControl({
       <button type="button" onClick={add} disabled={busy} className="btn-primary !px-2 !py-0.5 text-xs">
         {busy ? "Adding…" : "Add"}
       </button>
-      <button type="button" onClick={onDismiss} disabled={busy} className="link-muted text-xs">
+      <button
+        type="button"
+        onClick={onDismiss}
+        disabled={busy}
+        aria-label={`Dismiss — don't add ${pieceLabel} to House Inventory`}
+        className="link-muted text-xs"
+      >
         Not now
       </button>
-      {error && <span className="text-xs text-[var(--red)]">{error}</span>}
+      {error && <span role="alert" className="text-xs text-[var(--red)]">{error}</span>}
     </div>
   );
 }
