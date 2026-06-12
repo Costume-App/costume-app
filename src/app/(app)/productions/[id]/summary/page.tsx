@@ -6,6 +6,7 @@ import { loadCostumeCreationsData } from "@/lib/data/costume-creations";
 import { todayIso } from "@/lib/countdown";
 import { NotFoundError } from "@/lib/errors";
 import { TailorSummary } from "@/components/TailorSummary";
+import { isAiConfigured } from "@/lib/ai/estimate-fabric";
 
 export default async function TailorSummaryPage({
   params,
@@ -31,7 +32,7 @@ export default async function TailorSummaryPage({
         ← {production.title}
       </Link>
       <h1 className="mt-2 mb-6 font-display text-2xl font-semibold">Costume Creations</h1>
-      <TailorSummary {...data} today={todayIso()} />
+      <TailorSummary {...data} today={todayIso()} aiConfigured={isAiConfigured()} />
     </main>
   );
 }

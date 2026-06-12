@@ -6,6 +6,7 @@ import { listAssignmentsForMaker } from "@/lib/data/maker-assignments";
 import { loadCostumeCreationsData } from "@/lib/data/costume-creations";
 import { todayIso } from "@/lib/countdown";
 import { TailorSummary } from "@/components/TailorSummary";
+import { isAiConfigured } from "@/lib/ai/estimate-fabric";
 
 export default async function MyWorkPage() {
   const { orgId, userId } = await getAuthContext();
@@ -52,6 +53,7 @@ export default async function MyWorkPage() {
     );
   }
 
+  const aiConfigured = isAiConfigured();
   const today = todayIso();
   const sections = await Promise.all(
     productions.map(async (p) => {
@@ -73,7 +75,7 @@ export default async function MyWorkPage() {
             >
               {s.title}
             </Link>
-            <TailorSummary {...s.data} filterMakerId={maker.id} today={today} />
+            <TailorSummary {...s.data} filterMakerId={maker.id} today={today} aiConfigured={aiConfigured} />
           </section>
         ))}
       </div>

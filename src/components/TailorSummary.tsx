@@ -33,6 +33,7 @@ export function TailorSummary({
   costumesDueDate,
   today,
   filterMakerId,
+  aiConfigured,
 }: {
   productionId: string;
   roles: Role[];
@@ -47,9 +48,30 @@ export function TailorSummary({
   costumesDueDate: string | null;
   today: string;
   filterMakerId?: string;
+  aiConfigured?: boolean;
 }) {
   const [tab, setTab] = useState<"make" | "fabric">("make");
   const [pieces, setPieces] = useState<PieceRow[]>(initialPieces);
+  const [estimating, setEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+
+  async function estimateFabric() {
+    setEstimating(true);
+    setEstimateError(null);
+    const res = await fetch(`/api/productions/${productionId}/estimate-fabric`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { pieces: PieceRow[]; estimated: number };
+      setPieces(data.pieces);
+    } else {
+      setEstimateError(
+        ((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't estimate fabric",
+      );
+    }
+    setEstimating(false);
+  }
 
   const worklist = useMemo(
     () => buildMakeWorklist(roles, designs, castings, performers, casts, pieces, { makerId: filterMakerId }),
@@ -100,7 +122,23 @@ export function TailorSummary({
           onSaved={applySaved}
         />
       ) : (
-        <FabricPurchaseList purchase={purchase} />
+        <div className="space-y-3">
+          {aiConfigured && (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={estimateFabric}
+                disabled={estimating}
+                className="btn-primary"
+              >
+                {estimating ? "Estimating…" : "✨ Estimate fabric"}
+              </button>
+              <span className="text-sm muted">fills empty yardages only</span>
+            </div>
+          )}
+          {estimateError && <p className="text-sm text-[var(--red)]">{estimateError}</p>}
+          <FabricPurchaseList purchase={purchase} />
+        </div>
       )}
     </div>
   );
