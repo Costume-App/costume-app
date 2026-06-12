@@ -30,6 +30,8 @@ export function TailorSummary({
   photosByRole,
   measurementsByCasting,
   makers,
+  fabricWidths,
+  fabricSuppliers,
   costumesDueDate,
   today,
   filterMakerId,
@@ -45,6 +47,8 @@ export function TailorSummary({
   photosByRole: Record<string, RolePhoto[]>;
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
+  fabricWidths: { id: string; value: string; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
   costumesDueDate: string | null;
   today: string;
   filterMakerId?: string;
@@ -84,8 +88,10 @@ export function TailorSummary({
   );
   const purchase = useMemo(() => {
     const items = worklist.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
-    return buildFabricPurchaseList(items);
-  }, [worklist]);
+    const supplierPrices: Record<string, number> = {};
+    for (const s of fabricSuppliers) if (s.pricePerYard != null) supplierPrices[s.name] = s.pricePerYard;
+    return buildFabricPurchaseList(items, supplierPrices);
+  }, [worklist, fabricSuppliers]);
 
   // Reflect a saved piece into local state so both tabs stay live (or drop it
   // when the row was cleared back to the empty default).
@@ -124,6 +130,8 @@ export function TailorSummary({
           photosByRole={photosByRole}
           measurementsByCasting={measurementsByCasting}
           makers={makers}
+          fabricWidths={fabricWidths}
+          fabricSuppliers={fabricSuppliers}
           onSaved={applySaved}
         />
       ) : (

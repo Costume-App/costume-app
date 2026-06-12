@@ -35,6 +35,8 @@ export async function POST(_request: Request, { params }: Ctx) {
       data.initialPieces.map((p) => [pieceKey(p.casting_id, p.costume_design_id), p]),
     );
 
+    const defaultWidth = data.fabricWidths.find((w) => w.isDefault)?.value ?? null;
+
     // Select make-items with no yardage yet (never overwrite a human entry).
     const toEstimate: EstimateItem[] = [];
     for (const role of worklist.roles) {
@@ -44,7 +46,7 @@ export async function POST(_request: Request, { params }: Ctx) {
           toEstimate.push({
             key: pieceKey(item.castingId, item.designId),
             garment: garment.designName,
-            fabricWidth: item.fabric.width,
+            fabricWidth: item.fabric.width ?? defaultWidth,
             measurements: (data.measurementsByCasting[item.castingId] ?? []).map((m) => ({
               label: m.label,
               value: m.value,

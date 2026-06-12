@@ -8,6 +8,7 @@ import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { listRoleImagesForRoles } from "@/lib/data/role-images";
 import { signRoleImageUrls } from "@/lib/storage";
 import { listMakers } from "@/lib/data/makers";
+import { listFabricWidths, listFabricSuppliers } from "@/lib/data/fabric-settings";
 import { buildMeasurementsByCasting } from "@/lib/tailor-summary";
 import type { Production } from "@/lib/data/productions";
 import type { RolePhoto } from "@/components/RolePhotoStrip";
@@ -37,7 +38,11 @@ export async function loadCostumeCreationsData(orgId: string, production: Produc
     getMeasurementsForPerformers(performers.map((p) => p.id)),
   ]);
   const measurementsByCasting = buildMeasurementsByCasting(definitions, measurements, castings);
-  const makers = await listMakers(orgId);
+  const [makers, fabricWidths, fabricSuppliers] = await Promise.all([
+    listMakers(orgId),
+    listFabricWidths(orgId),
+    listFabricSuppliers(orgId),
+  ]);
 
   return {
     productionId: id,
@@ -62,6 +67,8 @@ export async function loadCostumeCreationsData(orgId: string, production: Produc
     photosByRole,
     measurementsByCasting,
     makers: makers.map((m) => ({ id: m.id, name: m.name, color: m.color })),
+    fabricWidths: fabricWidths.map((w) => ({ id: w.id, value: w.value, isDefault: w.is_default })),
+    fabricSuppliers: fabricSuppliers.map((s) => ({ id: s.id, name: s.name, pricePerYard: s.price_per_yard, isDefault: s.is_default })),
     costumesDueDate: production.costumes_due_date,
   };
 }

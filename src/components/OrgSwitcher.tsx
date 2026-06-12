@@ -3,6 +3,7 @@
 import { OrganizationSwitcher } from "@clerk/nextjs";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import { MakersTabIcon, OrgMakersPanel } from "@/components/OrgMakersPanel";
+import { FabricTabIcon, OrgFabricPanel } from "@/components/OrgFabricPanel";
 
 export function OrgSwitcher() {
   return (
@@ -14,6 +15,9 @@ export function OrgSwitcher() {
     >
       <OrganizationSwitcher.OrganizationProfilePage label="Makers" labelIcon={<MakersTabIcon />} url="makers">
         <OrgMakersPanel />
+      </OrganizationSwitcher.OrganizationProfilePage>
+      <OrganizationSwitcher.OrganizationProfilePage label="Fabric" labelIcon={<FabricTabIcon />} url="fabric">
+        <OrgFabricPanel />
       </OrganizationSwitcher.OrganizationProfilePage>
     </OrganizationSwitcher>
   );

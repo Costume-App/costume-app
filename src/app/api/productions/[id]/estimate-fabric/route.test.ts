@@ -57,7 +57,7 @@ const piece = (over: Partial<PieceRow> = {}): PieceRow => ({
   ...over,
 });
 
-const dataWith = (initialPieces: PieceRow[]) => ({
+const dataWith = (initialPieces: PieceRow[], fabricWidths: { id: string; value: string; isDefault: boolean }[] = []) => ({
   roles: [{ id: "r1", name: "Lead", notes: null }],
   designs: [{ id: "d1", role_id: "r1", name: "Cloak", display_order: 0, inventory_item_id: null }],
   castings: [{ id: "c1", cast_id: "cast1", role_id: "r1", performer_id: "pf1", assignment: "primary" }],
@@ -65,6 +65,8 @@ const dataWith = (initialPieces: PieceRow[]) => ({
   casts: [{ id: "cast1", name: "Cast A" }],
   initialPieces,
   measurementsByCasting: { c1: [{ key: "height", label: "Height", value: 70, unit: "in" }] },
+  fabricWidths,
+  fabricSuppliers: [],
 });
 
 test("estimates only make-items missing a yardage and persists each via upsertPieceSource", async () => {
@@ -191,6 +193,24 @@ test("501 when AI is not configured", async () => {
   expect(res.status).toBe(501);
   expect(loadCostumeCreationsData).not.toHaveBeenCalled();
   expect(estimateFabricYardage).not.toHaveBeenCalled();
+});
+
+test("uses the org default width as the fallback for a piece with no width", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  isAiConfigured.mockReturnValue(true);
+  loadCostumeCreationsData.mockResolvedValue(
+    dataWith([], [{ id: "w1", value: '54"', isDefault: true }]),
+  );
+  estimateFabricYardage.mockResolvedValue(new Map([["c1:d1", 3.5]]));
+  upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 3.5 }));
+  listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 3.5 })]);
+
+  await POST(req(), ctx("p1"));
+
+  expect(estimateFabricYardage).toHaveBeenCalledWith([
+    expect.objectContaining({ key: "c1:d1", garment: "Cloak", fabricWidth: '54"' }),
+  ]);
 });
 
 test("404 when production not in org", async () => {

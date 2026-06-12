@@ -26,12 +26,16 @@ export function MakePieceRow({
   item,
   measurements,
   makers,
+  fabricWidths,
+  fabricSuppliers,
   onSaved,
 }: {
   productionId: string;
   item: MakeItem;
   measurements: MeasurementView[];
   makers: { id: string; name: string; color: string }[];
+  fabricWidths: { id: string; value: string; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
   onSaved: (piece: PieceRow | null) => void;
 }) {
   // Persist per piece so the card stays open after a trip to the measurements page.
@@ -40,12 +44,20 @@ export function MakePieceRow({
     false,
   );
   const [made, setMade] = useState(item.made);
+  const defaultWidth = fabricWidths.find((w) => w.isDefault)?.value ?? "";
+  const defaultSupplier = fabricSuppliers.find((s) => s.isDefault) ?? null;
   const [type, setType] = useState(item.fabric.type ?? "");
   const [color, setColor] = useState(item.fabric.color ?? "");
-  const [width, setWidth] = useState(item.fabric.width ?? "");
-  const [supplier, setSupplier] = useState(item.fabric.supplier ?? "");
+  const [width, setWidth] = useState(item.fabric.width ?? defaultWidth);
+  const [supplier, setSupplier] = useState(item.fabric.supplier ?? (defaultSupplier?.name ?? ""));
   const [yardage, setYardage] = useState(item.fabric.yardage != null ? String(item.fabric.yardage) : "");
-  const [unitCost, setUnitCost] = useState(item.fabric.unitCost != null ? String(item.fabric.unitCost) : "");
+  const [unitCost, setUnitCost] = useState(
+    item.fabric.unitCost != null
+      ? String(item.fabric.unitCost)
+      : defaultSupplier?.pricePerYard != null
+        ? String(defaultSupplier.pricePerYard)
+        : "",
+  );
   const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,17 +65,24 @@ export function MakePieceRow({
   // edit: each call captures its values now and runs after the previous finishes.
   const saveChain = useRef<Promise<void>>(Promise.resolve());
 
-  function save(opts?: { made?: boolean; makerId?: string | null }) {
+  function save(opts?: {
+    made?: boolean;
+    makerId?: string | null;
+    width?: string;
+    supplier?: string;
+    unitCost?: string;
+  }) {
+    const uc = opts?.unitCost ?? unitCost;
     const body: PiecePutBody = {
       designId: item.designId,
       castingId: item.castingId,
       source: "make",
       fabricType: type.trim() || null,
       fabricColor: color.trim() || null,
-      fabricWidth: width.trim() || null,
-      fabricSupplier: supplier.trim() || null,
+      fabricWidth: (opts?.width ?? width).trim() || null,
+      fabricSupplier: (opts?.supplier ?? supplier).trim() || null,
       fabricYardage: yardage.trim() === "" ? null : Number(yardage),
-      fabricUnitCost: unitCost.trim() === "" ? null : Number(unitCost),
+      fabricUnitCost: uc.trim() === "" ? null : Number(uc),
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -166,10 +185,37 @@ export function MakePieceRow({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} placeholder="Name/Type/Description" />
             <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} placeholder="Fabric color" />
-            <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
+            {fabricWidths.length > 0 ? (
+              <SelectField
+                label="Width"
+                value={width}
+                options={optionValues(fabricWidths.map((w) => w.value), width)}
+                onChange={(v) => { setWidth(v); void save({ width: v }); }}
+              />
+            ) : (
+              <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
+            )}
             <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" />
             <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" prefix="$" placeholder="Per yard" />
-            <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} placeholder="Where to buy" />
+            {fabricSuppliers.length > 0 ? (
+              <SelectField
+                label="Supplier"
+                value={supplier}
+                options={optionValues(fabricSuppliers.map((s) => s.name), supplier)}
+                onChange={(v) => {
+                  setSupplier(v);
+                  const picked = fabricSuppliers.find((s) => s.name === v);
+                  const nextCost =
+                    picked?.pricePerYard != null && unitCost.trim() === ""
+                      ? String(picked.pricePerYard)
+                      : unitCost;
+                  if (nextCost !== unitCost) setUnitCost(nextCost);
+                  void save({ supplier: v, unitCost: nextCost });
+                }}
+              />
+            ) : (
+              <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} placeholder="Where to buy" />
+            )}
             {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
           </div>
         </div>
@@ -213,6 +259,40 @@ function Field({
           onBlur={onBlur}
         />
       </div>
+    </label>
+  );
+}
+
+// Build a <select>'s option list: the org list plus the current value if it isn't
+// already in the list (so an old free-typed value isn't lost).
+function optionValues(list: string[], current: string): string[] {
+  const out = [...list];
+  if (current && !out.includes(current)) out.unshift(current);
+  return out;
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-0.5">
+      <span className="lbl">{label}</span>
+      <select className="field !p-1.5 text-sm w-full" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">—</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
