@@ -215,7 +215,10 @@ function norm(s: string | null): string {
 // Aggregate make-items into a fabric shopping list. Detail lines are grouped by
 // type+color+width+supplier; those lines are then grouped (and subtotaled) by
 // type+color. Items without a fabric type are "unspecified".
-export function buildFabricPurchaseList(items: MakeItem[]): PurchaseList {
+export function buildFabricPurchaseList(
+  items: MakeItem[],
+  supplierPrices: Record<string, number> = {},
+): PurchaseList {
   const lines = new Map<string, FabricLine>();
   const unspecified: MakeItem[] = [];
   let totalYardage = 0;
@@ -232,7 +235,9 @@ export function buildFabricPurchaseList(items: MakeItem[]): PurchaseList {
     const supplier = norm(item.fabric.supplier);
     const key = [type, color, width, supplier].join("|");
     const yardage = item.fabric.yardage ?? 0;
-    const cost = yardage * (item.fabric.unitCost ?? 0);
+    const effectiveUnitCost =
+      item.fabric.unitCost ?? (item.fabric.supplier ? supplierPrices[item.fabric.supplier.trim()] : undefined) ?? 0;
+    const cost = yardage * effectiveUnitCost;
 
     const existing = lines.get(key);
     if (existing) {

@@ -88,8 +88,10 @@ export function TailorSummary({
   );
   const purchase = useMemo(() => {
     const items = worklist.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
-    return buildFabricPurchaseList(items);
-  }, [worklist]);
+    const supplierPrices: Record<string, number> = {};
+    for (const s of fabricSuppliers) if (s.pricePerYard != null) supplierPrices[s.name] = s.pricePerYard;
+    return buildFabricPurchaseList(items, supplierPrices);
+  }, [worklist, fabricSuppliers]);
 
   // Reflect a saved piece into local state so both tabs stay live (or drop it
   // when the row was cleared back to the empty default).

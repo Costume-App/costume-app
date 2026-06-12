@@ -172,6 +172,38 @@ test("buildFabricPurchaseList: pieces without a fabric type go to unspecified", 
   expect(pl.unspecified).toHaveLength(items.length);
 });
 
+test("buildFabricPurchaseList falls back to the supplier's price when a piece has no unit cost", async () => {
+  const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
+  const item = {
+    designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
+    assignment: "primary" as const, made: false, makerId: null,
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: null },
+  };
+  const list = buildFabricPurchaseList([item], { Mood: 4 });
+  expect(list.totalCost).toBe(8); // 2 yd * $4 (from the supplier map)
+});
+
+test("buildFabricPurchaseList treats unknown/absent supplier price as 0", async () => {
+  const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
+  const item = {
+    designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
+    assignment: "primary" as const, made: false, makerId: null,
+    fabric: { type: "Wool", color: "Black", width: null, supplier: "Unknown", yardage: 2, unitCost: null },
+  };
+  expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(0);
+  expect(buildFabricPurchaseList([item]).totalCost).toBe(0); // no map → today's behavior
+});
+
+test("buildFabricPurchaseList still prefers a typed unit cost over the supplier price", async () => {
+  const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
+  const item = {
+    designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
+    assignment: "primary" as const, made: false, makerId: null,
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
+  };
+  expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(20); // typed $10 wins
+});
+
 test("buildMakeWorklist excludes inventory-linked designs with no piece row", () => {
   const roles = [{ id: "r1", name: "Ophelia", notes: null }];
   const designs = [
