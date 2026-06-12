@@ -113,13 +113,13 @@ test("findMakerByUser returns the matching maker or null", async () => {
   const fbuMaybeSingle = vi.fn().mockResolvedValue({ data: { id: "m1", org_id: "org_1", name: "Jo", color: "slate", clerk_user_id: "user_1" }, error: null });
   const fbuEqUser = vi.fn(() => ({ maybeSingle: fbuMaybeSingle }));
   const fbuEqOrg = vi.fn(() => ({ eq: fbuEqUser }));
-  select.mockReturnValueOnce({ eq: fbuEqOrg });
+  select.mockReturnValueOnce({ eq: fbuEqOrg } as never);
   const maker = await findMakerByUser("org_1", "user_1");
   expect(fbuEqOrg).toHaveBeenCalledWith("org_id", "org_1");
   expect(fbuEqUser).toHaveBeenCalledWith("clerk_user_id", "user_1");
   expect(maker?.id).toBe("m1");
 
   fbuMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-  select.mockReturnValueOnce({ eq: fbuEqOrg });
+  select.mockReturnValueOnce({ eq: fbuEqOrg } as never);
   expect(await findMakerByUser("org_1", "nobody")).toBeNull();
 });
