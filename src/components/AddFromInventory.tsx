@@ -41,7 +41,7 @@ export function AddFromInventory({ onPick, busy }: { onPick: (itemId: string) =>
 
   if (!open) {
     return (
-      <button type="button" onClick={openPicker} disabled={busy} className="ml-4 link-muted text-sm disabled:opacity-50">
+      <button type="button" onClick={openPicker} disabled={busy} className="ml-4 text-sm text-[var(--red)] hover:underline disabled:opacity-50">
         + add from inventory
       </button>
     );

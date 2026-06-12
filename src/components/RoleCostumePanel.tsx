@@ -556,7 +556,7 @@ function PieceEditor({
           </button>
         </form>
       ) : (
-        <button type="button" onClick={() => setAdding(true)} className="link-muted text-sm">
+        <button type="button" onClick={() => setAdding(true)} className="text-sm text-[var(--red)] hover:underline">
           + add piece
         </button>
       )}
