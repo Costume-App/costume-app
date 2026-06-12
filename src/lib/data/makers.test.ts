@@ -19,7 +19,7 @@ const from = vi.fn((_table: string) => ({ select, insert, update, delete: del })
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (t: string) => from(t) } }));
 
-import { listMakers, createMaker, updateMaker, deleteMaker } from "@/lib/data/makers";
+import { listMakers, createMaker, updateMaker, deleteMaker, findMakerByUser } from "@/lib/data/makers";
 
 beforeEach(() => {
   [listOrder, listEq, insertSingle, insertSelect, insert, updMaybeSingle, updSelect, updEqOrg, updEqId, update, delEqOrg, delEqId, del, select, from].forEach(
@@ -87,4 +87,39 @@ test("deleteMaker deletes by id scoped to the org", async () => {
   await deleteMaker("org_1", "m1");
   expect(delEqId).toHaveBeenCalledWith("id", "m1");
   expect(delEqOrg).toHaveBeenCalledWith("org_id", "org_1");
+});
+
+test("createMaker passes clerk_user_id through when given", async () => {
+  insertSingle.mockResolvedValue({ data: { id: "m9", org_id: "org_1", name: "Jo", color: "slate", clerk_user_id: "user_1" }, error: null });
+  await createMaker("org_1", { name: "Jo", clerkUserId: "user_1" });
+  expect(insert).toHaveBeenCalledWith({ org_id: "org_1", name: "Jo", color: "slate", clerk_user_id: "user_1" });
+});
+
+test("createMaker omits clerk_user_id when not given", async () => {
+  insertSingle.mockResolvedValue({ data: { id: "m10" }, error: null });
+  await createMaker("org_1", { name: "Kim" });
+  expect(insert).toHaveBeenCalledWith({ org_id: "org_1", name: "Kim", color: "slate" });
+});
+
+test("updateMaker sets clerk_user_id (link) and clears it (unlink)", async () => {
+  updMaybeSingle.mockResolvedValue({ data: { id: "m1" }, error: null });
+  await updateMaker("org_1", "m1", { clerkUserId: "user_2" });
+  expect(update).toHaveBeenCalledWith({ clerk_user_id: "user_2" });
+  await updateMaker("org_1", "m1", { clerkUserId: null });
+  expect(update).toHaveBeenCalledWith({ clerk_user_id: null });
+});
+
+test("findMakerByUser returns the matching maker or null", async () => {
+  const fbuMaybeSingle = vi.fn().mockResolvedValue({ data: { id: "m1", org_id: "org_1", name: "Jo", color: "slate", clerk_user_id: "user_1" }, error: null });
+  const fbuEqUser = vi.fn(() => ({ maybeSingle: fbuMaybeSingle }));
+  const fbuEqOrg = vi.fn(() => ({ eq: fbuEqUser }));
+  select.mockReturnValueOnce({ eq: fbuEqOrg });
+  const maker = await findMakerByUser("org_1", "user_1");
+  expect(fbuEqOrg).toHaveBeenCalledWith("org_id", "org_1");
+  expect(fbuEqUser).toHaveBeenCalledWith("clerk_user_id", "user_1");
+  expect(maker?.id).toBe("m1");
+
+  fbuMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+  select.mockReturnValueOnce({ eq: fbuEqOrg });
+  expect(await findMakerByUser("org_1", "nobody")).toBeNull();
 });
