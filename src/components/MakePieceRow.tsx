@@ -112,8 +112,7 @@ export function MakePieceRow({
     }
   }
 
-  function toggleMade() {
-    const next = !made;
+  function toggleMade(next: boolean) {
     setMade(next);
     save({ made: next });
   }
@@ -128,13 +127,6 @@ export function MakePieceRow({
   return (
     <li className="rounded-lg border border-[var(--field-line)]">
       <div className="flex items-center gap-2 px-3 py-2">
-        <input
-          type="checkbox"
-          checked={made}
-          onChange={toggleMade}
-          aria-label={`Mark ${item.performerName}'s ${item.castName} piece made`}
-          className="h-4 w-4 accent-[var(--red)]"
-        />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -153,9 +145,10 @@ export function MakePieceRow({
             makers={makers}
             makerId={makerId}
             made={made}
-            showMade={false}
+            madeLabel=""
             busy={busy}
             onChangeMaker={changeMaker}
+            onToggleMade={toggleMade}
           />
         </div>
         {busy && <span className="text-xs muted">Saving…</span>}
