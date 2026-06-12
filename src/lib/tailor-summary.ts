@@ -1,10 +1,10 @@
 import { pieceKey } from "@/lib/costume-merge";
-import { defaultSourceFor } from "@/lib/costume-sources";
+import { defaultSourceFor, type CostumeSource } from "@/lib/costume-sources";
 
 export interface PieceRow {
   costume_design_id: string;
   casting_id: string;
-  source: "make" | "on_hand" | "shared";
+  source: CostumeSource;
   fabric_type: string | null;
   fabric_color: string | null;
   fabric_width: string | null;
@@ -179,7 +179,7 @@ export function buildMakeWorklist(
       for (const casting of roleCastings) {
         const row = pieceMap.get(pieceKey(casting.id, design.id));
         const source = row?.source ?? defaultSourceFor(design);
-        if (source === "on_hand" || source === "shared") continue;
+        if (source !== "make") continue; // only make pieces are tailor work (on_hand/shared/purchase excluded)
         const made = row?.made ?? false;
         items.push({
           designId: design.id,

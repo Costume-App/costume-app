@@ -89,6 +89,16 @@ test("buildMakeWorklist: on_hand and shared are excluded; made is counted", () =
   expect(wl.madeItems).toBe(1);
 });
 
+test("buildMakeWorklist: purchase pieces are excluded from the make worklist", () => {
+  const pieces = [
+    row({ costume_design_id: "d1", casting_id: "c1", source: "purchase" }),
+  ];
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
+  const items = wl.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
+  expect(items.some((i) => i.designId === "d1" && i.castingId === "c1")).toBe(false);
+  expect(wl.totalItems).toBe(4); // 5 lazy-make minus the one purchased
+});
+
 test("buildMakeWorklist: garment with zero make items is omitted", () => {
   const pieces = [
     row({ costume_design_id: "d3", casting_id: "c3", source: "on_hand" }),
