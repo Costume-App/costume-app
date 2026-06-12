@@ -27,6 +27,7 @@ export function PhotoStrip({
   const [error, setError] = useState<string | null>(null);
   const [enlarged, setEnlarged] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
 
   async function load() {
@@ -129,17 +130,33 @@ export function PhotoStrip({
           </div>
         ))}
         {!readOnly && images.length < max && (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            aria-label="Add photo"
-            className="flex h-[72px] w-[72px] items-center justify-center rounded border border-dashed border-[var(--field-line)] text-2xl leading-none text-[var(--muted)] hover:border-[var(--red)] hover:text-[var(--red)] disabled:opacity-50"
-          >
-            +
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+              aria-label="Add photo from library"
+              className="flex h-[72px] w-[72px] items-center justify-center rounded border border-dashed border-[var(--field-line)] text-2xl leading-none text-[var(--muted)] hover:border-[var(--red)] hover:text-[var(--red)] disabled:opacity-50"
+            >
+              +
+            </button>
+            {/* Camera capture — shown only on touch devices; opens the camera directly. */}
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={busy}
+              aria-label="Take a photo"
+              className="hidden h-[72px] w-[72px] items-center justify-center rounded border border-dashed border-[var(--field-line)] text-[var(--muted)] hover:border-[var(--red)] hover:text-[var(--red)] disabled:opacity-50 [@media(pointer:coarse)]:flex"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </button>
+          </>
         )}
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
       </div>
       {busy && <p className="text-xs muted">Working…</p>}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}

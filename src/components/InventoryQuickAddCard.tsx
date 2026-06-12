@@ -8,7 +8,7 @@ export function InventoryQuickAddCard({ itemCount }: { itemCount: number }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [added, setAdded] = useState<string | null>(null);
+  const [added, setAdded] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function add(e: React.FormEvent) {
@@ -23,9 +23,9 @@ export function InventoryQuickAddCard({ itemCount }: { itemCount: number }) {
       body: JSON.stringify({ name: newName }),
     });
     if (res.ok) {
-      const { item } = (await res.json()) as { item: { name: string } };
+      const { item } = (await res.json()) as { item: { id: string; name: string } };
       setCount((c) => c + 1);
-      setAdded(item.name);
+      setAdded({ id: item.id, name: item.name });
       setNewName("");
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add item");
@@ -69,7 +69,14 @@ export function InventoryQuickAddCard({ itemCount }: { itemCount: number }) {
         </form>
       )}
 
-      {added && <p className="mt-2 text-sm muted">Added ✓ {added}</p>}
+      {added && (
+        <p className="mt-2 text-sm muted">
+          Added ✓ {added.name} —{" "}
+          <Link href={`/inventory?item=${added.id}`} className="link-muted underline">
+            Add details &amp; photos →
+          </Link>
+        </p>
+      )}
       {error && <p className="mt-2 text-sm text-[var(--red)]">{error}</p>}
     </div>
   );
