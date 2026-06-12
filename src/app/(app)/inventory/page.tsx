@@ -14,7 +14,7 @@ export default async function InventoryPage({
   return (
     <main className="mx-auto max-w-2xl p-6">
       <div className="mb-6">
-        <h1 className="font-display text-3xl font-semibold">Inventory</h1>
+        <h1 className="font-display text-3xl font-semibold">House Inventory</h1>
         <p className="mt-1 text-sm muted">
           Your on-hand costume library. Photograph items here, then add them to a role from the Costume tab.
         </p>

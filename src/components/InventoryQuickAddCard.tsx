@@ -37,7 +37,7 @@ export function InventoryQuickAddCard({ itemCount }: { itemCount: number }) {
     <div className="surface mt-3 p-4">
       <div className="flex items-center justify-between gap-3">
         <Link href="/inventory" className="group min-w-0">
-          <span className="font-display text-xl font-semibold group-hover:underline">Inventory →</span>
+          <span className="font-display text-xl font-semibold group-hover:underline">House Inventory →</span>
           <span className="mt-0.5 block text-sm muted">
             {count === 0 ? "No items yet" : `${count} item${count === 1 ? "" : "s"} on hand`}
           </span>
