@@ -15,6 +15,7 @@ const listFabricSuppliers = vi.fn();
 const createFabricWidth = vi.fn();
 const createFabricSupplier = vi.fn();
 const updateFabricSupplier = vi.fn();
+const updateFabricWidth = vi.fn();
 const deleteFabricSupplier = vi.fn();
 const deleteFabricWidth = vi.fn();
 vi.mock("@/lib/data/fabric-settings", () => ({
@@ -23,18 +24,19 @@ vi.mock("@/lib/data/fabric-settings", () => ({
   createFabricWidth: (...a: unknown[]) => createFabricWidth(...a),
   createFabricSupplier: (...a: unknown[]) => createFabricSupplier(...a),
   updateFabricSupplier: (...a: unknown[]) => updateFabricSupplier(...a),
+  updateFabricWidth: (...a: unknown[]) => updateFabricWidth(...a),
   deleteFabricSupplier: (...a: unknown[]) => deleteFabricSupplier(...a),
   deleteFabricWidth: (...a: unknown[]) => deleteFabricWidth(...a),
 }));
 
 import { GET } from "@/app/api/org/fabric-settings/route";
 import { POST } from "@/app/api/org/fabric-settings/widths/route";
-import { DELETE as DELETEWidth } from "@/app/api/org/fabric-settings/widths/[id]/route";
+import { PATCH as PATCHWidth, DELETE as DELETEWidth } from "@/app/api/org/fabric-settings/widths/[id]/route";
 import { POST as POSTSupplier } from "@/app/api/org/fabric-settings/suppliers/route";
 import { PATCH as PATCHSupplier, DELETE as DELETESupplier } from "@/app/api/org/fabric-settings/suppliers/[id]/route";
 
 beforeEach(() => {
-  [getAuthContext, requireOrgAdmin, ensureOrganization, listFabricWidths, listFabricSuppliers, createFabricWidth, createFabricSupplier, updateFabricSupplier, deleteFabricSupplier, deleteFabricWidth].forEach((m) => m.mockReset());
+  [getAuthContext, requireOrgAdmin, ensureOrganization, listFabricWidths, listFabricSuppliers, createFabricWidth, createFabricSupplier, updateFabricSupplier, updateFabricWidth, deleteFabricSupplier, deleteFabricWidth].forEach((m) => m.mockReset());
 });
 
 const jsonReq = (body: unknown) =>
@@ -100,6 +102,22 @@ test("PATCH suppliers/[id] applies isDefault + parsed price as an admin", async 
   const res = await PATCHSupplier(patchReq({ isDefault: true, pricePerYard: "4" }), idCtx("s1"));
   expect(res.status).toBe(200);
   expect(updateFabricSupplier).toHaveBeenCalledWith("org_1", "s1", { isDefault: true, pricePerYard: 4 });
+});
+
+test("PATCH widths/[id] sets the default width as an admin", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  updateFabricWidth.mockResolvedValue({ id: "w1", value: '54\"', is_default: true });
+  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx("w1"));
+  expect(res.status).toBe(200);
+  expect(updateFabricWidth).toHaveBeenCalledWith("org_1", "w1", { isDefault: true });
+});
+
+test("PATCH widths/[id] is rejected for a non-admin", async () => {
+  const { AuthError } = await import("@/lib/auth-context");
+  requireOrgAdmin.mockRejectedValue(new AuthError(403, "Admin access required"));
+  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx("w1"));
+  expect(res.status).toBe(403);
+  expect(updateFabricWidth).not.toHaveBeenCalled();
 });
 
 test("DELETE widths/[id] removes the width as an admin", async () => {
