@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import Link from "next/link";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { SavedFlash } from "@/components/SavedFlash";
 import { MakeAssignment } from "@/components/MakeAssignment";
 import { AddFromInventory } from "@/components/AddFromInventory";
 import { COSTUME_SOURCES, defaultSourceFor } from "@/lib/costume-sources";
@@ -41,6 +42,15 @@ export function RoleCostumePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingShared, setPendingShared] = useState<Record<string, string>>({});
+  // "Saved ✓" flash for the design-notes textarea, keyed by design id.
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
+  const noteSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (noteSavedTimer.current) clearTimeout(noteSavedTimer.current); }, []);
+  function flashNoteSaved(designId: string) {
+    setSavedNoteId(designId);
+    if (noteSavedTimer.current) clearTimeout(noteSavedTimer.current);
+    noteSavedTimer.current = setTimeout(() => setSavedNoteId(null), 1500);
+  }
   // Per-cast-member collapse on the Costume tab, persisted per role. Absent = expanded.
   const [collapsed, setCollapsed] = usePersistentState<Record<string, boolean>>(
     `nada:prod:${productionId}:role:${role.id}:costcollapsed`,
@@ -98,6 +108,7 @@ export function RoleCostumePanel({
       // Merge (not replace) so the derived inventory_location survives a PATCH
       // response, which only returns DB columns.
       setDesigns((prev) => prev.map((d) => (d.id === designId ? { ...d, ...design } : d)));
+      flashNoteSaved(designId);
     } else setError("Couldn't save notes");
     setBusy(false);
   }
@@ -257,6 +268,9 @@ export function RoleCostumePanel({
               placeholder="Notes (optional)"
               aria-label={`Notes for ${d.name}`}
             />
+            <div className="flex h-4 items-center justify-end">
+              <SavedFlash saved={savedNoteId === d.id} />
+            </div>
           </div>
         )}
       />

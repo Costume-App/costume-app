@@ -67,7 +67,7 @@ export function ProductionNotes({ productionId, notes }: { productionId: string;
         ) : error ? (
           <span className="text-xs text-[var(--red)]">{error}</span>
         ) : saved ? (
-          <span className="text-xs muted">Saved</span>
+          <span className="text-xs text-[var(--green)]">Saved ✓</span>
         ) : null}
       </div>
       <textarea

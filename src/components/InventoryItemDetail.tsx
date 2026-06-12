@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { SavedFlash, useSavedFlash } from "@/components/SavedFlash";
 import type { InventoryRow } from "@/lib/inventory-grouping";
 
 /** Shared <datalist> id; InventoryManager renders the matching <datalist>. */
@@ -30,14 +31,7 @@ export function InventoryItemDetail({
   }, [item.id]);
 
   // Brief "Saved ✓" flash after a field auto-saves on blur.
-  const [saved, setSaved] = useState(false);
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current); }, []);
-  function flashSaved() {
-    setSaved(true);
-    if (savedTimer.current) clearTimeout(savedTimer.current);
-    savedTimer.current = setTimeout(() => setSaved(false), 1500);
-  }
+  const { saved, flashSaved } = useSavedFlash();
 
   async function patch(body: Partial<InventoryRow>) {
     // Snapshot the prior values so we can roll the parent list back if the save fails.
@@ -59,12 +53,7 @@ export function InventoryItemDetail({
   return (
     <div className="surface !shadow-none space-y-2 p-3">
       <div className="flex h-4 items-center justify-end">
-        <span
-          aria-live="polite"
-          className={`text-xs text-[var(--red)] transition-opacity duration-300 ${saved ? "opacity-100" : "opacity-0"}`}
-        >
-          Saved ✓
-        </span>
+        <SavedFlash saved={saved} />
       </div>
       <div className="flex items-center gap-2">
         <input

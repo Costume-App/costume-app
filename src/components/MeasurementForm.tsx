@@ -116,7 +116,7 @@ export function MeasurementForm({
                     style={{
                       background:
                         saved[def.key] === "saved"
-                          ? "#3f7d4f"
+                          ? "var(--green)"
                           : saved[def.key] === "error"
                             ? "var(--red)"
                             : "var(--muted)",
@@ -157,7 +157,7 @@ export function MeasurementForm({
                     style={{
                       background:
                         saved[def.key] === "saved"
-                          ? "#3f7d4f"
+                          ? "var(--green)"
                           : saved[def.key] === "error"
                             ? "var(--red)"
                             : "var(--muted)",

@@ -8,6 +8,7 @@
   --muted: #8a7d6c;       /* warm grey */
   --red: #8c2b22;         /* curtain red */
   --red-fg: #f6ead2;      /* cream on red */
+  --green: #3f7d4f;       /* saved / success */
   --line: #2a211c;        /* card border */
   --field-line: #d8c7a9;  /* input border */
 }
