@@ -7,6 +7,17 @@ import { removeImages } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ itemId: string }> };
 
+export async function GET(_request: Request, { params }: Ctx) {
+  try {
+    const { orgId } = await getAuthContext();
+    const { itemId } = await params;
+    const item = await getInventoryItem(orgId, itemId);
+    return NextResponse.json({ item });
+  } catch (err) {
+    return errorResponse(err);
+  }
+}
+
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();

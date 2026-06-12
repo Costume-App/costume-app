@@ -12,7 +12,7 @@ vi.mock("@/lib/data/inventory-items", () => ({
 vi.mock("@/lib/data/inventory-item-images", () => ({ listInventoryItemImages: vi.fn(async () => []) }));
 vi.mock("@/lib/storage", () => ({ removeImages: vi.fn(async () => {}) }));
 
-import { PATCH, DELETE } from "@/app/api/inventory/[itemId]/route";
+import { GET, PATCH, DELETE } from "@/app/api/inventory/[itemId]/route";
 import { getInventoryItem, updateInventoryItem, deleteInventoryItem } from "@/lib/data/inventory-items";
 import { listInventoryItemImages } from "@/lib/data/inventory-item-images";
 import { removeImages } from "@/lib/storage";
@@ -59,4 +59,22 @@ test("DELETE removes storage objects then the item", async () => {
   expect(res.status).toBe(200);
   expect(removeImages).toHaveBeenCalledWith(["inventory/i1/a.jpg"]);
   expect(deleteInventoryItem).toHaveBeenCalledWith("org_1", "i1");
+});
+
+test("GET returns the item", async () => {
+  vi.mocked(getInventoryItem).mockResolvedValue({
+    id: "i1", org_id: "org_1", name: "Top hat", category: "Hats", size: "M",
+    quantity: 2, location: "Bin A", notes: null, created_at: "",
+  });
+  const res = await GET(new Request("http://x"), ctx("i1"));
+  expect(res.status).toBe(200);
+  expect((await res.json()).item.name).toBe("Top hat");
+  expect(getInventoryItem).toHaveBeenCalledWith("org_1", "i1");
+});
+
+test("GET 404 when the item is not in the org", async () => {
+  const { NotFoundError } = await import("@/lib/errors");
+  vi.mocked(getInventoryItem).mockRejectedValue(new NotFoundError("Inventory item not found"));
+  const res = await GET(new Request("http://x"), ctx("nope"));
+  expect(res.status).toBe(404);
 });
