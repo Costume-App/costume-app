@@ -2,8 +2,13 @@ import { getAuthContext } from "@/lib/auth-context";
 import { listInventoryItems } from "@/lib/data/inventory-items";
 import { InventoryManager } from "@/components/InventoryManager";
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ item?: string }>;
+}) {
   const { orgId } = await getAuthContext();
+  const { item: focusItemId } = await searchParams;
   const items = await listInventoryItems(orgId);
 
   return (
@@ -15,6 +20,7 @@ export default async function InventoryPage() {
         </p>
       </div>
       <InventoryManager
+        focusItemId={focusItemId}
         initialItems={items.map((i) => ({
           id: i.id,
           name: i.name,
