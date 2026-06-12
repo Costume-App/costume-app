@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 import { usePersistentState } from "@/lib/use-persistent-state";
-import Link from "next/link";
+import { InventoryItemPeek } from "@/components/InventoryItemPeek";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { SavedFlash } from "@/components/SavedFlash";
 import { MakeAssignment } from "@/components/MakeAssignment";
@@ -427,6 +427,7 @@ function PieceEditor({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [expanded, setExpanded] = usePersistentState<Record<string, boolean>>(storageKey, {});
+  const [peekItemId, setPeekItemId] = useState<string | null>(null);
 
   return (
     <div className="mb-1 space-y-2">
@@ -473,12 +474,13 @@ function PieceEditor({
                   <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
                 </button>
                 {d.inventory_item_id && (
-                  <Link
-                    href={`/inventory?item=${d.inventory_item_id}`}
+                  <button
+                    type="button"
+                    onClick={() => setPeekItemId(d.inventory_item_id)}
                     className="link-muted shrink-0 whitespace-nowrap text-xs"
                   >
                     From inventory ↗
-                  </Link>
+                  </button>
                 )}
                 <button
                   type="button"
@@ -545,6 +547,7 @@ function PieceEditor({
         </button>
       )}
       {onAddFromInventory && <AddFromInventory onPick={onAddFromInventory} busy={busy} />}
+      {peekItemId && <InventoryItemPeek itemId={peekItemId} onClose={() => setPeekItemId(null)} />}
     </div>
   );
 }
