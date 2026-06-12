@@ -20,12 +20,17 @@ export function InventoryItemDetail({
   onRemove: () => void;
 }) {
   const [usage, setUsage] = useState<{ productionName: string; roleName: string }[]>([]);
+  const [madeFor, setMadeFor] = useState<{ productionName: string; roleName: string }[]>([]);
 
   useEffect(() => {
     let active = true;
     fetch(`/api/inventory/${item.id}/usage`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { usage: [] }))
-      .then((d) => { if (active) setUsage(d.usage ?? []); })
+      .then((r) => (r.ok ? r.json() : { usage: [], madeFor: [] }))
+      .then((d) => {
+        if (!active) return;
+        setUsage(d.usage ?? []);
+        setMadeFor(d.madeFor ?? []);
+      })
       .catch(() => {});
     return () => { active = false; };
   }, [item.id]);
@@ -76,6 +81,11 @@ export function InventoryItemDetail({
       <textarea className="field w-full text-sm" rows={2} defaultValue={item.notes ?? ""} placeholder="Notes (optional)"
         onBlur={(e) => e.target.value !== (item.notes ?? "") && patch({ notes: e.target.value.trim() || null })} aria-label="Notes" />
       <PhotoStrip endpoint={`/api/inventory/${item.id}/images`} max={6} label="Photos" />
+      {madeFor.length > 0 && (
+        <p className="text-xs muted">
+          Made for: {madeFor.map((m) => `${m.productionName} → ${m.roleName}`).join(", ")}
+        </p>
+      )}
       {usage.length > 0 && (
         <p className="text-xs muted">
           Used in: {usage.map((u) => `${u.productionName} → ${u.roleName}`).join(", ")}

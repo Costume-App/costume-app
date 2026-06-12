@@ -1,7 +1,6 @@
 import { NotFoundError } from "@/lib/errors";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCastings } from "@/lib/data/castings";
-import { listPerformers } from "@/lib/data/performers";
 import { listCostumePieces, setPieceInventoryItem } from "@/lib/data/costume-pieces";
 import { createInventoryItem, getInventoryItem, type InventoryItem } from "@/lib/data/inventory-items";
 import { listCostumeDesignImages } from "@/lib/data/costume-design-images";
@@ -16,10 +15,9 @@ export async function addPieceToInventory(
   designId: string,
   castingId: string,
 ): Promise<{ item: InventoryItem; addedInventoryItemId: string }> {
-  const [designs, castings, performers, pieces] = await Promise.all([
+  const [designs, castings, pieces] = await Promise.all([
     listCostumeDesigns(productionId),
     listCastings(productionId),
-    listPerformers(productionId),
     listCostumePieces([designId]),
   ]);
 
@@ -27,7 +25,6 @@ export async function addPieceToInventory(
   if (!design) throw new NotFoundError("Costume design not found");
   const casting = castings.find((c) => c.id === castingId);
   if (!casting) throw new NotFoundError("Casting not found");
-  const performer = performers.find((p) => p.id === casting.performer_id);
 
   const piece = pieces.find((p) => p.casting_id === castingId);
   if (piece?.added_inventory_item_id) {
@@ -35,8 +32,9 @@ export async function addPieceToInventory(
     return { item, addedInventoryItemId: piece.added_inventory_item_id };
   }
 
-  const name = `${design.name} (${performer?.label ?? "Unknown"})`;
-  const item = await createInventoryItem(orgId, { name, notes: design.notes, quantity: 1 });
+  // The item is named for the garment only (no performer); provenance (which
+  // production + role it was made for) is shown in House Inventory via the link.
+  const item = await createInventoryItem(orgId, { name: design.name, notes: design.notes, quantity: 1 });
 
   // Link the piece before copying photos: if a photo copy then fails, the link is
   // already set, so a retry is caught by the idempotency check above (returns this

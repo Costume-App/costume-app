@@ -141,3 +141,37 @@ export async function listInventoryUsage(itemId: string): Promise<InventoryUsage
     roleName: d.roles?.name ?? "",
   }));
 }
+
+interface MadeForRow {
+  costume_designs: {
+    production_id: string;
+    role_id: string;
+    productions: { title: string } | null;
+    roles: { name: string } | null;
+  } | null;
+}
+
+// Where a piece→inventory item was *made for*: the production + role of each
+// costume piece linked to this item (via costume_pieces.added_inventory_item_id),
+// deduped. No performer — items are reusable across performers.
+export async function listInventoryMadeFor(itemId: string): Promise<{ productionName: string; roleName: string }[]> {
+  const { data, error } = await supabaseAdmin
+    .from("costume_pieces")
+    .select("costume_designs(production_id, role_id, productions(title), roles(name))")
+    .eq("added_inventory_item_id", itemId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  const seen = new Set<string>();
+  const out: { productionName: string; roleName: string }[] = [];
+  for (const row of (data ?? []) as unknown as MadeForRow[]) {
+    const d = row.costume_designs;
+    if (!d) continue;
+    const productionName = d.productions?.title ?? "";
+    const roleName = d.roles?.name ?? "";
+    const key = `${productionName}||${roleName}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ productionName, roleName });
+  }
+  return out;
+}

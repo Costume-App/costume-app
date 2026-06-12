@@ -28,6 +28,7 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
   listInventoryUsage,
+  listInventoryMadeFor,
 } from "@/lib/data/inventory-items";
 
 beforeEach(() => {
@@ -134,5 +135,24 @@ test("listInventoryUsage flattens production+role names per linked design", asyn
   expect(firstEq).toHaveBeenCalledWith("inventory_item_id", "i1");
   expect(usage).toEqual([
     { designId: "d1", designName: "Cloak", productionId: "p1", productionName: "Hamlet", roleId: "r1", roleName: "Ophelia" },
+  ]);
+});
+
+test("listInventoryMadeFor maps + dedupes production→role from linked pieces (no performer)", async () => {
+  listOrder.mockResolvedValue({
+    data: [
+      { costume_designs: { production_id: "p1", role_id: "r1", productions: { title: "Pippin" }, roles: { name: "Lead" } } },
+      { costume_designs: { production_id: "p1", role_id: "r1", productions: { title: "Pippin" }, roles: { name: "Lead" } } }, // dup (2nd performer)
+      { costume_designs: { production_id: "p2", role_id: "r2", productions: { title: "Annie" }, roles: { name: "Orphan" } } },
+      { costume_designs: null }, // skipped
+    ],
+    error: null,
+  });
+  const madeFor = await listInventoryMadeFor("i1");
+  expect(from).toHaveBeenCalledWith("costume_pieces");
+  expect(firstEq).toHaveBeenCalledWith("added_inventory_item_id", "i1");
+  expect(madeFor).toEqual([
+    { productionName: "Pippin", roleName: "Lead" },
+    { productionName: "Annie", roleName: "Orphan" },
   ]);
 });
