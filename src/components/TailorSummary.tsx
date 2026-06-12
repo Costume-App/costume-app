@@ -58,19 +58,24 @@ export function TailorSummary({
   async function estimateFabric() {
     setEstimating(true);
     setEstimateError(null);
-    const res = await fetch(`/api/productions/${productionId}/estimate-fabric`, {
-      method: "POST",
-      credentials: "include",
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { pieces: PieceRow[]; estimated: number };
-      setPieces(data.pieces);
-    } else {
-      setEstimateError(
-        ((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't estimate fabric",
-      );
+    try {
+      const res = await fetch(`/api/productions/${productionId}/estimate-fabric`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { pieces: PieceRow[]; estimated: number };
+        setPieces(data.pieces);
+      } else {
+        setEstimateError(
+          ((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't estimate fabric",
+        );
+      }
+    } catch {
+      setEstimateError("Couldn't estimate fabric");
+    } finally {
+      setEstimating(false);
     }
-    setEstimating(false);
   }
 
   const worklist = useMemo(
