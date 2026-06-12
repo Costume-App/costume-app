@@ -19,6 +19,7 @@ export interface CostumePiece {
   made: boolean;
   made_at: string | null;
   maker_id: string | null;
+  added_inventory_item_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -148,6 +149,34 @@ export async function upsertPieceSource(input: {
     .single();
   if (error) throw new Error(error.message);
   return data as CostumePiece;
+}
+
+// Link a piece to the inventory item created from it. Updates the existing row's
+// link (preserving its source); if there's no row yet (a lazy make default), inserts
+// a make row carrying the link.
+export async function setPieceInventoryItem(
+  designId: string,
+  castingId: string,
+  itemId: string,
+): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("costume_pieces")
+    .update({ added_inventory_item_id: itemId, updated_at: new Date().toISOString() })
+    .eq("costume_design_id", designId)
+    .eq("casting_id", castingId)
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data) return;
+  const { error: insErr } = await supabaseAdmin
+    .from("costume_pieces")
+    .insert({
+      costume_design_id: designId,
+      casting_id: castingId,
+      source: "make",
+      added_inventory_item_id: itemId,
+    });
+  if (insErr) throw new Error(insErr.message);
 }
 
 // Toggle a single piece's made flag, after asserting it belongs to the org
