@@ -186,6 +186,7 @@ export function RoleCostumePanel({
         fabricSupplier: existing?.fabric_supplier ?? null,
         fabricYardage: existing?.fabric_yardage ?? null,
         fabricUnitCost: existing?.fabric_unit_cost ?? null,
+        purchasePrice: existing?.purchase_price ?? null,
         made: existing?.made ?? false,
         makerId: existing?.maker_id ?? null,
       }),
@@ -206,7 +207,7 @@ export function RoleCostumePanel({
   async function setPieceField(
     designId: string,
     castingId: string,
-    patch: { makerId?: string | null; made?: boolean },
+    patch: { makerId?: string | null; made?: boolean; purchasePrice?: number | null },
   ) {
     setBusy(true);
     setError(null);
@@ -228,6 +229,8 @@ export function RoleCostumePanel({
         fabricSupplier: existing?.fabric_supplier ?? null,
         fabricYardage: existing?.fabric_yardage ?? null,
         fabricUnitCost: existing?.fabric_unit_cost ?? null,
+        purchasePrice:
+          patch.purchasePrice !== undefined ? patch.purchasePrice : existing?.purchase_price ?? null,
         made: patch.made !== undefined ? patch.made : existing?.made ?? false,
         makerId: patch.makerId !== undefined ? patch.makerId : existing?.maker_id ?? null,
       }),
@@ -409,22 +412,29 @@ export function RoleCostumePanel({
                         />
                       )}
                       {source === "purchase" && (
-                        <label className="inline-flex shrink-0 items-center gap-1 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={piece?.made ?? false}
-                            disabled={busy}
-                            onChange={(e) => {
-                              setPieceField(d.id, casting.id, { made: e.target.checked });
-                              if (e.target.checked && !piece?.added_inventory_item_id) {
-                                setJustCompleted((m) => ({ ...m, [key]: true }));
-                              }
-                            }}
-                            className="h-4 w-4 accent-[var(--red)]"
-                            aria-label="Purchased"
+                        <>
+                          <label className="inline-flex shrink-0 items-center gap-1 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={piece?.made ?? false}
+                              disabled={busy}
+                              onChange={(e) => {
+                                setPieceField(d.id, casting.id, { made: e.target.checked });
+                                if (e.target.checked && !piece?.added_inventory_item_id) {
+                                  setJustCompleted((m) => ({ ...m, [key]: true }));
+                                }
+                              }}
+                              className="h-4 w-4 accent-[var(--red)]"
+                              aria-label="Purchased"
+                            />
+                            <span className="muted text-xs">Purchased</span>
+                          </label>
+                          <PurchasePriceInput
+                            initial={piece?.purchase_price ?? null}
+                            busy={busy}
+                            onSave={(price) => setPieceField(d.id, casting.id, { purchasePrice: price })}
                           />
-                          <span className="muted text-xs">Purchased</span>
-                        </label>
+                        </>
                       )}
                     </div>
                     {justCompleted[key] && (source === "make" || source === "purchase") && (
@@ -598,6 +608,39 @@ function PieceEditor({
       {onAddFromInventory && <AddFromInventory onPick={onAddFromInventory} busy={busy} />}
       {peekItemId && <InventoryItemPeek itemId={peekItemId} onClose={() => setPeekItemId(null)} />}
     </div>
+  );
+}
+
+function PurchasePriceInput({
+  initial,
+  busy,
+  onSave,
+}: {
+  initial: number | null;
+  busy: boolean;
+  onSave: (price: number | null) => void;
+}) {
+  const [value, setValue] = useState(initial != null ? String(initial) : "");
+  return (
+    <label className="inline-flex shrink-0 items-center gap-1 text-sm">
+      <span className="muted text-xs">$</span>
+      <input
+        className="field !p-1.5 w-20 text-right text-sm"
+        value={value}
+        disabled={busy}
+        inputMode="decimal"
+        placeholder="Price"
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => {
+          const trimmed = value.trim();
+          const next = trimmed === "" ? null : Number(trimmed);
+          if (next != null && (!Number.isFinite(next) || next < 0)) return;
+          if ((initial ?? null) === next) return;
+          onSave(next);
+        }}
+        aria-label="Purchase price"
+      />
+    </label>
   );
 }
 

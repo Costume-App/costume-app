@@ -81,6 +81,7 @@ export async function POST(_request: Request, { params }: Ctx) {
         fabricSupplier: existing?.fabric_supplier ?? null,
         fabricYardage: yardage,
         fabricUnitCost: existing?.fabric_unit_cost ?? null,
+        purchasePrice: existing?.purchase_price ?? null,
         made: existing?.made ?? false,
         makerId: existing?.maker_id ?? null,
       });

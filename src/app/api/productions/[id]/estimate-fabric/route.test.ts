@@ -104,6 +104,7 @@ test("estimates only make-items missing a yardage and persists each via upsertPi
     fabricSupplier: null,
     fabricYardage: 3.5,
     fabricUnitCost: null,
+    purchasePrice: null,
     made: false,
     makerId: null,
   });
@@ -152,6 +153,7 @@ test("preserves an existing piece's other fabric fields when filling its yardage
     fabricSupplier: "Mood",
     fabricYardage: 4,
     fabricUnitCost: 12,
+    purchasePrice: null,
     made: true,
     makerId: "m1",
   });
