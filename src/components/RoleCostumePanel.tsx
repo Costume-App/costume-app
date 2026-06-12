@@ -445,6 +445,7 @@ function PieceEditor({
   return (
     <div className="mb-1 space-y-2">
       <span className="lbl block">Pieces</span>
+      <p className="text-xs muted">More descriptive piece names estimate fabric better</p>
       {designs.map((d) => {
         const open = !!expanded[d.id];
         return (
