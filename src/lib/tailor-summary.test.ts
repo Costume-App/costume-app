@@ -3,6 +3,7 @@ import {
   buildMakeWorklist,
   buildFabricPurchaseList,
   buildMeasurementsByCasting,
+  buildPurchaseWorklist,
   type PieceRow,
 } from "@/lib/tailor-summary";
 
@@ -63,6 +64,7 @@ function row(overrides: Partial<PieceRow> & Pick<PieceRow, "costume_design_id" |
     fabric_supplier: null,
     fabric_yardage: null,
     fabric_unit_cost: null,
+    purchase_price: null,
     made: false,
     maker_id: null,
     added_inventory_item_id: null,
@@ -137,7 +139,7 @@ test("buildMakeWorklist surfaces added_inventory_item_id as item.addedInventoryI
   const pieces = [{
     costume_design_id: "d1", casting_id: "c1", source: "make" as const,
     fabric_type: null, fabric_color: null, fabric_width: null, fabric_supplier: null,
-    fabric_yardage: null, fabric_unit_cost: null, made: false, maker_id: null,
+    fabric_yardage: null, fabric_unit_cost: null, purchase_price: null, made: false, maker_id: null,
     added_inventory_item_id: "item1",
   }];
   const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
@@ -271,4 +273,35 @@ test("buildMakeWorklist: makerId filter excludes lazy/no-maker items", () => {
 test("buildMakeWorklist: no makerId keeps the whole-production behavior", () => {
   const wl = buildMakeWorklist(roles, designs, castings, performers, casts, []);
   expect(wl.totalItems).toBe(5); // unchanged lazy-default count
+});
+
+test("buildPurchaseWorklist: includes only purchase pieces, sums prices", () => {
+  const pieces = [
+    row({ costume_design_id: "d1", casting_id: "c1", source: "purchase", purchase_price: 45 }),
+    row({ costume_design_id: "d2", casting_id: "c2", source: "purchase", purchase_price: 20, made: true }),
+    row({ costume_design_id: "d1", casting_id: "c2", source: "make", purchase_price: 999 }), // not purchase
+    row({ costume_design_id: "d3", casting_id: "c3", source: "on_hand" }),
+  ];
+  const pl = buildPurchaseWorklist(roles, designs, castings, performers, casts, pieces);
+  expect(pl.totalCost).toBe(65);
+  expect(pl.items.map((i) => i.designName)).toEqual(["Cloak", "Hat"]);
+  const cloak = pl.items.find((i) => i.designName === "Cloak")!;
+  expect(cloak).toMatchObject({
+    performerName: "Ada",
+    castName: "Cast A",
+    roleName: "Wizard",
+    price: 45,
+    purchased: false,
+  });
+  expect(pl.items.find((i) => i.designName === "Hat")!.purchased).toBe(true);
+});
+
+test("buildPurchaseWorklist: a null price contributes 0", () => {
+  const pieces = [
+    row({ costume_design_id: "d1", casting_id: "c1", source: "purchase", purchase_price: null }),
+    row({ costume_design_id: "d2", casting_id: "c2", source: "purchase", purchase_price: 30 }),
+  ];
+  const pl = buildPurchaseWorklist(roles, designs, castings, performers, casts, pieces);
+  expect(pl.totalCost).toBe(30);
+  expect(pl.items.find((i) => i.designName === "Cloak")!.price).toBeNull();
 });

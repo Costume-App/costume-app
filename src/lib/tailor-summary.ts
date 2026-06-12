@@ -11,6 +11,7 @@ export interface PieceRow {
   fabric_supplier: string | null;
   fabric_yardage: number | null;
   fabric_unit_cost: number | null;
+  purchase_price: number | null;
   made: boolean;
   maker_id: string | null;
   added_inventory_item_id: string | null;
@@ -80,6 +81,22 @@ export interface PurchaseList {
   groups: FabricGroup[];
   unspecified: MakeItem[];
   totalYardage: number;
+  totalCost: number;
+}
+
+export interface PurchasedItem {
+  designId: string;
+  castingId: string;
+  designName: string;
+  performerName: string;
+  castName: string;
+  roleName: string;
+  price: number | null;
+  purchased: boolean;
+}
+
+export interface PurchasedSummary {
+  items: PurchasedItem[];
   totalCost: number;
 }
 
@@ -209,6 +226,54 @@ export function buildMakeWorklist(
   }
 
   return { roles: roleOut, totalItems, madeItems };
+}
+
+// Gather every purchase-source piece into a flat priced list. Purchase is always
+// an explicit source (never a lazy default), so absence of a row contributes
+// nothing here. Ordered by role, then design display order, then casting order.
+export function buildPurchaseWorklist(
+  roles: RoleLike[],
+  designs: DesignLike[],
+  castings: CastingLike[],
+  performers: PerformerLike[],
+  casts: CastLike[],
+  pieces: PieceRow[],
+): PurchasedSummary {
+  const pieceMap = new Map<string, PieceRow>();
+  for (const p of pieces) pieceMap.set(pieceKey(p.casting_id, p.costume_design_id), p);
+  const performerName = new Map(performers.map((p) => [p.id, p.name]));
+  const castName = new Map(casts.map((c) => [c.id, c.name]));
+
+  const items: PurchasedItem[] = [];
+  let totalCost = 0;
+
+  for (const role of roles) {
+    const roleDesigns = designs
+      .filter((d) => d.role_id === role.id)
+      .sort((a, b) => a.display_order - b.display_order);
+    const roleCastings = castings.filter((c) => c.role_id === role.id);
+
+    for (const design of roleDesigns) {
+      for (const casting of roleCastings) {
+        const row = pieceMap.get(pieceKey(casting.id, design.id));
+        if (row?.source !== "purchase") continue;
+        const price = row.purchase_price;
+        items.push({
+          designId: design.id,
+          castingId: casting.id,
+          designName: design.name,
+          performerName: performerName.get(casting.performer_id) ?? "—",
+          castName: castName.get(casting.cast_id) ?? "—",
+          roleName: role.name,
+          price,
+          purchased: row.made,
+        });
+        totalCost += price ?? 0;
+      }
+    }
+  }
+
+  return { items, totalCost };
 }
 
 function norm(s: string | null): string {
