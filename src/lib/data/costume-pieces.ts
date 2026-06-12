@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ValidationError } from "@/lib/errors";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 import type { CostumeSource } from "@/lib/costume-sources";
 import { pieceRowIsEmpty } from "@/lib/costume-merge";
 
@@ -148,4 +148,29 @@ export async function upsertPieceSource(input: {
     .single();
   if (error) throw new Error(error.message);
   return data as CostumePiece;
+}
+
+// Toggle a single piece's made flag, after asserting it belongs to the org
+// (piece → costume_design → production.org_id). Used by the My Work page.
+export async function setPieceMade(orgId: string, pieceId: string, made: boolean): Promise<void> {
+  const { data: piece, error: pErr } = await supabaseAdmin
+    .from("costume_pieces").select("id, costume_design_id").eq("id", pieceId).maybeSingle();
+  if (pErr) throw new Error(pErr.message);
+  if (!piece) throw new NotFoundError("Costume piece not found");
+
+  const { data: design, error: dErr } = await supabaseAdmin
+    .from("costume_designs").select("production_id").eq("id", (piece as { costume_design_id: string }).costume_design_id).maybeSingle();
+  if (dErr) throw new Error(dErr.message);
+  if (!design) throw new NotFoundError("Costume piece not found");
+
+  const { data: prod, error: prErr } = await supabaseAdmin
+    .from("productions").select("id").eq("id", (design as { production_id: string }).production_id).eq("org_id", orgId).maybeSingle();
+  if (prErr) throw new Error(prErr.message);
+  if (!prod) throw new NotFoundError("Costume piece not found");
+
+  const { error: uErr } = await supabaseAdmin
+    .from("costume_pieces")
+    .update({ made, made_at: made ? new Date().toISOString() : null })
+    .eq("id", pieceId);
+  if (uErr) throw new Error(uErr.message);
 }
