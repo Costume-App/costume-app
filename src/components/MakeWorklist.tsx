@@ -106,6 +106,7 @@ function RoleSection({
                     key={`${g.designId}:${item.castingId}`}
                     productionId={productionId}
                     item={item}
+                    garmentName={g.designName}
                     measurements={measurementsByCasting[item.castingId] ?? []}
                     makers={makers}
                     fabricWidths={fabricWidths}

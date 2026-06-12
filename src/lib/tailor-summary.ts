@@ -13,6 +13,7 @@ export interface PieceRow {
   fabric_unit_cost: number | null;
   made: boolean;
   maker_id: string | null;
+  added_inventory_item_id: string | null;
 }
 
 export interface Fabric {
@@ -33,6 +34,7 @@ export interface MakeItem {
   assignment: "primary" | "understudy";
   made: boolean;
   makerId: string | null;
+  addedInventoryItemId: string | null;
   fabric: Fabric;
 }
 
@@ -192,6 +194,7 @@ export function buildMakeWorklist(
           assignment: casting.assignment,
           made,
           makerId: row?.maker_id ?? null,
+          addedInventoryItemId: row?.added_inventory_item_id ?? null,
           fabric: fabricFromRow(row),
         });
         totalItems += 1;

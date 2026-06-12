@@ -65,6 +65,7 @@ function row(overrides: Partial<PieceRow> & Pick<PieceRow, "costume_design_id" |
     fabric_unit_cost: null,
     made: false,
     maker_id: null,
+    added_inventory_item_id: null,
     ...overrides,
   };
 }
@@ -126,6 +127,23 @@ test("buildMakeWorklist: casting with no PieceRow gets makerId null", () => {
   expect(item.makerId).toBeNull();
 });
 
+test("buildMakeWorklist surfaces added_inventory_item_id as item.addedInventoryItemId", async () => {
+  const { buildMakeWorklist } = await import("@/lib/tailor-summary");
+  const roles = [{ id: "r1", name: "Lead", notes: null }];
+  const designs = [{ id: "d1", role_id: "r1", name: "Cloak", display_order: 0, inventory_item_id: null }];
+  const castings = [{ id: "c1", cast_id: "cast1", role_id: "r1", performer_id: "pf1", assignment: "primary" as const }];
+  const performers = [{ id: "pf1", name: "Ana" }];
+  const casts = [{ id: "cast1", name: "Cast A" }];
+  const pieces = [{
+    costume_design_id: "d1", casting_id: "c1", source: "make" as const,
+    fabric_type: null, fabric_color: null, fabric_width: null, fabric_supplier: null,
+    fabric_yardage: null, fabric_unit_cost: null, made: false, maker_id: null,
+    added_inventory_item_id: "item1",
+  }];
+  const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
+  expect(wl.roles[0].garments[0].items[0].addedInventoryItemId).toBe("item1");
+});
+
 test("buildFabricPurchaseList: identical fabric merges into one line, grouped by type+color", () => {
   const pieces = [
     row({ costume_design_id: "d1", casting_id: "c1", fabric_type: "wool", fabric_color: "navy", fabric_width: '60"', fabric_supplier: "Mood", fabric_yardage: 2, fabric_unit_cost: 10 }),
@@ -176,7 +194,7 @@ test("buildFabricPurchaseList falls back to the supplier's price when a piece ha
   const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
-    assignment: "primary" as const, made: false, makerId: null,
+    assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
     fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: null },
   };
   const list = buildFabricPurchaseList([item], { Mood: 4 });
@@ -187,7 +205,7 @@ test("buildFabricPurchaseList treats unknown/absent supplier price as 0", async 
   const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
-    assignment: "primary" as const, made: false, makerId: null,
+    assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
     fabric: { type: "Wool", color: "Black", width: null, supplier: "Unknown", yardage: 2, unitCost: null },
   };
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(0);
@@ -198,7 +216,7 @@ test("buildFabricPurchaseList still prefers a typed unit cost over the supplier 
   const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
-    assignment: "primary" as const, made: false, makerId: null,
+    assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
     fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
   };
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(20); // typed $10 wins
@@ -208,7 +226,7 @@ test("buildFabricPurchaseList: a typed unitCost of 0 wins over the supplier pric
   const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
-    assignment: "primary" as const, made: false, makerId: null,
+    assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
     fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 0 },
   };
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(0); // ?? keeps a real 0, never falls to $4

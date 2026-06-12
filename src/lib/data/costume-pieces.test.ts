@@ -6,28 +6,49 @@ const lookupMaybe = vi.fn();     // .select("id, source").eq().eq().maybeSingle(
 const insertIdSingle = vi.fn();  // .insert(make target).select("id").single()
 const upsertSingle = vi.fn();    // .upsert().select().single()
 const delResolve = vi.fn();      // .delete().eq().eq()
+const updateMaybe = vi.fn();     // .update().eq().eq().select("id").maybeSingle()
+const insertResolve = vi.fn();   // .insert(make link) awaited directly (no .select())
 
-const upsert = vi.fn(() => ({ select: () => ({ single: upsertSingle }) }));
-const del = vi.fn(() => ({ eq: () => ({ eq: delResolve }) }));
-const insert = vi.fn(() => ({ select: () => ({ single: insertIdSingle }) }));
-const select = vi.fn((cols: string) =>
-  cols === "*"
-    ? { in: listIn }
-    : { eq: () => ({ eq: () => ({ maybeSingle: lookupMaybe }) }) },
-);
+// All builder spies are fully wired in beforeEach (mockReset wipes any inline body),
+// so declare them bare here and keep a single source of truth for each behavior below.
+const upsert = vi.fn();
+const del = vi.fn();
+const insert = vi.fn();
+const updateEq = vi.fn();        // tracks the .eq(col, val) calls on the update path
+const update = vi.fn();
+const select = vi.fn();
 
 vi.mock("@/lib/supabase-admin", () => ({
-  supabaseAdmin: { from: () => ({ select, insert, upsert, delete: del }) },
+  supabaseAdmin: { from: () => ({ select, insert, upsert, update, delete: del }) },
 }));
 
-import { listCostumePieces, upsertPieceSource } from "@/lib/data/costume-pieces";
+import { listCostumePieces, upsertPieceSource, setPieceInventoryItem } from "@/lib/data/costume-pieces";
+
+// insert is used two ways: `.insert(...).select("id").single()` (share target) and
+// `await .insert(...)` directly (setPieceInventoryItem). Make the return both chainable
+// (.select().single()) and awaitable (a thenable backed by insertResolve).
+const makeInsertReturn = () => ({
+  select: () => ({ single: insertIdSingle }),
+  then: (...args: unknown[]) =>
+    (insertResolve() as Promise<unknown>).then(...(args as [never])),
+});
 
 beforeEach(() => {
-  [listIn, lookupMaybe, insertIdSingle, upsertSingle, delResolve, upsert, del, insert, select]
+  [listIn, lookupMaybe, insertIdSingle, upsertSingle, delResolve, updateMaybe, insertResolve, updateEq, upsert, del, insert, update, select]
     .forEach((m) => m.mockReset());
   upsert.mockReturnValue({ select: () => ({ single: upsertSingle }) });
   del.mockReturnValue({ eq: () => ({ eq: delResolve }) });
-  insert.mockReturnValue({ select: () => ({ single: insertIdSingle }) });
+  insert.mockImplementation(makeInsertReturn);
+  update.mockImplementation(() => {
+    const chain = {
+      eq: (...a: unknown[]) => {
+        updateEq(...a);
+        return { ...chain, select: () => ({ maybeSingle: updateMaybe }) };
+      },
+    };
+    return chain;
+  });
+  insertResolve.mockResolvedValue({ error: null });
   select.mockImplementation((cols: string) =>
     cols === "*" ? { in: listIn } : { eq: () => ({ eq: () => ({ maybeSingle: lookupMaybe }) }) },
   );
@@ -108,4 +129,28 @@ test("make row with makerId assigned is NOT deleted", async () => {
   const result = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", makerId: "m1" });
   expect(del).not.toHaveBeenCalled();
   expect(result).toEqual({ id: "p1", source: "make", maker_id: "m1" });
+});
+
+test("setPieceInventoryItem updates an existing row's link without inserting", async () => {
+  updateMaybe.mockResolvedValue({ data: { id: "pp1" }, error: null });
+  await setPieceInventoryItem("d1", "c1", "item1");
+  expect(update).toHaveBeenCalledWith(
+    expect.objectContaining({ added_inventory_item_id: "item1" }),
+  );
+  expect(updateEq).toHaveBeenCalledWith("costume_design_id", "d1");
+  expect(updateEq).toHaveBeenCalledWith("casting_id", "c1");
+  expect(insert).not.toHaveBeenCalled();
+});
+
+test("setPieceInventoryItem inserts a make row when none exists", async () => {
+  updateMaybe.mockResolvedValue({ data: null, error: null });
+  await setPieceInventoryItem("d1", "c1", "item1");
+  expect(insert).toHaveBeenCalledWith(
+    expect.objectContaining({
+      costume_design_id: "d1",
+      casting_id: "c1",
+      source: "make",
+      added_inventory_item_id: "item1",
+    }),
+  );
 });

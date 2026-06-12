@@ -8,6 +8,7 @@ import { PhotoStrip } from "@/components/PhotoStrip";
 import { SavedFlash } from "@/components/SavedFlash";
 import { MakeAssignment } from "@/components/MakeAssignment";
 import { AddFromInventory } from "@/components/AddFromInventory";
+import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { COSTUME_SOURCES, defaultSourceFor } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
@@ -42,6 +43,20 @@ export function RoleCostumePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingShared, setPendingShared] = useState<Record<string, string>>({});
+  // Pieces toggled made/purchased this session, keyed by pieceKey — drives the
+  // inline "Add to House Inventory?" completion prompt.
+  const [justCompleted, setJustCompleted] = useState<Record<string, boolean>>({});
+
+  function markAddedToInventory(designId: string, castingId: string, itemId: string) {
+    setPieces((prev) =>
+      prev.map((p) =>
+        p.costume_design_id === designId && p.casting_id === castingId
+          ? { ...p, added_inventory_item_id: itemId }
+          : p,
+      ),
+    );
+    setJustCompleted((m) => ({ ...m, [pieceKey(castingId, designId)]: false }));
+  }
   // "Saved ✓" flash for the design-notes textarea, keyed by design id.
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
   const noteSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -385,7 +400,12 @@ export function RoleCostumePanel({
                           madeLabel=""
                           busy={busy}
                           onChangeMaker={(mk) => setPieceField(d.id, casting.id, { makerId: mk })}
-                          onToggleMade={(md) => setPieceField(d.id, casting.id, { made: md })}
+                          onToggleMade={(md) => {
+                            setPieceField(d.id, casting.id, { made: md });
+                            if (md && !piece?.added_inventory_item_id) {
+                              setJustCompleted((m) => ({ ...m, [key]: true }));
+                            }
+                          }}
                         />
                       )}
                       {source === "purchase" && (
@@ -394,14 +414,42 @@ export function RoleCostumePanel({
                             type="checkbox"
                             checked={piece?.made ?? false}
                             disabled={busy}
-                            onChange={(e) => setPieceField(d.id, casting.id, { made: e.target.checked })}
+                            onChange={(e) => {
+                              setPieceField(d.id, casting.id, { made: e.target.checked });
+                              if (e.target.checked && !piece?.added_inventory_item_id) {
+                                setJustCompleted((m) => ({ ...m, [key]: true }));
+                              }
+                            }}
                             className="h-4 w-4 accent-[var(--red)]"
                             aria-label="Purchased"
                           />
                           <span className="muted text-xs">Purchased</span>
                         </label>
                       )}
+                      {(source === "make" || source === "purchase") && (
+                        <AddToInventoryControl
+                          productionId={productionId}
+                          designId={d.id}
+                          castingId={casting.id}
+                          pieceLabel={`${d.name} (${nameOf(casting.performerId)})`}
+                          addedItemId={piece?.added_inventory_item_id ?? null}
+                          mode="button"
+                          onAdded={(itemId) => markAddedToInventory(d.id, casting.id, itemId)}
+                        />
+                      )}
                     </div>
+                    {justCompleted[key] && (source === "make" || source === "purchase") && (
+                      <AddToInventoryControl
+                        productionId={productionId}
+                        designId={d.id}
+                        castingId={casting.id}
+                        pieceLabel={`${d.name} (${nameOf(casting.performerId)})`}
+                        addedItemId={piece?.added_inventory_item_id ?? null}
+                        mode="prompt"
+                        onAdded={(itemId) => markAddedToInventory(d.id, casting.id, itemId)}
+                        onDismiss={() => setJustCompleted((m) => ({ ...m, [key]: false }))}
+                      />
+                    )}
                   </div>
                 );
               })
