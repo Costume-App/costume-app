@@ -165,6 +165,7 @@ test("returns estimated:0 without calling the AI when nothing is missing", async
   expect(await res.json()).toEqual({ pieces: initial, estimated: 0 });
   expect(estimateFabricYardage).not.toHaveBeenCalled();
   expect(upsertPieceSource).not.toHaveBeenCalled();
+  expect(listCostumePieces).not.toHaveBeenCalled();
 });
 
 test("does not persist keys the model omits", async () => {
