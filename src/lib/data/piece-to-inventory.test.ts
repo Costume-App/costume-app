@@ -12,9 +12,11 @@ vi.mock("@/lib/data/costume-pieces", () => ({
 }));
 const createInventoryItem = vi.fn();
 const getInventoryItem = vi.fn();
+const updateInventoryItem = vi.fn();
 vi.mock("@/lib/data/inventory-items", () => ({
   createInventoryItem: (...a: unknown[]) => createInventoryItem(...a),
   getInventoryItem: (...a: unknown[]) => getInventoryItem(...a),
+  updateInventoryItem: (...a: unknown[]) => updateInventoryItem(...a),
 }));
 const listCostumeDesignImages = vi.fn();
 vi.mock("@/lib/data/costume-design-images", () => ({ listCostumeDesignImages: (...a: unknown[]) => listCostumeDesignImages(...a) }));
@@ -26,7 +28,7 @@ vi.mock("@/lib/storage", () => ({ copyImage: (...a: unknown[]) => copyImage(...a
 import { addPieceToInventory } from "@/lib/data/piece-to-inventory";
 
 beforeEach(() => {
-  [listCostumeDesigns, listCastings, listCostumePieces, setPieceInventoryItem, createInventoryItem, getInventoryItem, listCostumeDesignImages, addInventoryItemImage, copyImage].forEach((m) => m.mockReset());
+  [listCostumeDesigns, listCastings, listCostumePieces, setPieceInventoryItem, createInventoryItem, getInventoryItem, updateInventoryItem, listCostumeDesignImages, addInventoryItemImage, copyImage].forEach((m) => m.mockReset());
   listCostumeDesigns.mockResolvedValue([{ id: "d1", name: "Cloak", notes: "Line it" }]);
   listCastings.mockResolvedValue([{ id: "c1", performer_id: "pf1" }]);
 });
@@ -55,9 +57,28 @@ test("is idempotent — an already-linked piece returns the existing item, creat
 
   expect(getInventoryItem).toHaveBeenCalledWith("org_1", "old1");
   expect(createInventoryItem).not.toHaveBeenCalled();
+  expect(updateInventoryItem).not.toHaveBeenCalled();
   expect(copyImage).not.toHaveBeenCalled();
   expect(setPieceInventoryItem).not.toHaveBeenCalled();
   expect(res).toEqual({ item: { id: "old1", name: "Cloak (Ana)" }, addedInventoryItemId: "old1" });
+});
+
+test("adding the same design for another performer bumps the existing item's quantity (no new item)", async () => {
+  // A different performer's piece of the same design (d1) is already linked to item1.
+  listCostumePieces.mockResolvedValue([
+    { casting_id: "cOther", costume_design_id: "d1", added_inventory_item_id: "item1" },
+  ]);
+  getInventoryItem.mockResolvedValue({ id: "item1", name: "Cloak", quantity: 1 });
+  updateInventoryItem.mockResolvedValue({ id: "item1", name: "Cloak", quantity: 2 });
+
+  const res = await addPieceToInventory("org_1", "p1", "d1", "c1");
+
+  expect(createInventoryItem).not.toHaveBeenCalled();
+  expect(copyImage).not.toHaveBeenCalled(); // photos already on the existing item
+  expect(getInventoryItem).toHaveBeenCalledWith("org_1", "item1");
+  expect(updateInventoryItem).toHaveBeenCalledWith("org_1", "item1", { quantity: 2 });
+  expect(setPieceInventoryItem).toHaveBeenCalledWith("d1", "c1", "item1"); // link this performer's piece too
+  expect(res).toEqual({ item: { id: "item1", name: "Cloak", quantity: 2 }, addedInventoryItemId: "item1" });
 });
 
 test("a photoless design yields an item with no image copies", async () => {

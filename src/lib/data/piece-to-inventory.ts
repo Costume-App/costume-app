@@ -2,7 +2,7 @@ import { NotFoundError } from "@/lib/errors";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCastings } from "@/lib/data/castings";
 import { listCostumePieces, setPieceInventoryItem } from "@/lib/data/costume-pieces";
-import { createInventoryItem, getInventoryItem, type InventoryItem } from "@/lib/data/inventory-items";
+import { createInventoryItem, getInventoryItem, updateInventoryItem, type InventoryItem } from "@/lib/data/inventory-items";
 import { listCostumeDesignImages } from "@/lib/data/costume-design-images";
 import { addInventoryItemImage } from "@/lib/data/inventory-item-images";
 import { copyImage } from "@/lib/storage";
@@ -26,14 +26,25 @@ export async function addPieceToInventory(
   const casting = castings.find((c) => c.id === castingId);
   if (!casting) throw new NotFoundError("Casting not found");
 
+  // 1. This exact piece (same performer) is already in inventory → no-op, no double count.
   const piece = pieces.find((p) => p.casting_id === castingId);
   if (piece?.added_inventory_item_id) {
     const item = await getInventoryItem(orgId, piece.added_inventory_item_id);
     return { item, addedInventoryItemId: piece.added_inventory_item_id };
   }
 
-  // The item is named for the garment only (no performer); provenance (which
-  // production + role it was made for) is shown in House Inventory via the link.
+  // 2. Another performer's piece of the SAME design is already in inventory → bump
+  // that item's quantity and link this piece to it, so one garment type = one item.
+  const linkedSibling = pieces.find((p) => p.added_inventory_item_id);
+  if (linkedSibling?.added_inventory_item_id) {
+    const existing = await getInventoryItem(orgId, linkedSibling.added_inventory_item_id);
+    const item = await updateInventoryItem(orgId, existing.id, { quantity: existing.quantity + 1 });
+    await setPieceInventoryItem(designId, castingId, existing.id);
+    return { item, addedInventoryItemId: existing.id };
+  }
+
+  // 3. First piece of this design → create a new item (qty 1) named for the garment
+  // only (no performer); provenance (production + role) is shown via the link.
   const item = await createInventoryItem(orgId, { name: design.name, notes: design.notes, quantity: 1 });
 
   // Link the piece before copying photos: if a photo copy then fails, the link is
