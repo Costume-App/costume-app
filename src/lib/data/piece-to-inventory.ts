@@ -24,7 +24,7 @@ export async function addPieceToInventory(
   ]);
 
   const design = designs.find((d) => d.id === designId);
-  if (!design) throw new NotFoundError("Costume piece not found");
+  if (!design) throw new NotFoundError("Costume design not found");
   const casting = castings.find((c) => c.id === castingId);
   if (!casting) throw new NotFoundError("Casting not found");
   const performer = performers.find((p) => p.id === casting.performer_id);
@@ -38,6 +38,11 @@ export async function addPieceToInventory(
   const name = `${design.name} (${performer?.label ?? "Unknown"})`;
   const item = await createInventoryItem(orgId, { name, notes: design.notes, quantity: 1 });
 
+  // Link the piece before copying photos: if a photo copy then fails, the link is
+  // already set, so a retry is caught by the idempotency check above (returns this
+  // item) rather than creating a duplicate. Worst case is a missing photo, not a dupe.
+  await setPieceInventoryItem(designId, castingId, item.id);
+
   const images = await listCostumeDesignImages(designId);
   for (const img of images) {
     const toPath = `inventory/${item.id}/${crypto.randomUUID()}.jpg`;
@@ -45,6 +50,5 @@ export async function addPieceToInventory(
     await addInventoryItemImage(item.id, toPath);
   }
 
-  await setPieceInventoryItem(designId, castingId, item.id);
   return { item, addedInventoryItemId: item.id };
 }

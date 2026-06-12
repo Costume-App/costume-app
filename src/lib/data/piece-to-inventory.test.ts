@@ -80,3 +80,9 @@ test("throws NotFound when the design isn't in the production", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   await expect(addPieceToInventory("org_1", "p1", "dX", "c1")).rejects.toBeInstanceOf(NotFoundError);
 });
+
+test("throws NotFound when the casting isn't in the production", async () => {
+  listCastings.mockResolvedValue([]);
+  const { NotFoundError } = await import("@/lib/errors");
+  await expect(addPieceToInventory("org_1", "p1", "d1", "cX")).rejects.toBeInstanceOf(NotFoundError);
+});
