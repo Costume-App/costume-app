@@ -16,15 +16,19 @@ function PriceRow({
   item: PurchasedItem;
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
-  const [value, setValue] = useState(item.price != null ? String(item.price) : "");
+  const [value, setValue] = useState(item.price != null ? item.price.toFixed(2) : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
     const trimmed = value.trim();
-    const next = trimmed === "" ? null : Number(trimmed);
-    if (next != null && (!Number.isFinite(next) || next < 0)) return; // ignore bad input
-    if ((item.price ?? null) === next) return; // unchanged
+    const parsed = trimmed === "" ? null : Number(trimmed);
+    if (parsed != null && (!Number.isFinite(parsed) || parsed < 0)) return; // ignore bad input
+    const next = parsed != null ? Math.round(parsed * 100) / 100 : null; // round to cents
+    if ((item.price ?? null) === next) {
+      setValue(next != null ? next.toFixed(2) : ""); // normalize display, no save
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -46,7 +50,7 @@ function PriceRow({
         return;
       }
       const { piece } = (await res.json()) as { piece: PieceRow | null };
-      setValue(next != null ? String(next) : "");
+      setValue(next != null ? next.toFixed(2) : "");
       onSaved(item.designId, item.castingId, piece);
     } catch {
       setError("Couldn't save");
