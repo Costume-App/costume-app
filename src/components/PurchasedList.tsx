@@ -63,7 +63,7 @@ function PriceRow({
     <tr className="border-t border-[var(--field-line)]">
       <td className="py-1.5">{item.designName}</td>
       <td className="py-1.5">
-        {item.performerName} · {item.castName}
+        {item.performerName} · {item.roleName}
       </td>
       <td className="py-1.5 pr-2 text-right">
         <label className="inline-flex items-center gap-1">
