@@ -99,6 +99,10 @@ export function PhotoStrip({
     inFlight.current = false;
   }
 
+  // Read-only with nothing to show (no photos, or still loading): render nothing
+  // so photo-less pieces don't leave an empty label/box.
+  if (readOnly && images.length === 0) return null;
+
   return (
     <div className="space-y-1">
       {label && <span className="lbl block">{label}</span>}

@@ -11,8 +11,11 @@ export async function uploadImage(path: string, bytes: Uint8Array): Promise<void
   if (error) throw new Error(error.message);
 }
 
-// Map each path to a short-lived signed URL. Empty input → {}.
-export async function signImageUrls(paths: string[], expiresIn = 3600): Promise<Record<string, string>> {
+// Map each path to a signed URL. Empty input → {}. Default 7-day lifetime:
+// pages sign these server-side and hand them to the browser as static props, so
+// a short expiry breaks images on long-open pages. Private bucket + token keeps
+// it safe.
+export async function signImageUrls(paths: string[], expiresIn = 604800): Promise<Record<string, string>> {
   if (paths.length === 0) return {};
   const { data, error } = await supabaseAdmin.storage
     .from(ROLE_IMAGES_BUCKET)

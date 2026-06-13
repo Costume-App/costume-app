@@ -6,6 +6,7 @@ import { usePersistentState } from "@/lib/use-persistent-state";
 import { formatHeight } from "@/lib/height";
 import { MakeAssignment } from "@/components/MakeAssignment";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
+import { PhotoStrip } from "@/components/PhotoStrip";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
 
 interface PiecePutBody {
@@ -181,6 +182,12 @@ export function MakePieceRow({
               <p className="text-sm muted">No measurements recorded yet — click to add.</p>
             )}
           </div>
+          <PhotoStrip
+            endpoint={`/api/productions/${productionId}/designs/${item.designId}/images`}
+            max={6}
+            readOnly
+            label="Picture ideas"
+          />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <Field label="Fabric" value={type} onChange={setType} onBlur={() => void save()} placeholder="Name/Type/Description" />
             <Field label="Color" value={color} onChange={setColor} onBlur={() => void save()} placeholder="Fabric color" />
