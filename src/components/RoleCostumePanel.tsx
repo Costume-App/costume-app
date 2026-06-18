@@ -7,6 +7,7 @@ import { InventoryItemPeek } from "@/components/InventoryItemPeek";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { SavedFlash } from "@/components/SavedFlash";
 import { MakeAssignment } from "@/components/MakeAssignment";
+import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 import { AddFromInventory } from "@/components/AddFromInventory";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { COSTUME_SOURCES, defaultSourceFor } from "@/lib/costume-sources";
@@ -42,6 +43,7 @@ export function RoleCostumePanel({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const [pendingShared, setPendingShared] = useState<Record<string, string>>({});
   // Pieces toggled made/purchased this session, keyed by pieceKey — drives the
   // inline "Add to House Inventory?" completion prompt.
@@ -211,6 +213,7 @@ export function RoleCostumePanel({
   ) {
     setBusy(true);
     setError(null);
+    setLimitMsg(null);
     const existing = pieces.find(
       (p) => p.costume_design_id === designId && p.casting_id === castingId,
     );
@@ -242,7 +245,13 @@ export function RoleCostumePanel({
         return piece ? [...without, piece] : without;
       });
     } else {
-      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't save");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      // 402 = the production is at its maker limit on this plan → friendly prompt.
+      if (res.status === 402) {
+        setLimitMsg(data.error ?? "This production has reached its maker limit.");
+      } else {
+        setError(data.error ?? "Couldn't save");
+      }
     }
     setBusy(false);
   }
@@ -474,6 +483,7 @@ export function RoleCostumePanel({
         </>
       )}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
+      {limitMsg && <PlanLimitNotice message={limitMsg} />}
     </div>
   );
 }

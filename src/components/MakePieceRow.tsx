@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { formatHeight } from "@/lib/height";
 import { MakeAssignment } from "@/components/MakeAssignment";
+import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
@@ -67,6 +68,7 @@ export function MakePieceRow({
   const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
   // Serialize saves so a fast blur-then-toggle (or two quick blurs) can't drop an
   // edit: each call captures its values now and runs after the previous finishes.
   const saveChain = useRef<Promise<void>>(Promise.resolve());
@@ -98,6 +100,7 @@ export function MakePieceRow({
 
   async function sendSave(body: PiecePutBody) {
     setError(null);
+    setLimitMsg(null);
     try {
       const res = await fetch(`/api/productions/${productionId}/pieces`, {
         method: "PUT",
@@ -106,7 +109,13 @@ export function MakePieceRow({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't save");
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        // 402 = the production is at its maker limit on this plan → friendly prompt.
+        if (res.status === 402) {
+          setLimitMsg(data.error ?? "This production has reached its maker limit.");
+        } else {
+          setError(data.error ?? "Couldn't save");
+        }
         return;
       }
       const { piece } = (await res.json()) as { piece: PieceRow | null };
@@ -223,6 +232,11 @@ export function MakePieceRow({
               <Field label="Supplier" value={supplier} onChange={setSupplier} onBlur={() => void save()} placeholder="Where to buy" />
             )}
             {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
+            {limitMsg && (
+              <div className="col-span-full">
+                <PlanLimitNotice message={limitMsg} />
+              </div>
+            )}
           </div>
         </div>
       )}

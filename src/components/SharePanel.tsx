@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 
 type Share = { id: string; token: string; recipient_email: string | null; status: string; created_at: string };
 
@@ -21,6 +22,7 @@ export function SharePanel({
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const [created, setCreated] = useState<Share | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [resent, setResent] = useState<string | null>(null);
@@ -30,9 +32,13 @@ export function SharePanel({
     const res = await fetch(`/api/productions/${productionId}/shares`, { credentials: "include" });
     if (res.ok) setShares(((await res.json()) as { shares: Share[] }).shares);
   }
-  useEffect(() => {
-    if (open && shares === null) void load();
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Load existing links the first time the panel is opened (fetch on the open
+  // action rather than in an effect reacting to `open`).
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && shares === null) void load();
+  }
 
   function linkFor(token: string) {
     return `${window.location.origin}/share/${token}`;
@@ -47,6 +53,7 @@ export function SharePanel({
   async function create() {
     setBusy(true);
     setError(null);
+    setLimitMsg(null);
     try {
       const res = await fetch(`/api/productions/${productionId}/shares`, {
         method: "POST",
@@ -55,7 +62,13 @@ export function SharePanel({
         body: JSON.stringify({ recipientEmail: email || undefined }),
       });
       if (!res.ok) {
-        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't create the link.");
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        // 402 = the org's plan doesn't allow sharing → friendly subscribe prompt.
+        if (res.status === 402) {
+          setLimitMsg(data.error ?? "Sharing requires a paid plan.");
+        } else {
+          setError(data.error ?? "Couldn't create the link.");
+        }
         return;
       }
       const data = (await res.json()) as { share: Share };
@@ -110,7 +123,7 @@ export function SharePanel({
         {canShare && (
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
+            onClick={toggle}
             className="link-red text-sm"
             aria-expanded={open}
           >
@@ -147,6 +160,7 @@ export function SharePanel({
             </button>
           </div>
           {error && <p className="text-sm text-[var(--red)]">{error}</p>}
+          {limitMsg && <PlanLimitNotice message={limitMsg} />}
 
           {/* The just-created link, front and center. */}
           {created && (

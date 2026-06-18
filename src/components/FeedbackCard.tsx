@@ -7,7 +7,10 @@ export function FeedbackCard() {
   const [open, setOpen] = useState(false);
 
   // Auto-expand when linked to directly (e.g. "Leave us feedback" on the User Guide).
+  // One-time, client-only read of the URL hash (not knowable during SSR), so the
+  // setState-in-effect here is intentional and runs once on mount.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hash read on mount
     if (window.location.hash === "#feedback") setOpen(true);
   }, []);
 
