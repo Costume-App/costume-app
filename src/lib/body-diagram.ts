@@ -32,7 +32,7 @@ export const MEASUREMENT_MARKERS: Record<string, Marker> = {
   shoulder: { label: "Shoulder", view: "front", x: 64, y: 22, line: { x1: 32, y1: 22, x2: 68, y2: 22 } },
   chest: { label: "Chest", view: "front", x: 50, y: 30, line: { x1: 36, y1: 30, x2: 64, y2: 30 } },
   arm_circumference: { label: "Arm", view: "front", x: 72, y: 31, line: { x1: 66, y1: 33, x2: 84, y2: 33 } },
-  sleeve: { label: "Sleeve", view: "front", x: 84, y: 39, line: { x1: 76, y1: 20, x2: 90, y2: 49 } },
+  sleeve: { label: "Sleeve", view: "front", x: 16, y: 39, line: { x1: 24, y1: 20, x2: 10, y2: 49 } },
   wrist: { label: "Wrist", view: "front", x: 86, y: 47, line: { x1: 79, y1: 49, x2: 90, y2: 49 } },
   waist: { label: "Waist", view: "front", x: 50, y: 43, line: { x1: 36, y1: 43, x2: 64, y2: 43 } },
   hips: { label: "Hips", view: "front", x: 50, y: 51, line: { x1: 36, y1: 51, x2: 64, y2: 51 } },
