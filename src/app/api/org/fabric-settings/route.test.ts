@@ -135,3 +135,17 @@ test("DELETE suppliers/[id] is rejected for a non-admin", async () => {
   expect(res.status).toBe(403);
   expect(deleteFabricSupplier).not.toHaveBeenCalled();
 });
+
+test("POST suppliers passes a url through to createFabricSupplier", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  createFabricSupplier.mockResolvedValue({ id: "s9" });
+  await POSTSupplier(jsonReq({ name: "JOANN", url: "joann.com" }));
+  expect(createFabricSupplier).toHaveBeenCalledWith("org_1", { name: "JOANN", pricePerYard: null, isDefault: false, url: "joann.com" });
+});
+
+test("PATCH suppliers/[id] passes a url through to updateFabricSupplier", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  updateFabricSupplier.mockResolvedValue({ id: "s1" });
+  await PATCHSupplier(patchReq({ url: "moodfabrics.com" }), idCtx("s1"));
+  expect(updateFabricSupplier).toHaveBeenCalledWith("org_1", "s1", { url: "moodfabrics.com" });
+});

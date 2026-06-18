@@ -15,11 +15,12 @@ export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await requireOrgAdmin();
     const { id } = await params;
-    const body = (await request.json()) as { name?: string; pricePerYard?: unknown; isDefault?: boolean };
-    const patch: { name?: string; pricePerYard?: number | null; isDefault?: boolean } = {};
+    const body = (await request.json()) as { name?: string; pricePerYard?: unknown; isDefault?: boolean; url?: string };
+    const patch: { name?: string; pricePerYard?: number | null; isDefault?: boolean; url?: string } = {};
     if (typeof body.name === "string") patch.name = body.name;
     if (body.pricePerYard !== undefined) patch.pricePerYard = parsePrice(body.pricePerYard);
     if (typeof body.isDefault === "boolean") patch.isDefault = body.isDefault;
+    if (typeof body.url === "string") patch.url = body.url;
     const supplier = await updateFabricSupplier(orgId, id, patch);
     return NextResponse.json({ supplier });
   } catch (err) {

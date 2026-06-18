@@ -14,12 +14,13 @@ function parsePrice(v: unknown): number | null {
 export async function POST(request: Request) {
   try {
     const { orgId } = await requireOrgAdmin();
-    const body = (await request.json()) as { name?: string; pricePerYard?: unknown; isDefault?: boolean; orgName?: string };
+    const body = (await request.json()) as { name?: string; pricePerYard?: unknown; isDefault?: boolean; url?: string; orgName?: string };
     await ensureOrganization(orgId, body.orgName ?? "My School");
     const supplier = await createFabricSupplier(orgId, {
       name: typeof body.name === "string" ? body.name : "",
       pricePerYard: parsePrice(body.pricePerYard),
       isDefault: body.isDefault === true,
+      url: typeof body.url === "string" ? body.url : undefined,
     });
     return NextResponse.json({ supplier }, { status: 201 });
   } catch (err) {
