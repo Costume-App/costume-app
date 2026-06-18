@@ -32,6 +32,7 @@ import {
   listFabricSuppliers,
   createFabricSupplier,
   updateFabricSupplier,
+  normalizeSupplierUrl,
 } from "@/lib/data/fabric-settings";
 
 beforeEach(() => {
@@ -135,11 +136,40 @@ test("listFabricSuppliers reads the suppliers table", async () => {
 });
 
 test("createFabricSupplier inserts name + price, defaulting price to null", async () => {
-  setResult({ id: "s2", org_id: "org_1", name: "JOANN", price_per_yard: null, is_default: false });
+  setResult({ id: "s2", org_id: "org_1", name: "JOANN", price_per_yard: null, is_default: false, url: null });
   await createFabricSupplier("org_1", { name: "  JOANN  ", pricePerYard: null, isDefault: false });
-  expect(chain.insert).toHaveBeenCalledWith({ org_id: "org_1", name: "JOANN", price_per_yard: null, is_default: false });
+  expect(chain.insert).toHaveBeenCalledWith({ org_id: "org_1", name: "JOANN", price_per_yard: null, is_default: false, url: null });
 });
 
 test("createFabricSupplier rejects an empty name", async () => {
   await expect(createFabricSupplier("org_1", { name: " ", pricePerYard: 2, isDefault: false })).rejects.toBeInstanceOf(ValidationError);
+});
+
+test("normalizeSupplierUrl prepends https://, leaves schemes, nulls empties", () => {
+  expect(normalizeSupplierUrl("joann.com")).toBe("https://joann.com");
+  expect(normalizeSupplierUrl("  mood.com  ")).toBe("https://mood.com");
+  expect(normalizeSupplierUrl("https://x.com")).toBe("https://x.com");
+  expect(normalizeSupplierUrl("http://x.com")).toBe("http://x.com");
+  expect(normalizeSupplierUrl("HTTPS://X.com")).toBe("HTTPS://X.com");
+  expect(normalizeSupplierUrl("   ")).toBeNull();
+  expect(normalizeSupplierUrl(null)).toBeNull();
+  expect(normalizeSupplierUrl(undefined)).toBeNull();
+});
+
+test("createFabricSupplier normalizes and inserts a scheme-less url", async () => {
+  setResult({ id: "s4", org_id: "org_1", name: "JOANN", price_per_yard: null, is_default: false, url: "https://joann.com" });
+  await createFabricSupplier("org_1", { name: "JOANN", pricePerYard: null, isDefault: false, url: "joann.com" });
+  expect(chain.insert).toHaveBeenCalledWith({ org_id: "org_1", name: "JOANN", price_per_yard: null, is_default: false, url: "https://joann.com" });
+});
+
+test("updateFabricSupplier patches a normalized url", async () => {
+  setResult({ id: "s1", name: "Mood", price_per_yard: 4, is_default: false, url: "https://moodfabrics.com" });
+  await updateFabricSupplier("org_1", "s1", { url: "moodfabrics.com" });
+  expect(chain.update).toHaveBeenCalledWith({ url: "https://moodfabrics.com" });
+});
+
+test("updateFabricSupplier clears the url when given an empty string", async () => {
+  setResult({ id: "s1", name: "Mood", price_per_yard: 4, is_default: false, url: null });
+  await updateFabricSupplier("org_1", "s1", { url: "  " });
+  expect(chain.update).toHaveBeenCalledWith({ url: null });
 });

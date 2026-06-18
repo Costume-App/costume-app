@@ -1,6 +1,14 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 
+// Normalize a supplier website: trim, null when empty, and prepend https:// when no
+// scheme is present (so an admin can type "joann.com").
+export function normalizeSupplierUrl(raw: string | null | undefined): string | null {
+  const s = (raw ?? "").trim();
+  if (!s) return null;
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+}
+
 export interface FabricWidth {
   id: string;
   org_id: string;
@@ -15,6 +23,7 @@ export interface FabricSupplier {
   name: string;
   price_per_yard: number | null;
   is_default: boolean;
+  url: string | null;
   created_at: string;
 }
 
@@ -108,14 +117,20 @@ export async function listFabricSuppliers(orgId: string): Promise<FabricSupplier
 
 export async function createFabricSupplier(
   orgId: string,
-  input: { name: string; pricePerYard: number | null; isDefault: boolean },
+  input: { name: string; pricePerYard: number | null; isDefault: boolean; url?: string | null },
 ): Promise<FabricSupplier> {
   const name = input.name.trim();
   if (!name) throw new ValidationError("Supplier name is required");
   if (input.isDefault) await clearDefault("fabric_suppliers", orgId);
   const { data, error } = await supabaseAdmin
     .from("fabric_suppliers")
-    .insert({ org_id: orgId, name, price_per_yard: input.pricePerYard, is_default: input.isDefault })
+    .insert({
+      org_id: orgId,
+      name,
+      price_per_yard: input.pricePerYard,
+      is_default: input.isDefault,
+      url: normalizeSupplierUrl(input.url),
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -125,15 +140,16 @@ export async function createFabricSupplier(
 export async function updateFabricSupplier(
   orgId: string,
   id: string,
-  patch: { name?: string; pricePerYard?: number | null; isDefault?: boolean },
+  patch: { name?: string; pricePerYard?: number | null; isDefault?: boolean; url?: string | null },
 ): Promise<FabricSupplier> {
-  const update: { name?: string; price_per_yard?: number | null; is_default?: boolean } = {};
+  const update: { name?: string; price_per_yard?: number | null; is_default?: boolean; url?: string | null } = {};
   if (patch.name !== undefined) {
     const trimmed = patch.name.trim();
     if (!trimmed) throw new ValidationError("Supplier name is required");
     update.name = trimmed;
   }
   if (patch.pricePerYard !== undefined) update.price_per_yard = patch.pricePerYard;
+  if (patch.url !== undefined) update.url = normalizeSupplierUrl(patch.url);
   if (patch.isDefault === true) {
     await clearDefault("fabric_suppliers", orgId);
     update.is_default = true;

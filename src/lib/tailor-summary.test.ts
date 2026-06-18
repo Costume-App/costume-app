@@ -275,6 +275,28 @@ test("buildMakeWorklist: no makerId keeps the whole-production behavior", () => 
   expect(wl.totalItems).toBe(5); // unchanged lazy-default count
 });
 
+test("buildFabricPurchaseList sets supplierUrl from the name→url map (case-insensitive)", async () => {
+  const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
+  const item = {
+    designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
+    assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
+  };
+  const pl = buildFabricPurchaseList([item], {}, { mood: "https://moodfabrics.com" });
+  expect(pl.groups[0].lines[0].supplierUrl).toBe("https://moodfabrics.com");
+});
+
+test("buildFabricPurchaseList sets supplierUrl null when the supplier has no url", async () => {
+  const { buildFabricPurchaseList } = await import("@/lib/tailor-summary");
+  const item = {
+    designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
+    assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
+  };
+  expect(buildFabricPurchaseList([item], {}, {}).groups[0].lines[0].supplierUrl).toBeNull();
+  expect(buildFabricPurchaseList([item]).groups[0].lines[0].supplierUrl).toBeNull(); // no map arg
+});
+
 test("buildPurchaseWorklist: includes only purchase pieces, sums prices", () => {
   const pieces = [
     row({ costume_design_id: "d1", casting_id: "c1", source: "purchase", purchase_price: 45 }),

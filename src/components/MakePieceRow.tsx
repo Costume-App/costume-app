@@ -39,7 +39,7 @@ export function MakePieceRow({
   measurements: MeasurementView[];
   makers: { id: string; name: string; color: string }[];
   fabricWidths: { id: string; value: string; isDefault: boolean }[];
-  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean; url: string | null }[];
   onSaved: (piece: PieceRow | null) => void;
 }) {
   // Persist per piece so the card stays open after a trip to the measurements page.

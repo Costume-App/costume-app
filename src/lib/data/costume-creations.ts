@@ -68,7 +68,7 @@ export async function loadCostumeCreationsData(orgId: string, production: Produc
     measurementsByCasting,
     makers: makers.map((m) => ({ id: m.id, name: m.name, color: m.color })),
     fabricWidths: fabricWidths.map((w) => ({ id: w.id, value: w.value, isDefault: w.is_default })),
-    fabricSuppliers: fabricSuppliers.map((s) => ({ id: s.id, name: s.name, pricePerYard: s.price_per_yard, isDefault: s.is_default })),
+    fabricSuppliers: fabricSuppliers.map((s) => ({ id: s.id, name: s.name, pricePerYard: s.price_per_yard, isDefault: s.is_default, url: s.url })),
     costumesDueDate: production.costumes_due_date,
   };
 }

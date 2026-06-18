@@ -23,7 +23,7 @@ export function MakeWorklist({
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
   fabricWidths: { id: string; value: string; isDefault: boolean }[];
-  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean; url: string | null }[];
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   if (worklist.totalItems === 0) {
@@ -68,7 +68,7 @@ function RoleSection({
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
   fabricWidths: { id: string; value: string; isDefault: boolean }[];
-  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean; url: string | null }[];
   onSaved: (designId: string, castingId: string, piece: PieceRow | null) => void;
 }) {
   const [collapsed, setCollapsed] = usePersistentState<boolean>(
