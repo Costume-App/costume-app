@@ -5,9 +5,9 @@ import { MEASUREMENT_MARKERS, type DiagramView } from "@/lib/body-diagram";
 // A simple, stylized human outline (front and back share the shape). viewBox is
 // 100 wide × 220 tall; markers are positioned over it with percentage offsets.
 const SILHOUETTE =
-  "M50 31 C57 31 68 35 68 47 L78 58 C82 68 84 94 82 108 L76 112 C74 100 70 80 64 70 " +
-  "L64 212 L54 212 C53 200 52 170 50 146 C48 170 47 200 46 212 L36 212 L36 70 " +
-  "C30 80 26 100 24 112 L18 108 C16 94 18 68 22 58 L32 47 C32 35 43 31 50 31 Z";
+  "M50 31 C57 33 64 40 70 50 C78 62 86 84 88 104 L82 108 C76 92 68 80 64 72 " +
+  "L64 212 L54 212 C53 200 52 170 50 146 C48 170 47 200 46 212 L36 212 L36 72 " +
+  "C32 80 24 92 18 108 L12 104 C14 84 22 62 30 50 C36 40 43 33 50 31 Z";
 
 function View({ view, activeKey }: { view: DiagramView; activeKey?: string }) {
   const markers = Object.entries(MEASUREMENT_MARKERS).filter(([, m]) => m.view === view);
