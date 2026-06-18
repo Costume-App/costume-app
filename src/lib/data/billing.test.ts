@@ -62,7 +62,6 @@ test("canCreateProduction allows when an unbound unlock exists", async () => {
 test("canCreateProduction blocks when no sub and no unlock", async () => {
   // isUnlimited uses .maybeSingle() -> null (no sub row)
   // canCreateProduction then queries production_purchases via .then -> empty array
-  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }));
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [], error: null });
   const gate = await canCreateProduction("orgA");
   expect(gate).toEqual({ allowed: false, reason: "needs_unlock", unlimited: false });
@@ -76,6 +75,7 @@ test("consumeProductionUnlock binds one unbound row and returns true", async () 
   const ok = await consumeProductionUnlock("orgA", "prod1");
   expect(ok).toBe(true);
   expect(chain.update).toHaveBeenCalledWith({ production_id: "prod1" });
+  expect(chain.is).toHaveBeenCalledWith("production_id", null);
 });
 
 test("consumeProductionUnlock returns false when nothing to bind", async () => {
