@@ -3,6 +3,8 @@ import { getAuthContext } from "@/lib/auth-context";
 import { canCreateProduction } from "@/lib/data/billing";
 import { PLANS } from "@/lib/billing-plans";
 import { NewProductionForm } from "@/components/NewProductionForm";
+import { isBillingConfigured } from "@/lib/stripe";
+import { CheckoutButton } from "@/components/CheckoutButton";
 
 export default async function NewProductionPage() {
   const { orgId } = await getAuthContext();
@@ -30,11 +32,20 @@ export default async function NewProductionPage() {
             </li>
           ))}
         </ul>
-        <p className="muted mb-4 text-sm">Online checkout is coming soon.</p>
-        <div className="flex gap-3">
-          <button type="button" disabled className="btn-primary flex-1 opacity-60">
-            Subscribe — coming soon
-          </button>
+        <p className="muted mb-4 text-sm">
+          {isBillingConfigured() ? "Choose a plan to continue." : "Online checkout is coming soon."}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {isBillingConfigured() ? (
+            <>
+              <CheckoutButton type="unlock" label="Buy this production — $49.99" />
+              <CheckoutButton type="unlimited" label="Go Unlimited — $99/yr" className="btn-ghost" />
+            </>
+          ) : (
+            <button type="button" disabled className="btn-primary flex-1 opacity-60">
+              Subscribe — coming soon
+            </button>
+          )}
           <Link href="/productions" className="btn-ghost">
             Back
           </Link>

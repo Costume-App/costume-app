@@ -160,7 +160,7 @@ export function SharePanel({
             </button>
           </div>
           {error && <p className="text-sm text-[var(--red)]">{error}</p>}
-          {limitMsg && <PlanLimitNotice message={limitMsg} />}
+          {limitMsg && <PlanLimitNotice message={limitMsg} reason="needs_paid_plan" />}
 
           {/* The just-created link, front and center. */}
           {created && (

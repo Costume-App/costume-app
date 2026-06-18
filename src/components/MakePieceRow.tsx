@@ -234,7 +234,7 @@ export function MakePieceRow({
             {error && <p className="col-span-full text-xs text-[var(--red)]">{error}</p>}
             {limitMsg && (
               <div className="col-span-full">
-                <PlanLimitNotice message={limitMsg} />
+                <PlanLimitNotice message={limitMsg} reason="needs_seat" productionId={productionId} />
               </div>
             )}
           </div>

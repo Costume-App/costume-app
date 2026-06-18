@@ -238,7 +238,7 @@ test("fulfill seat inserts a seat_purchases row bound to the production", async 
 });
 
 test("fulfill unlimited upserts org_subscriptions by org_id, preserving comped (not in payload)", async () => {
-  stripeMock.subscriptions.retrieve.mockResolvedValue({ id: "sub_1", status: "active", current_period_end: 4102444800 });
+  stripeMock.subscriptions.retrieve.mockResolvedValue({ id: "sub_1", status: "active", items: { data: [{ current_period_end: 4102444800 }] } });
   await fulfillCheckoutSession(sess({ id: "cs_3", mode: "subscription", customer: "cus_1", subscription: "sub_1", metadata: { orgId: "orgA", type: "unlimited" } }));
   expect(stripeMock.subscriptions.retrieve).toHaveBeenCalledWith("sub_1");
   const [payload, opts] = chain.upsert.mock.calls.at(-1)!;
@@ -326,7 +326,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
         stripe_customer_id: session.customer as string,
         stripe_subscription_id: sub.id,
         status: sub.status,
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        current_period_end: subscriptionPeriodEndIso(sub),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "org_id" },
@@ -337,6 +337,16 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
   throw new Error(`Unknown checkout type: ${type}`);
 }
 ```
+
+> **Stripe SDK note (v22, API `2026-05-27.dahlia`):** `current_period_end` was REMOVED from the `Subscription` object and now lives on each subscription *item*: `subscription.items.data[0].current_period_end` (typed `number`, seconds). Use this shared helper (add it to `stripe-billing.ts`, used here and by `applySubscriptionEvent` in Task 3) — do NOT read `subscription.current_period_end` (it's `undefined` at runtime → `new Date(NaN)` throws):
+>
+> ```ts
+> import type Stripe from "stripe";
+> // Period end lives on the subscription item in API 2026-05-27.dahlia.
+> export function subscriptionPeriodEndIso(sub: Stripe.Subscription): string {
+>   return new Date(sub.items.data[0].current_period_end * 1000).toISOString();
+> }
+> ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -373,14 +383,14 @@ const sub = (o: Record<string, unknown>) => o as unknown as Sub;
 test("applySubscriptionEvent updates the row matched by subscription id", async () => {
   chain.select = vi.fn(() => chain); // update(...).eq(...).select() returns a matched row
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [{ org_id: "orgA" }], error: null });
-  await applySubscriptionEvent(sub({ id: "sub_1", status: "active", current_period_end: 4102444800, metadata: { orgId: "orgA" } }));
+  await applySubscriptionEvent(sub({ id: "sub_1", status: "active", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgA" } }));
   expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ status: "active" }));
   expect(chain.eq).toHaveBeenCalledWith("stripe_subscription_id", "sub_1");
 });
 
 test("applySubscriptionEvent upserts by org when no row matched (event raced ahead)", async () => {
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [], error: null });
-  await applySubscriptionEvent(sub({ id: "sub_2", status: "active", current_period_end: 4102444800, metadata: { orgId: "orgB" } }));
+  await applySubscriptionEvent(sub({ id: "sub_2", status: "active", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgB" } }));
   expect(chain.upsert).toHaveBeenCalledWith(
     expect.objectContaining({ org_id: "orgB", stripe_subscription_id: "sub_2", status: "active" }),
     expect.objectContaining({ onConflict: "org_id" }),
@@ -389,7 +399,7 @@ test("applySubscriptionEvent upserts by org when no row matched (event raced ahe
 
 test("applySubscriptionEvent records a canceled status", async () => {
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [{ org_id: "orgA" }], error: null });
-  await applySubscriptionEvent(sub({ id: "sub_1", status: "canceled", current_period_end: 4102444800, metadata: { orgId: "orgA" } }));
+  await applySubscriptionEvent(sub({ id: "sub_1", status: "canceled", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgA" } }));
   expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ status: "canceled" }));
 });
 ```
@@ -408,7 +418,7 @@ Append to `src/lib/data/stripe-billing.ts`:
 export async function applySubscriptionEvent(subscription: Stripe.Subscription): Promise<void> {
   const update = {
     status: subscription.status,
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+    current_period_end: subscriptionPeriodEndIso(subscription),
     updated_at: new Date().toISOString(),
   };
   const { data, error } = await supabaseAdmin
