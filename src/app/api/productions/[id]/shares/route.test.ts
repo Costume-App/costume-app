@@ -32,9 +32,11 @@ vi.mock("@/lib/email", () => ({
 
 const canCreateProduction = vi.fn();
 const consumeProductionUnlock = vi.fn();
+const isPaidOrg = vi.fn();
 vi.mock("@/lib/data/billing", () => ({
   canCreateProduction: (...a: unknown[]) => canCreateProduction(...a),
   consumeProductionUnlock: (...a: unknown[]) => consumeProductionUnlock(...a),
+  isPaidOrg: (...a: unknown[]) => isPaidOrg(...a),
 }));
 
 import { GET, POST } from "@/app/api/productions/[id]/shares/route";
@@ -43,12 +45,14 @@ import { POST as RESEND } from "@/app/api/productions/[id]/shares/[shareId]/rese
 import { POST as ACCEPT } from "@/app/api/shares/[token]/accept/route";
 
 beforeEach(() => {
-  [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, getShareById, sendEmail, isEmailConfigured, canCreateProduction, consumeProductionUnlock].forEach((m) => m.mockReset());
+  [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, getShareById, sendEmail, isEmailConfigured, canCreateProduction, consumeProductionUnlock, isPaidOrg].forEach((m) => m.mockReset());
   assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Cats" });
   sendEmail.mockResolvedValue({ sent: true });
   isEmailConfigured.mockReturnValue(true);
   // Default: unlimited org so ACCEPT tests pass through the billing gate.
   canCreateProduction.mockResolvedValue({ allowed: true, unlimited: true });
+  // Default: paid org so existing share tests pass through the paid-plan gate.
+  isPaidOrg.mockResolvedValue(true);
 });
 
 const idCtx = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -156,4 +160,21 @@ test("POST resend is rejected for a non-admin", async () => {
   const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
   expect(res.status).toBe(403);
   expect(getShareById).not.toHaveBeenCalled();
+});
+
+test("POST shares is blocked with 402 needs_paid_plan for an unpaid org", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  isPaidOrg.mockResolvedValue(false);
+  const res = await POST(postReq({}), idCtx("p1"));
+  expect(res.status).toBe(402);
+  expect((await res.json()).reason).toBe("needs_paid_plan");
+  expect(createProductionShare).not.toHaveBeenCalled();
+});
+
+test("POST shares is allowed for a paid org", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  isPaidOrg.mockResolvedValue(true);
+  createProductionShare.mockResolvedValue({ id: "s1", token: "tok" });
+  const res = await POST(postReq({}), idCtx("p1"));
+  expect(res.status).toBe(201);
 });
