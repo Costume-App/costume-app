@@ -109,12 +109,12 @@ interface CastLike { id: string; name: string }
 export interface MeasurementView {
   key: string;
   label: string;
-  value: number;
+  value: number | string;
   unit: string;
 }
 
 interface MeasurementDefLike { key: string; label: string; display_order: number }
-interface MeasurementRowLike { performer_id: string; measurement_key: string; value_numeric: number; unit: string }
+interface MeasurementRowLike { performer_id: string; measurement_key: string; value_numeric: number | null; value_text?: string | null; unit: string }
 interface CastingPerformerLike { id: string; performer_id: string }
 
 // Map each casting to its performer's filled measurements, ordered by the
@@ -134,7 +134,7 @@ export function buildMeasurementsByCasting(
     const view: MeasurementView = {
       key: m.measurement_key,
       label: label.get(m.measurement_key) ?? m.measurement_key,
-      value: m.value_numeric,
+      value: m.value_text ?? m.value_numeric ?? "",
       unit: m.unit,
     };
     const arr = byPerformer.get(m.performer_id) ?? [];
