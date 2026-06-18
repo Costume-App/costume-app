@@ -4,7 +4,7 @@ import { canCreateProduction } from "@/lib/data/billing";
 import { PLANS } from "@/lib/billing-plans";
 import { NewProductionForm } from "@/components/NewProductionForm";
 import { isBillingConfigured } from "@/lib/stripe";
-import { CheckoutButton } from "@/components/CheckoutButton";
+import { PlanCard } from "@/components/PlanCard";
 
 export default async function NewProductionPage() {
   const { orgId } = await getAuthContext();
@@ -14,38 +14,43 @@ export default async function NewProductionPage() {
   // form. The POST /api/productions route enforces the same limit server-side,
   // so a direct submit still can't bypass this.
   if (!gate.allowed) {
-    const plans = [PLANS.perProduction, PLANS.unlimited];
     return (
       <main className="mx-auto max-w-md p-6">
         <h1 className="font-display mb-3 text-3xl font-semibold">Subscribe to add a production</h1>
         <p className="muted mb-4">
           Your current plan doesn&rsquo;t include another production. Choose a plan to add one:
         </p>
-        <ul className="mb-4 space-y-2">
-          {plans.map((plan) => (
-            <li key={plan.id} className="surface p-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-medium">{plan.label}</span>
-                <span className="text-sm muted">{plan.price}</span>
-              </div>
-              <span className="text-sm muted">{plan.includes}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="muted mb-4 text-sm">
-          {isBillingConfigured() ? "Choose a plan to continue." : "Online checkout is coming soon."}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {isBillingConfigured() ? (
-            <>
-              <CheckoutButton type="unlock" label="Buy this production — $49.99" />
-              <CheckoutButton type="unlimited" label="Go Unlimited — $99.99/yr" className="btn-ghost" />
-            </>
-          ) : (
-            <button type="button" disabled className="btn-primary flex-1 opacity-60">
-              Subscribe — coming soon
-            </button>
-          )}
+        {isBillingConfigured() ? (
+          <div className="mb-4 space-y-3">
+            <PlanCard
+              type="unlock"
+              name={PLANS.perProduction.label}
+              price={PLANS.perProduction.price}
+              includes={PLANS.perProduction.includes}
+            />
+            <PlanCard
+              type="unlimited"
+              name={PLANS.unlimited.label}
+              price={PLANS.unlimited.price}
+              includes={PLANS.unlimited.includes}
+              highlight
+            />
+          </div>
+        ) : (
+          <ul className="mb-4 space-y-2">
+            {[PLANS.perProduction, PLANS.unlimited].map((plan) => (
+              <li key={plan.id} className="surface p-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-medium">{plan.label}</span>
+                  <span className="text-sm muted">{plan.price}</span>
+                </div>
+                <span className="text-sm muted">{plan.includes}</span>
+              </li>
+            ))}
+            <li className="muted text-sm">Online checkout is coming soon.</li>
+          </ul>
+        )}
+        <div>
           <Link href="/productions" className="btn-ghost">
             Back
           </Link>
