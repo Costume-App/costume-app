@@ -24,6 +24,7 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <span className="font-display text-lg font-semibold tracking-tight">{v.brand}</span>
           <div className="flex items-center gap-4 text-sm">
+            <a href="#pricing" className="link-muted">Pricing</a>
             <a href={DEMO_HREF} className="link-muted hidden sm:inline">Request a demo</a>
             <Link href="/sign-in" className="font-medium link-muted">Log in</Link>
           </div>
@@ -127,7 +128,7 @@ export function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="relative mx-auto max-w-5xl px-5 pb-20">
+      <section id="pricing" className="relative mx-auto max-w-5xl scroll-mt-20 px-5 pb-20">
         <div className="mb-12 text-center">
           <p className="lbl">Pricing</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
