@@ -201,7 +201,7 @@ export function MakePieceRow({
             ) : (
               <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
             )}
-            <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" />
+            <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" hint="Leave blank to have the system estimate yardage." />
             <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" prefix="$" placeholder="Per yard" />
             {fabricSuppliers.length > 0 ? (
               <SelectField
@@ -250,6 +250,7 @@ function Field({
   placeholder,
   inputMode,
   prefix,
+  hint,
 }: {
   label: string;
   value: string;
@@ -258,6 +259,7 @@ function Field({
   placeholder?: string;
   inputMode?: "decimal";
   prefix?: string;
+  hint?: string;
 }) {
   return (
     <label className="flex flex-col gap-0.5">
@@ -277,6 +279,7 @@ function Field({
           onBlur={onBlur}
         />
       </div>
+      {hint && <span className="text-[11px] leading-tight muted">{hint}</span>}
     </label>
   );
 }
