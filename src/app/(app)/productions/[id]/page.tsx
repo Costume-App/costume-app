@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
@@ -89,12 +88,7 @@ export default async function ProductionDetailPage({
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <div className="flex items-start justify-between gap-4">
-        <Link href="/productions" className="link-muted text-sm">
-          ← Productions
-        </Link>
-        {isAdmin && <SharePanel productionId={id} />}
-      </div>
+      <SharePanel productionId={id} canShare={isAdmin} />
       <div className="mt-2 mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <EditableProductionHeader
           productionId={id}

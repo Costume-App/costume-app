@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Share = { id: string; token: string; recipient_email: string | null; status: string; created_at: string };
 
-export function SharePanel({ productionId }: { productionId: string }) {
+// Renders the production page's top bar: the "← Productions" back link, plus (for admins)
+// a "Share production" link that toggles a full-width share form below the row.
+export function SharePanel({ productionId, canShare }: { productionId: string; canShare: boolean }) {
   const [open, setOpen] = useState(false);
   const [shares, setShares] = useState<Share[] | null>(null);
   const [email, setEmail] = useState("");
@@ -58,16 +61,24 @@ export function SharePanel({ productionId }: { productionId: string }) {
   const pending = (shares ?? []).filter((s) => s.status === "pending");
 
   return (
-    <div>
-      {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="link-red text-sm" aria-expanded="false">
-          Share production →
-        </button>
-      ) : (
-        <div className="space-y-3">
-          <button type="button" onClick={() => setOpen(false)} className="link-red text-sm font-medium" aria-expanded="true">
-            Share production
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <Link href="/productions" className="link-muted text-sm">
+          ← Productions
+        </Link>
+        {canShare && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="link-red text-sm"
+            aria-expanded={open}
+          >
+            Share production {open ? "" : "→"}
           </button>
+        )}
+      </div>
+      {canShare && open && (
+        <div className="mt-3 space-y-3 border-t border-[var(--field-line)] pt-3">
           <p className="text-sm muted">
             Creates a one-time link. The recipient signs in and copies this production&rsquo;s roles, costume designs,
             and their notes &amp; idea photos into their own organization. Performers and measurements are not shared.
@@ -109,6 +120,6 @@ export function SharePanel({ productionId }: { productionId: string }) {
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
