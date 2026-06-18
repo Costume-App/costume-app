@@ -82,3 +82,54 @@ test("consumeProductionUnlock returns false when nothing to bind", async () => {
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [], error: null });
   expect(await consumeProductionUnlock("orgA", "prod1")).toBe(false);
 });
+
+import { productionMakerIds, productionSeatCap, canAssignMakerToProduction } from "@/lib/data/billing";
+
+test("productionMakerIds returns distinct non-null maker ids", async () => {
+  let call = 0;
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => {
+    call += 1;
+    // 1: designs -> [{id:d1},{id:d2}], 2: pieces -> maker rows
+    if (call === 1) return resolve({ data: [{ id: "d1" }, { id: "d2" }], error: null });
+    return resolve({ data: [{ maker_id: "m1" }, { maker_id: "m1" }, { maker_id: null }, { maker_id: "m2" }], error: null });
+  };
+  const ids = await productionMakerIds("prod1");
+  expect([...ids].sort()).toEqual(["m1", "m2"]);
+});
+
+test("productionSeatCap is 3 + seat purchases for a non-unlimited org", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null })); // not unlimited
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) =>
+    resolve({ data: [{ id: "s1" }, { id: "s2" }], error: null }); // 2 seat purchases
+  expect(await productionSeatCap("orgA", "prod1")).toBe(5);
+});
+
+test("productionSeatCap is Infinity for unlimited orgs", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: { status: "active", current_period_end: "2999-01-01T00:00:00Z", comped: false }, error: null }));
+  expect(await productionSeatCap("orgA", "prod1")).toBe(Infinity);
+});
+
+test("canAssignMaker allows an already-assigned maker even at cap", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null })); // not unlimited
+  let call = 0;
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => {
+    call += 1;
+    if (call === 1) return resolve({ data: [{ id: "d1" }], error: null });               // designs
+    return resolve({ data: [{ maker_id: "m1" }, { maker_id: "m2" }, { maker_id: "m3" }], error: null }); // makers (at cap 3)
+  };
+  const gate = await canAssignMakerToProduction("orgA", "prod1", "m2");
+  expect(gate).toEqual({ allowed: true });
+});
+
+test("canAssignMaker blocks a new maker at cap", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }));
+  let call = 0;
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => {
+    call += 1;
+    if (call === 1) return resolve({ data: [{ id: "d1" }], error: null });                 // designs (makerIds query #1)
+    if (call === 2) return resolve({ data: [{ maker_id: "m1" }, { maker_id: "m2" }, { maker_id: "m3" }], error: null }); // makers
+    return resolve({ data: [], error: null });                                             // seat_purchases -> cap 3
+  };
+  const gate = await canAssignMakerToProduction("orgA", "prod1", "m4");
+  expect(gate).toEqual({ allowed: false, reason: "needs_seat" });
+});

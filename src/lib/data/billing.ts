@@ -73,3 +73,50 @@ export async function consumeProductionUnlock(orgId: string, productionId: strin
   if (updErr) throw new Error(updErr.message);
   return ((updated as unknown[] | null)?.length ?? 0) > 0;
 }
+
+// Distinct non-null maker ids across a production's costume pieces.
+export async function productionMakerIds(productionId: string): Promise<Set<string>> {
+  const { data: designs, error: dErr } = await supabaseAdmin
+    .from("costume_designs")
+    .select("id")
+    .eq("production_id", productionId);
+  if (dErr) throw new Error(dErr.message);
+  const designIds = ((designs as { id: string }[] | null) ?? []).map((d) => d.id);
+  if (designIds.length === 0) return new Set();
+  const { data: pieces, error: pErr } = await supabaseAdmin
+    .from("costume_pieces")
+    .select("maker_id")
+    .in("costume_design_id", designIds);
+  if (pErr) throw new Error(pErr.message);
+  const ids = ((pieces as { maker_id: string | null }[] | null) ?? [])
+    .map((p) => p.maker_id)
+    .filter((m): m is string => Boolean(m));
+  return new Set(ids);
+}
+
+async function seatPurchaseCount(productionId: string): Promise<number> {
+  const { data, error } = await supabaseAdmin
+    .from("seat_purchases")
+    .select("id")
+    .eq("production_id", productionId);
+  if (error) throw new Error(error.message);
+  return (data as unknown[] | null)?.length ?? 0;
+}
+
+export async function productionSeatCap(orgId: string, productionId: string): Promise<number> {
+  if (await isUnlimited(orgId)) return Infinity;
+  return 3 + (await seatPurchaseCount(productionId));
+}
+
+export async function canAssignMakerToProduction(
+  orgId: string,
+  productionId: string,
+  makerId: string,
+): Promise<{ allowed: boolean; reason?: "needs_seat" }> {
+  if (await isUnlimited(orgId)) return { allowed: true };
+  const makerIds = await productionMakerIds(productionId);
+  if (makerIds.has(makerId)) return { allowed: true };
+  const cap = 3 + (await seatPurchaseCount(productionId));
+  if (makerIds.size < cap) return { allowed: true };
+  return { allowed: false, reason: "needs_seat" };
+}
