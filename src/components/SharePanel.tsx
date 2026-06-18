@@ -99,10 +99,10 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
 
           {/* Create — email is optional; the link is generated either way. */}
           <div className="flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1">
+            <label className="flex min-w-[14rem] flex-1 flex-col gap-1">
               <span className="lbl">Email the link to (optional)</span>
               <input
-                className="field !p-1.5 text-sm"
+                className="field !p-1.5 text-sm w-full"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
