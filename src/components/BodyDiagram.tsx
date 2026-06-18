@@ -13,8 +13,8 @@ function View({ view, activeKey }: { view: DiagramView; activeKey?: string }) {
   const markers = Object.entries(MEASUREMENT_MARKERS).filter(([, m]) => m.view === view);
   return (
     <div className="flex flex-1 flex-col items-center">
-      <div className="relative w-full max-w-[180px]" style={{ aspectRatio: "100 / 220" }}>
-        <svg viewBox="0 0 100 220" className="h-full w-full" aria-hidden="true">
+      <div className="relative w-full max-w-[180px]" style={{ aspectRatio: "100 / 185" }}>
+        <svg viewBox="0 0 100 220" className="h-full w-full" preserveAspectRatio="none" aria-hidden="true">
           <circle cx="50" cy="18" r="13" fill="var(--field-line)" />
           <path d={SILHOUETTE} fill="var(--field-line)" />
         </svg>
