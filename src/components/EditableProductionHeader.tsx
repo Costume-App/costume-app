@@ -112,6 +112,15 @@ export function EditableProductionHeader({
     );
   }
 
+  function close() {
+    setEditing(false);
+    setName(title);
+    setNewDate("");
+    setNewTime("");
+    setNewLabel("");
+    setError(null);
+  }
+
   const last = latestDate(showDates.map((d) => d.show_date));
   const isPast = last !== null && last < todayIso();
 
@@ -131,7 +140,16 @@ export function EditableProductionHeader({
   }
 
   return (
-    <div className="surface w-full max-w-md space-y-3 p-4">
+    <div className="surface relative w-full max-w-md space-y-3 p-4">
+      <button
+        type="button"
+        onClick={close}
+        disabled={busy}
+        aria-label="Close"
+        className="link-muted absolute right-3 top-3 text-lg leading-none"
+      >
+        ×
+      </button>
       <label className="block">
         <span className="lbl mb-1 block">Production name</span>
         <input
@@ -220,19 +238,7 @@ export function EditableProductionHeader({
         ) : (
           <ToggleProductionActiveButton productionId={productionId} isActive={isActive} />
         )}
-        <button
-          type="button"
-          onClick={() => {
-            setEditing(false);
-            setName(title);
-            setNewDate("");
-            setNewTime("");
-            setNewLabel("");
-            setError(null);
-          }}
-          disabled={busy}
-          className="btn-primary shrink-0"
-        >
+        <button type="button" onClick={close} disabled={busy} className="btn-primary shrink-0">
           Done
         </button>
       </div>
