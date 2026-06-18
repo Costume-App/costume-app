@@ -50,19 +50,25 @@ function View({ view, activeKey }: { view: DiagramView; activeKey?: string }) {
           return (
             <div
               key={key}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1"
+              className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${m.x}%`, top: `${m.y}%` }}
             >
               <span
-                className="h-2.5 w-2.5 rounded-full ring-2 ring-[var(--surface,#fff)] transition-transform"
+                className="block h-2.5 w-2.5 rounded-full ring-2 ring-[var(--surface,#fff)] transition-transform"
                 style={{
                   background: active ? "var(--red)" : "var(--muted)",
                   transform: active ? "scale(1.6)" : "scale(1)",
                 }}
               />
+              {/* Label sits centered below the dot (with a surface backing) so the span
+                  lines never run through the text. */}
               <span
-                className="whitespace-nowrap text-[10px] leading-none"
-                style={{ color: active ? "var(--red)" : "var(--muted)", fontWeight: active ? 600 : 400 }}
+                className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded px-1 text-[10px] leading-none"
+                style={{
+                  color: active ? "var(--red)" : "var(--muted)",
+                  fontWeight: active ? 600 : 400,
+                  background: "var(--surface,#fff)",
+                }}
               >
                 {m.label}
               </span>
