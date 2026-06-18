@@ -58,15 +58,14 @@ export function SharePanel({ productionId }: { productionId: string }) {
   const pending = (shares ?? []).filter((s) => s.status === "pending");
 
   return (
-    <div className="surface mt-3 p-4">
+    <div>
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="block text-left" aria-expanded="false">
-          <span className="font-display text-xl font-semibold">Share production →</span>
-          <span className="mt-0.5 block text-sm muted">Send a read-only copy (roles, designs, notes & photos — no performers)</span>
+        <button type="button" onClick={() => setOpen(true)} className="link-red text-sm" aria-expanded="false">
+          Share production →
         </button>
       ) : (
         <div className="space-y-3">
-          <button type="button" onClick={() => setOpen(false)} className="block text-left font-display text-xl font-semibold" aria-expanded="true">
+          <button type="button" onClick={() => setOpen(false)} className="link-red text-sm font-medium" aria-expanded="true">
             Share production
           </button>
           <p className="text-sm muted">
