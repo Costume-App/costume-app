@@ -47,6 +47,8 @@ export function OrgBillingPanel() {
       }
       const { url } = (await res.json()) as { url: string };
       window.location.href = url;
+    } catch {
+      setError("Couldn't open billing.");
     } finally {
       setBusy(false);
     }

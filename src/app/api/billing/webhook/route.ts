@@ -27,9 +27,10 @@ export async function POST(request: Request) {
         await applySubscriptionEvent(event.data.object as Stripe.Subscription);
         break;
       case "invoice.paid": {
-        const invoice = event.data.object as Stripe.Invoice & { subscription?: string };
-        if (invoice.subscription) {
-          const sub = await getStripe().subscriptions.retrieve(invoice.subscription);
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = invoice.parent?.subscription_details?.subscription;
+        if (typeof subId === "string") {
+          const sub = await getStripe().subscriptions.retrieve(subId);
           await applySubscriptionEvent(sub);
         }
         break;

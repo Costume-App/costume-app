@@ -50,7 +50,7 @@ test("customer.subscription.deleted → applySubscriptionEvent", async () => {
 });
 
 test("invoice.paid retrieves the subscription then applies it", async () => {
-  stripeMock.webhooks.constructEvent.mockReturnValue({ type: "invoice.paid", data: { object: { subscription: "sub_9" } } });
+  stripeMock.webhooks.constructEvent.mockReturnValue({ type: "invoice.paid", data: { object: { parent: { subscription_details: { subscription: "sub_9" } } } } });
   stripeMock.subscriptions.retrieve.mockResolvedValue({ id: "sub_9" });
   const res = await POST(req());
   expect(stripeMock.subscriptions.retrieve).toHaveBeenCalledWith("sub_9");
