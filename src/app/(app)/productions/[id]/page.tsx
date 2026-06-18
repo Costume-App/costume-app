@@ -100,13 +100,18 @@ export default async function ProductionDetailPage({
           isActive={production.is_active}
           costumesDue={production.costumes_due_date}
         />
-        {isAdmin && <SharePanel productionId={id} />}
         {statusLabel && (
           <span className="inline-flex items-center self-start rounded-full border border-[var(--field-line)] px-2.5 py-0.5 text-xs muted sm:self-end">
             {statusLabel}
           </span>
         )}
       </div>
+
+      {isAdmin && (
+        <div className="mb-6">
+          <SharePanel productionId={id} />
+        </div>
+      )}
 
       {showDates.length > 0 && (
         <div className="mb-6">
