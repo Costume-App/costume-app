@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { splitHeight, combineHeight } from "@/lib/height";
 import { measurementPayload } from "@/lib/measurement-input";
+import { BodyDiagram } from "@/components/BodyDiagram";
 
 interface Definition {
   key: string;
@@ -29,6 +30,7 @@ export function MeasurementForm({
     return v;
   });
   const [saved, setSaved] = useState<Record<string, "saving" | "saved" | "error">>({});
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const initialHeight = splitHeight(Number(initialValues.height ?? 0));
   const [heightFeet, setHeightFeet] = useState(
@@ -77,6 +79,12 @@ export function MeasurementForm({
           {filledCount} of {definitions.length} measured
         </p>
       </div>
+      <details className="surface mb-4 p-3">
+        <summary className="cursor-pointer text-sm font-medium">Where do I measure?</summary>
+        <div className="mt-3">
+          <BodyDiagram activeKey={activeKey ?? undefined} />
+        </div>
+      </details>
       <div className="border-t border-[var(--field-line)]">
         {definitions.map((def) =>
           def.key === "height" ? (
@@ -96,6 +104,7 @@ export function MeasurementForm({
                   className="field w-16 text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   value={heightFeet}
                   onChange={(e) => setHeightFeet(e.target.value)}
+                  onFocus={() => setActiveKey("height")}
                   onBlur={saveHeight}
                   aria-label="Height (feet)"
                 />
@@ -108,6 +117,7 @@ export function MeasurementForm({
                   className="field w-16 text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   value={heightInches}
                   onChange={(e) => setHeightInches(e.target.value)}
+                  onFocus={() => setActiveKey("height")}
                   onBlur={saveHeight}
                   aria-label="Height (inches)"
                 />
@@ -145,6 +155,7 @@ export function MeasurementForm({
                   placeholder={def.help_text ?? ""}
                   value={values[def.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [def.key]: e.target.value }))}
+                  onFocus={() => setActiveKey(def.key)}
                   onBlur={(e) => save(def, e.target.value)}
                 />
                 {saved[def.key] && (
@@ -185,6 +196,7 @@ export function MeasurementForm({
                   className="field w-full !pr-8 !pl-6 text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   value={values[def.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [def.key]: e.target.value }))}
+                  onFocus={() => setActiveKey(def.key)}
                   onBlur={(e) => save(def, e.target.value)}
                 />
                 {saved[def.key] && (
