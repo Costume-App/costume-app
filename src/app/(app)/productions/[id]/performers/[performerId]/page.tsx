@@ -36,8 +36,8 @@ export default async function MeasurementPage({
   const role = casting ? roles.find((r) => r.id === casting.role_id) : undefined;
   const cast = casting ? casts.find((c) => c.id === casting.cast_id) : undefined;
 
-  const initial: Record<string, number> = {};
-  for (const m of measurements) initial[m.measurement_key] = m.value_numeric;
+  const initial: Record<string, number | string> = {};
+  for (const m of measurements) initial[m.measurement_key] = m.value_text ?? m.value_numeric ?? "";
 
   return (
     <main className="mx-auto max-w-lg p-6">
