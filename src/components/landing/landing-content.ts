@@ -1,8 +1,6 @@
-// Shared content for the two A/B landing variants. Both render the same feature
-// set with the same Atelier look; they differ in name, hero framing, and the
-// order the feature acts lead in.
+// Shared content for the Measure My Costume landing page. Rendered by
+// LandingPage (single variant — A/B testing removed 2026-06-18).
 
-export type LandingSlug = "make-the-drama" | "measure-my-costume";
 export type FeatureGroup = "Production" | "Costumes & Inventory" | "Cost";
 
 export interface Feature {
@@ -27,8 +25,7 @@ export const FEATURES: Feature[] = [
   { id: "cost", group: "Cost", title: "Cost at a glance", blurb: "See your production's whole estimated cost in one place." },
 ];
 
-export interface VariantConfig {
-  slug: LandingSlug;
+export interface LandingConfig {
   brand: string;
   /** Display title split so the last word can take the curtain-red accent. */
   titleLead: string;
@@ -38,26 +35,38 @@ export interface VariantConfig {
   groupOrder: FeatureGroup[];
 }
 
-export const VARIANTS: Record<LandingSlug, VariantConfig> = {
-  "make-the-drama": {
-    slug: "make-the-drama",
-    brand: "Make the Drama",
-    titleLead: "Make the",
-    titleAccent: "Drama",
-    tagline: "Your all-in-one play production management suite.",
-    eyebrow: "The stage-to-curtain production suite",
-    groupOrder: ["Production", "Costumes & Inventory", "Cost"],
-  },
-  "measure-my-costume": {
-    slug: "measure-my-costume",
-    brand: "Measure My Costume",
-    titleLead: "Measure My",
-    titleAccent: "Costume",
-    tagline: "Every costume, every cast member, every yard — in one place.",
-    eyebrow: "The costume shop, organized",
-    groupOrder: ["Costumes & Inventory", "Production", "Cost"],
-  },
+export const LANDING: LandingConfig = {
+  brand: "Measure My Costume",
+  titleLead: "Measure My",
+  titleAccent: "Costume",
+  tagline: "Every costume, every cast member, every yard — in one place.",
+  eyebrow: "The costume shop, organized",
+  groupOrder: ["Costumes & Inventory", "Production", "Cost"],
 };
 
-// Placeholder — confirm the real address before launch.
-export const CONTACT_EMAIL = "hello@makethedrama.com";
+export interface PricingTier {
+  name: string;
+  price: string;
+  cadence: string;
+  points: string[];
+  highlight?: boolean;
+}
+
+// Marketing copy — keep in sync by eye with PLANS in src/lib/billing-plans.ts.
+export const PRICING_TIERS: PricingTier[] = [
+  {
+    name: "Pay per production",
+    price: "$49.99",
+    cadence: "one-time, per production",
+    points: ["1 production", "3 makers included", "+$10 per extra maker"],
+  },
+  {
+    name: "Unlimited",
+    price: "$99",
+    cadence: "per year",
+    points: ["Unlimited productions", "Unlimited makers", "Best for ongoing programs"],
+    highlight: true,
+  },
+];
+
+export const CONTACT_EMAIL = "hello@measuremycostume.com";

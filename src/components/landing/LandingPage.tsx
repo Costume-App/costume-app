@@ -1,20 +1,20 @@
 import Link from "next/link";
 import {
   FEATURES,
-  VARIANTS,
+  LANDING,
+  PRICING_TIERS,
   CONTACT_EMAIL,
-  type LandingSlug,
   type FeatureGroup,
 } from "@/components/landing/landing-content";
 
 const ACTS = ["Act I", "Act II", "Act III"];
-const DEMO_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demo request — Make the Drama")}`;
+const DEMO_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demo request — Measure My Costume")}`;
 
 // One reusable, theatrical "playbill" marketing layout, themed entirely with the
-// app's Atelier tokens (muslin paper + curtain red + Fraunces). The slug selects
-// the brand name, hero framing, and which act leads.
-export function LandingPage({ slug }: { slug: LandingSlug }) {
-  const v = VARIANTS[slug];
+// app's Atelier tokens (muslin paper + curtain red + Fraunces). Single variant:
+// Measure My Costume.
+export function LandingPage() {
+  const v = LANDING;
   const groups = v.groupOrder;
 
   return (
@@ -124,6 +124,47 @@ export function LandingPage({ slug }: { slug: LandingSlug }) {
             </div>
           </div>
         ))}
+      </section>
+
+      {/* Pricing */}
+      <section className="relative mx-auto max-w-5xl px-5 pb-20">
+        <div className="mb-12 text-center">
+          <p className="lbl">Pricing</p>
+          <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
+            Simple plans for every program
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {PRICING_TIERS.map((tier) => (
+            <article
+              key={tier.name}
+              className={`surface flex flex-col p-6 ${tier.highlight ? "ring-2 ring-[var(--red)]" : ""}`}
+            >
+              {tier.highlight && (
+                <span className="lbl mb-2 inline-block text-[var(--red)]">Best value</span>
+              )}
+              <h3 className="font-display text-xl font-semibold">{tier.name}</h3>
+              <p className="mt-2">
+                <span className="font-display text-3xl font-semibold">{tier.price}</span>{" "}
+                <span className="text-sm muted">{tier.cadence}</span>
+              </p>
+              <ul className="mt-4 space-y-2 text-sm">
+                {tier.points.map((pt) => (
+                  <li key={pt} className="flex items-start gap-2">
+                    <span aria-hidden className="mt-0.5 text-[var(--red)]">✦</span>
+                    <span>{pt}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/sign-up"
+                className={`mt-6 text-center ${tier.highlight ? "btn-primary" : "btn-ghost"}`}
+              >
+                Get started →
+              </Link>
+            </article>
+          ))}
+        </div>
       </section>
 
       {/* Curtain call */}
