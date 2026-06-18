@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BodyDiagram } from "@/components/BodyDiagram";
 
 export const metadata = { title: "User Guide" };
 
@@ -22,6 +23,7 @@ export default function GuidePage() {
           <li><a href="#org" className="link-muted">Your organization &amp; team</a></li>
           <li><a href="#productions" className="link-muted">Productions &amp; show dates</a></li>
           <li><a href="#roles" className="link-muted">Roles, casts &amp; performers</a></li>
+          <li><a href="#measurements" className="link-muted">Taking measurements</a></li>
           <li><a href="#designs" className="link-muted">Costume designs &amp; pieces</a></li>
           <li><a href="#sourcing" className="link-muted">Sourcing each piece</a></li>
           <li><a href="#inventory" className="link-muted">House Inventory</a></li>
@@ -79,6 +81,18 @@ export default function GuidePage() {
             <LI><B>Performers &amp; measurements</B> — assign a performer to each role, as primary or
               understudy, and record their measurements. Height is entered and shown in feet and inches.</LI>
           </UL>
+        </Section>
+
+        <Section id="measurements" title="Taking measurements">
+          <P>
+            On a performer&apos;s page, open <B>Where do I measure?</B> to see a front and back
+            body diagram. Most measurements are in inches; <B>Shirt size</B>, <B>Pant size</B>,
+            and <B>Shoe size</B> are free text (e.g. <B>L</B>, <B>36/30</B>, <B>Men&apos;s 10</B>).
+            Focus any field on the form to see where it&apos;s taken on the body.
+          </P>
+          <div className="surface mt-3 p-4">
+            <BodyDiagram />
+          </div>
         </Section>
 
         <Section id="designs" title="Costume designs & pieces">
