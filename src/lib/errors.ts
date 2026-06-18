@@ -13,3 +13,21 @@ export class NotFoundError extends Error {
     this.name = "NotFoundError";
   }
 }
+
+// Thrown when an action exceeds the org's plan entitlements; maps to HTTP 402.
+export type PlanLimitReason = "needs_unlock" | "needs_seat" | "needs_paid_plan";
+
+const PLAN_LIMIT_MESSAGES: Record<PlanLimitReason, string> = {
+  needs_unlock: "This action needs a production unlock. Buy a production or upgrade to Unlimited.",
+  needs_seat: "This production has reached its maker limit. Add a seat or upgrade to Unlimited.",
+  needs_paid_plan: "Sharing requires a paid plan. Buy a production or upgrade to Unlimited.",
+};
+
+export class PlanLimitError extends Error {
+  reason: PlanLimitReason;
+  constructor(reason: PlanLimitReason, message?: string) {
+    super(message ?? PLAN_LIMIT_MESSAGES[reason]);
+    this.name = "PlanLimitError";
+    this.reason = reason;
+  }
+}
