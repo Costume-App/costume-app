@@ -5,6 +5,8 @@ import { assertProductionInOrg } from "@/lib/data/production-access";
 import { createProductionShare, listSharesForProduction } from "@/lib/data/production-shares";
 import { sendEmail } from "@/lib/email";
 import { shareInviteEmail } from "@/lib/share-invite-email";
+import { isPaidOrg } from "@/lib/data/billing";
+import { PlanLimitError } from "@/lib/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -25,6 +27,7 @@ export async function POST(request: Request, { params }: Ctx) {
     const { userId, orgId } = await requireOrgAdmin();
     const { id } = await params;
     const production = await assertProductionInOrg(orgId, id);
+    if (!(await isPaidOrg(orgId))) throw new PlanLimitError("needs_paid_plan");
     const body = (await request.json().catch(() => ({}))) as { recipientEmail?: string };
     const recipientEmail = typeof body.recipientEmail === "string" && body.recipientEmail.trim() ? body.recipientEmail.trim() : null;
     const share = await createProductionShare({ sourceProductionId: id, sourceOrgId: orgId, userId, recipientEmail });

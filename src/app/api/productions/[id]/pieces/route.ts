@@ -5,7 +5,8 @@ import { assertProductionInOrg, assertCastingInProduction } from "@/lib/data/pro
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces, upsertPieceSource } from "@/lib/data/costume-pieces";
 import { isCostumeSource } from "@/lib/costume-sources";
-import { ValidationError } from "@/lib/errors";
+import { ValidationError, PlanLimitError } from "@/lib/errors";
+import { canAssignMakerToProduction } from "@/lib/data/billing";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -72,6 +73,10 @@ export async function PUT(request: Request, { params }: Ctx) {
     // Shared target must also be a casting in this production (IDOR guard).
     if (body.source === "shared" && body.sharedWithCastingId) {
       await assertCastingInProduction(id, body.sharedWithCastingId);
+    }
+    if (body.makerId) {
+      const seatGate = await canAssignMakerToProduction(orgId, id, body.makerId);
+      if (!seatGate.allowed) throw new PlanLimitError("needs_seat");
     }
 
     const piece = await upsertPieceSource({

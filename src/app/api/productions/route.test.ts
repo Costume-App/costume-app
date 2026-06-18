@@ -9,9 +9,11 @@ vi.mock("@/lib/auth-context", async () => {
 
 const listProductions = vi.fn();
 const createProduction = vi.fn();
+const deleteProduction = vi.fn();
 vi.mock("@/lib/data/productions", () => ({
   listProductions: (...a: unknown[]) => listProductions(...a),
   createProduction: (...a: unknown[]) => createProduction(...a),
+  deleteProduction: (...a: unknown[]) => deleteProduction(...a),
 }));
 
 const ensureOrganization = vi.fn();
@@ -29,12 +31,32 @@ vi.mock("@/lib/data/casts", () => ({
   createCast: (...a: unknown[]) => createCast(...a),
 }));
 
+const canCreateProduction = vi.fn();
+const consumeProductionUnlock = vi.fn();
+vi.mock("@/lib/data/billing", () => ({
+  canCreateProduction: (...a: unknown[]) => canCreateProduction(...a),
+  consumeProductionUnlock: (...a: unknown[]) => consumeProductionUnlock(...a),
+}));
+
 import { GET, POST } from "@/app/api/productions/route";
 
 beforeEach(() => {
-  [getAuthContext, listProductions, createProduction, ensureOrganization, addShowDate, createCast].forEach((m) =>
-    m.mockReset(),
-  );
+  [
+    getAuthContext,
+    listProductions,
+    createProduction,
+    deleteProduction,
+    ensureOrganization,
+    addShowDate,
+    createCast,
+    canCreateProduction,
+    consumeProductionUnlock,
+  ].forEach((m) => m.mockReset());
+  // Default: unlimited org so existing tests are unaffected by the billing gate.
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  ensureOrganization.mockResolvedValue(undefined);
+  createCast.mockResolvedValue(undefined);
+  canCreateProduction.mockResolvedValue({ allowed: true, unlimited: true });
 });
 
 function postReq(body: unknown) {
@@ -62,7 +84,6 @@ test("GET returns productions for the org", async () => {
 });
 
 test("POST creates a production, stores the first show date, returns 201", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   const res = await POST(postReq({ title: "Newsies", showDate: "2026-11-01", orgName: "Lincoln HS" }));
   expect(res.status).toBe(201);
@@ -77,7 +98,6 @@ test("POST creates a production, stores the first show date, returns 201", async
 });
 
 test("POST gives the new production a default cast so cast members can be added", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   const res = await POST(postReq({ title: "Newsies", showDate: null }));
   expect(res.status).toBe(201);
@@ -85,7 +105,6 @@ test("POST gives the new production a default cast so cast members can be added"
 });
 
 test("POST does not add a show date when none is provided", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p3", title: "Cats" });
   const res = await POST(postReq({ title: "Cats", showDate: null }));
   expect(res.status).toBe(201);
@@ -93,7 +112,6 @@ test("POST does not add a show date when none is provided", async () => {
 });
 
 test("POST maps a ValidationError to 400", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockRejectedValue(new ValidationError("Title is required"));
   const res = await POST(postReq({ showDate: null }));
   expect(res.status).toBe(400);
@@ -109,7 +127,6 @@ test("POST returns 403 and never touches the DB when there is no active org", as
 });
 
 test("POST returns 400 on a malformed JSON body", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   const req = new Request("http://test/api/productions", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -120,7 +137,6 @@ test("POST returns 400 on a malformed JSON body", async () => {
 });
 
 test("POST coerces a non-string title to empty before calling the data layer", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p9", title: "" });
   await POST(postReq({ title: 42, showDate: null }));
   expect(createProduction).toHaveBeenCalledWith({
@@ -132,7 +148,6 @@ test("POST coerces a non-string title to empty before calling the data layer", a
 });
 
 test("POST creates each provided showing with its time, in order", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   const res = await POST(
     postReq({
@@ -150,7 +165,6 @@ test("POST creates each provided showing with its time, in order", async () => {
 });
 
 test("POST skips showings whose date is blank", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   const res = await POST(
     postReq({ title: "Newsies", showings: [{ date: "", time: "19:00" }, { date: "2026-11-01" }] }),
@@ -161,7 +175,6 @@ test("POST skips showings whose date is blank", async () => {
 });
 
 test("POST prefers showings[] over a legacy showDate when both are present", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   await POST(postReq({ title: "Newsies", showDate: "2026-12-31", showings: [{ date: "2026-11-01" }] }));
   expect(addShowDate).toHaveBeenCalledTimes(1);
@@ -169,7 +182,6 @@ test("POST prefers showings[] over a legacy showDate when both are present", asy
 });
 
 test("POST forwards showing label as the 4th arg to addShowDate", async () => {
-  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createProduction.mockResolvedValue({ id: "p2", title: "Newsies" });
   await POST(
     postReq({
@@ -179,4 +191,43 @@ test("POST forwards showing label as the 4th arg to addShowDate", async () => {
   );
   expect(addShowDate).toHaveBeenCalledTimes(1);
   expect(addShowDate).toHaveBeenCalledWith("p2", "2026-11-01", "19:00", "Opening Night");
+});
+
+// --- billing gate ---
+
+test("blocks creation with 402 needs_unlock when not allowed", async () => {
+  canCreateProduction.mockResolvedValue({ allowed: false, reason: "needs_unlock", unlimited: false });
+  const res = await POST(postReq({ title: "Cats" }));
+  expect(res.status).toBe(402);
+  expect((await res.json()).reason).toBe("needs_unlock");
+  expect(createProduction).not.toHaveBeenCalled();
+});
+
+test("creates and consumes an unlock for a non-unlimited org", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  canCreateProduction.mockResolvedValue({ allowed: true, unlimited: false });
+  consumeProductionUnlock.mockResolvedValue(true);
+  createProduction.mockResolvedValue({ id: "prod1", title: "Cats" });
+  const res = await POST(postReq({ title: "Cats" }));
+  expect(res.status).toBe(201);
+  expect(consumeProductionUnlock).toHaveBeenCalledWith("orgA", "prod1");
+  expect(deleteProduction).not.toHaveBeenCalled();
+});
+
+test("compensating-deletes and 402s if the unlock was claimed concurrently", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  canCreateProduction.mockResolvedValue({ allowed: true, unlimited: false });
+  consumeProductionUnlock.mockResolvedValue(false);
+  createProduction.mockResolvedValue({ id: "prod1", title: "Cats" });
+  const res = await POST(postReq({ title: "Cats" }));
+  expect(res.status).toBe(402);
+  expect(deleteProduction).toHaveBeenCalledWith("orgA", "prod1");
+});
+
+test("unlimited org creates without consuming an unlock", async () => {
+  canCreateProduction.mockResolvedValue({ allowed: true, unlimited: true });
+  createProduction.mockResolvedValue({ id: "prod1", title: "Cats" });
+  const res = await POST(postReq({ title: "Cats" }));
+  expect(res.status).toBe(201);
+  expect(consumeProductionUnlock).not.toHaveBeenCalled();
 });

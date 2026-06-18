@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 import { errorResponse } from "@/lib/api";
 import { AuthError } from "@/lib/auth-context";
-import { ValidationError, NotFoundError } from "@/lib/errors";
+import { ValidationError, NotFoundError, PlanLimitError } from "@/lib/errors";
+import { PLANS } from "@/lib/billing-plans";
 
 async function body(res: Response) {
   return (await res.json()) as { error: string };
@@ -31,4 +32,13 @@ test("unknown error maps to 500 with a generic, non-leaky message", async () => 
   const body = (await res.json()) as { error: string };
   expect(body.error).not.toContain("boom");
   expect(body.error).toBe("Something went wrong. Please try again.");
+});
+
+test("errorResponse maps PlanLimitError to 402 with reason and plans", async () => {
+  const res = errorResponse(new PlanLimitError("needs_unlock"));
+  expect(res.status).toBe(402);
+  const body = await res.json();
+  expect(body.reason).toBe("needs_unlock");
+  expect(body.plans).toEqual(PLANS);
+  expect(typeof body.error).toBe("string");
 });
