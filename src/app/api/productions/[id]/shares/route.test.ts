@@ -30,16 +30,25 @@ vi.mock("@/lib/email", () => ({
   isEmailConfigured: () => isEmailConfigured(),
 }));
 
+const canCreateProduction = vi.fn();
+const consumeProductionUnlock = vi.fn();
+vi.mock("@/lib/data/billing", () => ({
+  canCreateProduction: (...a: unknown[]) => canCreateProduction(...a),
+  consumeProductionUnlock: (...a: unknown[]) => consumeProductionUnlock(...a),
+}));
+
 import { GET, POST } from "@/app/api/productions/[id]/shares/route";
 import { DELETE } from "@/app/api/productions/[id]/shares/[shareId]/route";
 import { POST as RESEND } from "@/app/api/productions/[id]/shares/[shareId]/resend/route";
 import { POST as ACCEPT } from "@/app/api/shares/[token]/accept/route";
 
 beforeEach(() => {
-  [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, getShareById, sendEmail, isEmailConfigured].forEach((m) => m.mockReset());
+  [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, getShareById, sendEmail, isEmailConfigured, canCreateProduction, consumeProductionUnlock].forEach((m) => m.mockReset());
   assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Cats" });
   sendEmail.mockResolvedValue({ sent: true });
   isEmailConfigured.mockReturnValue(true);
+  // Default: unlimited org so ACCEPT tests pass through the billing gate.
+  canCreateProduction.mockResolvedValue({ allowed: true, unlimited: true });
 });
 
 const idCtx = (id: string) => ({ params: Promise.resolve({ id }) });

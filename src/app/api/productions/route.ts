@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
-import { listProductions, createProduction } from "@/lib/data/productions";
+import { listProductions, createProduction, deleteProduction } from "@/lib/data/productions";
 import { ensureOrganization } from "@/lib/data/organizations";
 import { addShowDate } from "@/lib/data/show-dates";
 import { createCast } from "@/lib/data/casts";
+import { canCreateProduction, consumeProductionUnlock } from "@/lib/data/billing";
+import { PlanLimitError } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -27,6 +29,8 @@ export async function POST(request: Request) {
       orgName?: string;
     };
     await ensureOrganization(orgId, body.orgName ?? "My School");
+    const gate = await canCreateProduction(orgId);
+    if (!gate.allowed) throw new PlanLimitError("needs_unlock");
     const production = await createProduction({
       orgId,
       createdBy: userId,
@@ -48,6 +52,13 @@ export async function POST(request: Request) {
       }
     } else if (typeof body.showDate === "string" && body.showDate.trim()) {
       await addShowDate(production.id, body.showDate, null);
+    }
+    if (!gate.unlimited) {
+      const consumed = await consumeProductionUnlock(orgId, production.id);
+      if (!consumed) {
+        await deleteProduction(orgId, production.id);
+        throw new PlanLimitError("needs_unlock");
+      }
     }
     return NextResponse.json({ production }, { status: 201 });
   } catch (err) {
