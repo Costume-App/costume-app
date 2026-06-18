@@ -50,7 +50,7 @@ export function TailorSummary({
   measurementsByCasting: Record<string, MeasurementView[]>;
   makers: { id: string; name: string; color: string }[];
   fabricWidths: { id: string; value: string; isDefault: boolean }[];
-  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean }[];
+  fabricSuppliers: { id: string; name: string; pricePerYard: number | null; isDefault: boolean; url: string | null }[];
   costumesDueDate: string | null;
   today: string;
   filterMakerId?: string;
@@ -91,8 +91,12 @@ export function TailorSummary({
   const purchase = useMemo(() => {
     const items = worklist.roles.flatMap((r) => r.garments.flatMap((g) => g.items));
     const supplierPrices: Record<string, number> = {};
-    for (const s of fabricSuppliers) if (s.pricePerYard != null) supplierPrices[s.name] = s.pricePerYard;
-    return buildFabricPurchaseList(items, supplierPrices);
+    const supplierUrls: Record<string, string> = {};
+    for (const s of fabricSuppliers) {
+      if (s.pricePerYard != null) supplierPrices[s.name] = s.pricePerYard;
+      if (s.url) supplierUrls[s.name.trim().toLowerCase()] = s.url;
+    }
+    return buildFabricPurchaseList(items, supplierPrices, supplierUrls);
   }, [worklist, fabricSuppliers]);
   const purchased = useMemo(
     () => buildPurchaseWorklist(roles, designs, castings, performers, casts, pieces),

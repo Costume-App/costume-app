@@ -43,7 +43,15 @@ export function FabricPurchaseList({ purchase }: { purchase: PurchaseList }) {
                     <td className="py-1.5">{l.width ?? "—"}</td>
                     <td className="py-1.5 pr-4 text-right">{formatYards(l.totalYardage)}</td>
                     <td className="py-1.5 pr-6 text-right">{money(l.estCost)}</td>
-                    <td className="py-1.5">{l.supplier ?? "—"}</td>
+                    <td className="py-1.5">
+                      {l.supplierUrl && l.supplier ? (
+                        <a href={l.supplierUrl} target="_blank" rel="noopener noreferrer" className="link-red">
+                          {l.supplier}
+                        </a>
+                      ) : (
+                        l.supplier ?? "—"
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {g.lines.length > 1 && (
