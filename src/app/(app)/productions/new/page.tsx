@@ -39,7 +39,7 @@ export default async function NewProductionPage() {
           {isBillingConfigured() ? (
             <>
               <CheckoutButton type="unlock" label="Buy this production — $49.99" />
-              <CheckoutButton type="unlimited" label="Go Unlimited — $99/yr" className="btn-ghost" />
+              <CheckoutButton type="unlimited" label="Go Unlimited — $99.99/yr" className="btn-ghost" />
             </>
           ) : (
             <button type="button" disabled className="btn-primary flex-1 opacity-60">

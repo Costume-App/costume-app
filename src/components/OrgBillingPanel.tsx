@@ -57,7 +57,7 @@ export function OrgBillingPanel() {
   if (error) return <p className="text-sm text-[var(--red)]">{error}</p>;
   if (!status) return <p className="text-sm muted">Loading…</p>;
 
-  const planLabel = status.isUnlimited ? "Unlimited ($99/yr)" : status.isPaidOrg ? "Pay per production" : "No plan yet";
+  const planLabel = status.isUnlimited ? "Unlimited ($99.99/yr)" : status.isPaidOrg ? "Pay per production" : "No plan yet";
 
   return (
     <div className="space-y-4 text-sm">
@@ -71,7 +71,7 @@ export function OrgBillingPanel() {
       {!status.billingConfigured && <p className="muted">Online checkout isn&rsquo;t set up yet.</p>}
       {status.billingConfigured && (
         <div className="flex flex-wrap gap-2">
-          {!status.isUnlimited && <CheckoutButton type="unlimited" label="Go Unlimited — $99/yr" />}
+          {!status.isUnlimited && <CheckoutButton type="unlimited" label="Go Unlimited — $99.99/yr" />}
           {status.hasStripeCustomer && (
             <button type="button" className="btn-ghost" disabled={busy} onClick={() => void manage()}>
               {busy ? "Opening…" : "Manage billing"}

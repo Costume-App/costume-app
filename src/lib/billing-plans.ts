@@ -16,7 +16,7 @@ export const PLANS = {
   unlimited: {
     id: "unlimited",
     label: "Unlimited",
-    price: "$99/year",
+    price: "$99.99/year",
     includes: "Unlimited productions & makers",
   },
 } as const;

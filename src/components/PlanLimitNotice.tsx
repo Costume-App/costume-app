@@ -21,13 +21,13 @@ export function PlanLimitNotice({
       {reason === "needs_seat" && (
         <div className="flex flex-wrap gap-2">
           <CheckoutButton type="seat" productionId={productionId} label="Add a maker — $10" />
-          <CheckoutButton type="unlimited" label="Go Unlimited — $99/yr" className="btn-ghost" />
+          <CheckoutButton type="unlimited" label="Go Unlimited — $99.99/yr" className="btn-ghost" />
         </div>
       )}
       {(reason === "needs_paid_plan" || reason === "needs_unlock") && (
         <div className="flex flex-wrap gap-2">
           <CheckoutButton type="unlock" label="Buy a production — $49.99" />
-          <CheckoutButton type="unlimited" label="Go Unlimited — $99/yr" className="btn-ghost" />
+          <CheckoutButton type="unlimited" label="Go Unlimited — $99.99/yr" className="btn-ghost" />
         </div>
       )}
     </div>
