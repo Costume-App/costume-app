@@ -1,7 +1,7 @@
 import "server-only";
 import type Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, PRICE_IDS, type CheckoutType } from "@/lib/stripe";
 import { ensureOrgRow } from "@/lib/data/organizations";
 
 // Period end lives on the subscription item in Stripe API 2026-05-27.dahlia
@@ -86,6 +86,29 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
     return;
   }
   throw new Error(`Unknown checkout type: ${type}`);
+}
+
+// Single source of truth for building a Stripe Checkout session. Used by the
+// checkout route and by /billing/resume.
+export async function createCheckoutSession(input: {
+  orgId: string;
+  type: CheckoutType;
+  productionId?: string;
+  origin: string;
+}): Promise<string> {
+  const { orgId, type, productionId, origin } = input;
+  const customer = await getOrCreateStripeCustomer(orgId);
+  const session = await getStripe().checkout.sessions.create({
+    mode: type === "unlimited" ? "subscription" : "payment",
+    customer,
+    line_items: [{ price: PRICE_IDS[type], quantity: 1 }],
+    metadata: { orgId, type, ...(productionId ? { productionId } : {}) },
+    ...(type === "unlimited" ? { subscription_data: { metadata: { orgId } } } : {}),
+    success_url: `${origin}/billing/return?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/productions`,
+  });
+  if (!session.url) throw new Error("Stripe did not return a checkout URL");
+  return session.url;
 }
 
 // Keep org_subscriptions in sync with subscription lifecycle + renewal events.

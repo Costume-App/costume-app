@@ -3,8 +3,8 @@ import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { ValidationError } from "@/lib/errors";
 import { assertProductionInOrg } from "@/lib/data/production-access";
-import { isBillingConfigured, getStripe, PRICE_IDS, type CheckoutType } from "@/lib/stripe";
-import { getOrCreateStripeCustomer } from "@/lib/data/stripe-billing";
+import { isBillingConfigured, type CheckoutType } from "@/lib/stripe";
+import { createCheckoutSession } from "@/lib/data/stripe-billing";
 
 export async function POST(request: Request) {
   try {
@@ -21,18 +21,13 @@ export async function POST(request: Request) {
       if (!body.productionId) throw new ValidationError("productionId is required for a seat");
       await assertProductionInOrg(orgId, body.productionId);
     }
-    const customer = await getOrCreateStripeCustomer(orgId);
-    const origin = new URL(request.url).origin;
-    const session = await getStripe().checkout.sessions.create({
-      mode: type === "unlimited" ? "subscription" : "payment",
-      customer,
-      line_items: [{ price: PRICE_IDS[type], quantity: 1 }],
-      metadata: { orgId, type, ...(body.productionId ? { productionId: body.productionId } : {}) },
-      ...(type === "unlimited" ? { subscription_data: { metadata: { orgId } } } : {}),
-      success_url: `${origin}/billing/return?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/productions`,
+    const url = await createCheckoutSession({
+      orgId,
+      type,
+      productionId: body.productionId,
+      origin: new URL(request.url).origin,
     });
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url });
   } catch (err) {
     return errorResponse(err);
   }
