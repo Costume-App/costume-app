@@ -16,7 +16,7 @@ const hanken = Hanken_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Costume Studio",
+  title: "Measure My Costume",
   description: "Plan costumes, casts, and fabric for your production.",
 };
 
