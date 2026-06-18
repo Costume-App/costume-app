@@ -70,6 +70,18 @@ export async function getShareByToken(token: string): Promise<{
   };
 }
 
+// A single share scoped to its source production (so an admin can only touch their own).
+export async function getShareById(productionId: string, shareId: string): Promise<ProductionShare | null> {
+  const { data, error } = await supabaseAdmin
+    .from("production_shares")
+    .select("*")
+    .eq("id", shareId)
+    .eq("source_production_id", productionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as ProductionShare) ?? null;
+}
+
 export async function listSharesForProduction(productionId: string): Promise<ProductionShare[]> {
   const { data, error } = await supabaseAdmin
     .from("production_shares")

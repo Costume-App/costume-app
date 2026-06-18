@@ -15,6 +15,7 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Share | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [resent, setResent] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(`/api/productions/${productionId}/shares`, { credentials: "include" });
@@ -52,6 +53,25 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
       setCreated(data.share);
       setEmail("");
       await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend(shareId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/productions/${productionId}/shares/${shareId}/resend`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setResent(shareId);
+        window.setTimeout(() => setResent((r) => (r === shareId ? null : r)), 1500);
+      } else {
+        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't resend the email.");
+      }
     } finally {
       setBusy(false);
     }
@@ -157,7 +177,12 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
                 {others.map((s) => (
                   <li key={s.id} className="space-y-0.5">
                     {s.recipient_email && (
-                      <span className="muted block text-xs">Sent to {s.recipient_email}</span>
+                      <span className="muted block text-xs">
+                        Sent to {s.recipient_email}{" "}
+                        <button type="button" className="link-red" disabled={busy} onClick={() => void resend(s.id)}>
+                          {resent === s.id ? "Sent!" : "Resend"}
+                        </button>
+                      </span>
                     )}
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="muted min-w-0 flex-1 truncate">{linkFor(s.token)}</span>

@@ -20,7 +20,7 @@ const copyDesignLayer = vi.fn();
 vi.mock("@/lib/data/production-copy", () => ({ copyDesignLayer: (...a: unknown[]) => copyDesignLayer(...a) }));
 
 import {
-  createProductionShare, getShareByToken, listSharesForProduction, revokeShare, acceptProductionShare,
+  createProductionShare, getShareByToken, getShareById, listSharesForProduction, revokeShare, acceptProductionShare,
 } from "@/lib/data/production-shares";
 
 beforeEach(() => {
@@ -37,6 +37,15 @@ test("createProductionShare inserts a pending row with a token", async () => {
   expect(chain.insert).toHaveBeenCalledWith(
     expect.objectContaining({ source_production_id: "p1", source_org_id: "orgA", created_by: "u1", recipient_email: "x@y.com", token: expect.any(String) }),
   );
+});
+
+test("getShareById scopes by id and source production", async () => {
+  setResult({ id: "s1", source_production_id: "p1", token: "t", recipient_email: "x@y.com", status: "pending" });
+  const row = await getShareById("p1", "s1");
+  expect(from).toHaveBeenCalledWith("production_shares");
+  expect(chain.eq).toHaveBeenCalledWith("id", "s1");
+  expect(chain.eq).toHaveBeenCalledWith("source_production_id", "p1");
+  expect(row?.token).toBe("t");
 });
 
 test("getShareByToken returns the share plus a source summary", async () => {

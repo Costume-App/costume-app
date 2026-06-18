@@ -14,24 +14,32 @@ const createProductionShare = vi.fn();
 const listSharesForProduction = vi.fn();
 const revokeShare = vi.fn();
 const acceptProductionShare = vi.fn();
+const getShareById = vi.fn();
 vi.mock("@/lib/data/production-shares", () => ({
   createProductionShare: (...a: unknown[]) => createProductionShare(...a),
   listSharesForProduction: (...a: unknown[]) => listSharesForProduction(...a),
   revokeShare: (...a: unknown[]) => revokeShare(...a),
   acceptProductionShare: (...a: unknown[]) => acceptProductionShare(...a),
+  getShareById: (...a: unknown[]) => getShareById(...a),
 }));
 
 const sendEmail = vi.fn();
-vi.mock("@/lib/email", () => ({ sendEmail: (...a: unknown[]) => sendEmail(...a) }));
+const isEmailConfigured = vi.fn();
+vi.mock("@/lib/email", () => ({
+  sendEmail: (...a: unknown[]) => sendEmail(...a),
+  isEmailConfigured: () => isEmailConfigured(),
+}));
 
 import { GET, POST } from "@/app/api/productions/[id]/shares/route";
 import { DELETE } from "@/app/api/productions/[id]/shares/[shareId]/route";
+import { POST as RESEND } from "@/app/api/productions/[id]/shares/[shareId]/resend/route";
 import { POST as ACCEPT } from "@/app/api/shares/[token]/accept/route";
 
 beforeEach(() => {
-  [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, sendEmail].forEach((m) => m.mockReset());
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, getShareById, sendEmail, isEmailConfigured].forEach((m) => m.mockReset());
+  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Cats" });
   sendEmail.mockResolvedValue({ sent: true });
+  isEmailConfigured.mockReturnValue(true);
 });
 
 const idCtx = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -105,4 +113,38 @@ test("POST accept 401 when signed out", async () => {
   getAuthContext.mockRejectedValue(new AuthError(401, "Not signed in"));
   const res = await ACCEPT(postReq({}), tokenCtx("tok123"));
   expect(res.status).toBe(401);
+});
+
+test("POST resend re-emails a sent, pending link as an admin", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  getShareById.mockResolvedValue({ id: "s1", token: "tok123", recipient_email: "x@y.com", status: "pending" });
+  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  expect(res.status).toBe(200);
+  expect(getShareById).toHaveBeenCalledWith("p1", "s1");
+  expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "x@y.com" }));
+});
+
+test("POST resend 400 when the link has no recipient email", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  getShareById.mockResolvedValue({ id: "s1", token: "tok123", recipient_email: null, status: "pending" });
+  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  expect(res.status).toBe(400);
+  expect(sendEmail).not.toHaveBeenCalled();
+});
+
+test("POST resend 400 when email isn't configured", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  isEmailConfigured.mockReturnValue(false);
+  getShareById.mockResolvedValue({ id: "s1", token: "tok123", recipient_email: "x@y.com", status: "pending" });
+  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  expect(res.status).toBe(400);
+  expect(sendEmail).not.toHaveBeenCalled();
+});
+
+test("POST resend is rejected for a non-admin", async () => {
+  const { AuthError } = await import("@/lib/auth-context");
+  requireOrgAdmin.mockRejectedValue(new AuthError(403, "Admin access required"));
+  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  expect(res.status).toBe(403);
+  expect(getShareById).not.toHaveBeenCalled();
 });

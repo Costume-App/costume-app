@@ -4,6 +4,7 @@ import { errorResponse } from "@/lib/api";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { createProductionShare, listSharesForProduction } from "@/lib/data/production-shares";
 import { sendEmail } from "@/lib/email";
+import { shareInviteEmail } from "@/lib/share-invite-email";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -31,11 +32,7 @@ export async function POST(request: Request, { params }: Ctx) {
     if (recipientEmail) {
       const link = `${new URL(request.url).origin}/share/${share.token}`;
       try {
-        await sendEmail({
-          to: recipientEmail,
-          subject: `A costume production was shared with you on Measure My Costume`,
-          text: `You've been invited to copy the production "${production.title}" into your organization.\n\nOpen this link, sign in, and accept:\n${link}\n\nYou'll get roles, design notes, and idea photos — performers and measurements are not included.`,
-        });
+        await sendEmail({ to: recipientEmail, ...shareInviteEmail(production.title, link) });
       } catch (e) {
         console.error("Share invite email failed (share still created):", e);
       }
