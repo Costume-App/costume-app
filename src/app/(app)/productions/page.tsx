@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
+import { SharePanel } from "@/components/SharePanel";
 import { listProductions } from "@/lib/data/productions";
 import { listInventoryItems } from "@/lib/data/inventory-items";
 import { listShowDates } from "@/lib/data/show-dates";
@@ -13,6 +15,8 @@ import { partitionProductions } from "@/lib/production-status";
 
 export default async function ProductionsPage() {
   const { orgId } = await getAuthContext();
+  const { orgRole } = await auth();
+  const isAdmin = orgRole === "org:admin";
   const [productions, inventoryItems] = await Promise.all([
     listProductions(orgId),
     listInventoryItems(orgId),
@@ -49,8 +53,8 @@ export default async function ProductionsPage() {
           {active.length > 0 && (
             <ul className="space-y-3">
               {active.map((p) => (
-                <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
-                  <Link href={`/productions/${p.id}`} className="block p-4">
+                <li key={p.id} className="surface">
+                  <Link href={`/productions/${p.id}`} className="block p-4 transition-transform hover:-translate-y-0.5">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-display text-xl font-semibold">{p.title}</span>
                       <CountdownBadge showDate={nextUpcomingDate(p.dates, today)} />
@@ -61,11 +65,16 @@ export default async function ProductionsPage() {
                       </div>
                     )}
                   </Link>
+                  {isAdmin && (
+                    <div className="border-t border-[var(--field-line)] px-4 py-2">
+                      <SharePanel productionId={p.id} canShare />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          <PastAndInactiveProductions productions={pastAndInactive} />
+          <PastAndInactiveProductions productions={pastAndInactive} canShare={isAdmin} />
         </>
       )}
 

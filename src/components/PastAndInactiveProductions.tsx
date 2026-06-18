@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ShowingsList } from "@/components/ShowingsList";
+import { SharePanel } from "@/components/SharePanel";
 
 interface Row {
   id: string;
@@ -10,7 +11,7 @@ interface Row {
   showings: { id: string; show_date: string; show_time: string | null }[];
 }
 
-export function PastAndInactiveProductions({ productions }: { productions: Row[] }) {
+export function PastAndInactiveProductions({ productions, canShare }: { productions: Row[]; canShare: boolean }) {
   const [open, setOpen] = useState(false);
 
   if (productions.length === 0) return null;
@@ -33,8 +34,8 @@ export function PastAndInactiveProductions({ productions }: { productions: Row[]
       </div>
       <ul className="space-y-3">
         {productions.map((p) => (
-          <li key={p.id} className="surface transition-transform hover:-translate-y-0.5">
-            <Link href={`/productions/${p.id}`} className="block p-4">
+          <li key={p.id} className="surface">
+            <Link href={`/productions/${p.id}`} className="block p-4 transition-transform hover:-translate-y-0.5">
               <span className="font-display text-xl font-semibold">{p.title}</span>
               {p.showings.length > 0 && (
                 <div className="mt-2">
@@ -42,6 +43,11 @@ export function PastAndInactiveProductions({ productions }: { productions: Row[]
                 </div>
               )}
             </Link>
+            {canShare && (
+              <div className="border-t border-[var(--field-line)] px-4 py-2">
+                <SharePanel productionId={p.id} canShare />
+              </div>
+            )}
           </li>
         ))}
       </ul>

@@ -1,13 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 type Share = { id: string; token: string; recipient_email: string | null; status: string; created_at: string };
 
-// Renders the production page's top bar: the "← Productions" back link, plus (for admins)
-// a "Share production" link that toggles a full-width share form below the row.
-export function SharePanel({ productionId, canShare }: { productionId: string; canShare: boolean }) {
+// A "Share production" link (admins only) that toggles a share form below it. `leftSlot`
+// renders to its left on the same row (used for the back link in the production header);
+// without it, the trigger is left-aligned for use at the bottom of a production card.
+export function SharePanel({
+  productionId,
+  canShare,
+  leftSlot,
+}: {
+  productionId: string;
+  canShare: boolean;
+  leftSlot?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [shares, setShares] = useState<Share[] | null>(null);
   const [email, setEmail] = useState("");
@@ -97,10 +105,8 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4">
-        <Link href="/productions" className="link-muted text-sm">
-          ← Productions
-        </Link>
+      <div className={leftSlot ? "flex items-center justify-between gap-4" : ""}>
+        {leftSlot}
         {canShare && (
           <button
             type="button"
@@ -114,7 +120,7 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
       </div>
 
       {canShare && open && (
-        <div className="mt-3 mb-6 space-y-4 border-t border-[var(--field-line)] pt-3">
+        <div className={`mt-3 space-y-4 border-t border-[var(--field-line)] pt-3${leftSlot ? " mb-6" : ""}`}>
           <p className="text-sm muted">
             Share this production with another school or organization. Put the email of the person
             you want to share with in the email box below or, to create a link to share directly,
