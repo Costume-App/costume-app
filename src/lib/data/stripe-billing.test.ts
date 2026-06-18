@@ -98,3 +98,30 @@ test("fulfill unlimited upserts org_subscriptions by org_id, preserving comped (
   expect(payload).not.toHaveProperty("comped");
   expect(opts).toMatchObject({ onConflict: "org_id" });
 });
+
+import { applySubscriptionEvent } from "@/lib/data/stripe-billing";
+type Sub = Stripe.Subscription;
+const sub = (o: Record<string, unknown>) => o as unknown as Sub;
+
+test("applySubscriptionEvent updates the row matched by subscription id", async () => {
+  chain.select = vi.fn(() => chain); // update(...).eq(...).select() returns a matched row
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [{ org_id: "orgA" }], error: null });
+  await applySubscriptionEvent(sub({ id: "sub_1", status: "active", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgA" } }));
+  expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ status: "active" }));
+  expect(chain.eq).toHaveBeenCalledWith("stripe_subscription_id", "sub_1");
+});
+
+test("applySubscriptionEvent upserts by org when no row matched (event raced ahead)", async () => {
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [], error: null });
+  await applySubscriptionEvent(sub({ id: "sub_2", status: "active", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgB" } }));
+  expect(chain.upsert).toHaveBeenCalledWith(
+    expect.objectContaining({ org_id: "orgB", stripe_subscription_id: "sub_2", status: "active" }),
+    expect.objectContaining({ onConflict: "org_id" }),
+  );
+});
+
+test("applySubscriptionEvent records a canceled status", async () => {
+  (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [{ org_id: "orgA" }], error: null });
+  await applySubscriptionEvent(sub({ id: "sub_1", status: "canceled", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgA" } }));
+  expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ status: "canceled" }));
+});

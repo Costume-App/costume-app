@@ -82,3 +82,25 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
   }
   throw new Error(`Unknown checkout type: ${type}`);
 }
+
+// Keep org_subscriptions in sync with subscription lifecycle + renewal events.
+export async function applySubscriptionEvent(subscription: Stripe.Subscription): Promise<void> {
+  const update = {
+    status: subscription.status,
+    current_period_end: subscriptionPeriodEndIso(subscription),
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabaseAdmin
+    .from("org_subscriptions")
+    .update(update)
+    .eq("stripe_subscription_id", subscription.id)
+    .select("org_id");
+  if (error) throw new Error(error.message);
+  if ((!data || (data as unknown[]).length === 0) && subscription.metadata?.orgId) {
+    const { error: upErr } = await supabaseAdmin.from("org_subscriptions").upsert(
+      { org_id: subscription.metadata.orgId, stripe_subscription_id: subscription.id, ...update },
+      { onConflict: "org_id" },
+    );
+    if (upErr) throw new Error(upErr.message);
+  }
+}
