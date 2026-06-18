@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { orgGate } from "@/lib/route-guard";
 
-const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/api/billing/webhook"]);
+const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/get-started", "/api/billing/webhook"]);
 const isOnboarding = createRouteMatcher(["/onboarding(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -26,6 +26,12 @@ export default clerkMiddleware(async (auth, req) => {
   const decision = orgGate({ isOnboarding: isOnboarding(req), orgId: orgId ?? null });
   if (decision.type === "redirect") {
     return NextResponse.redirect(new URL(decision.to, req.url));
+  }
+
+  // Resume a checkout started from the landing once the user has an org. Skip
+  // /billing/* to avoid looping with /billing/resume and /billing/return.
+  if (orgId && req.cookies.get("checkout_intent") && !req.nextUrl.pathname.startsWith("/billing")) {
+    return NextResponse.redirect(new URL("/billing/resume", req.url));
   }
 });
 

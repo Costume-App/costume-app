@@ -23,10 +23,12 @@ let billingConfigured = true;
 const stripeMock = {
   customers: { create: vi.fn() },
   subscriptions: { retrieve: vi.fn() },
+  checkout: { sessions: { create: vi.fn() } },
 };
 vi.mock("@/lib/stripe", () => ({
   isBillingConfigured: () => billingConfigured,
   getStripe: () => stripeMock,
+  PRICE_IDS: { unlock: "price_unlock", seat: "price_seat", unlimited: "price_unlimited" },
 }));
 
 // ── organizations mock (getOrCreateStripeCustomer ensures the FK-target row) ───
@@ -40,7 +42,7 @@ vi.mock("@/lib/data/organizations", () => ({
 // Override: make upsert return a resolved promise with {data: null, error: null}
 chain.upsert = vi.fn(() => Promise.resolve({ data: null, error: null }));
 
-import { getOrCreateStripeCustomer, fulfillCheckoutSession } from "@/lib/data/stripe-billing";
+import { getOrCreateStripeCustomer, fulfillCheckoutSession, createCheckoutSession } from "@/lib/data/stripe-billing";
 import type Stripe from "stripe";
 
 beforeEach(() => {
@@ -48,8 +50,13 @@ beforeEach(() => {
   Object.values(chain).forEach((m) => typeof m === "function" && (m as ReturnType<typeof vi.fn>).mockClear?.());
   from.mockClear();
   Object.values(stripeMock).forEach((g) =>
-    Object.values(g).forEach((f) => (f as ReturnType<typeof vi.fn>).mockReset?.()),
+    Object.values(g).forEach((f) => {
+      if (typeof f === "function") (f as ReturnType<typeof vi.fn>).mockReset?.();
+      else if (typeof f === "object" && f !== null)
+        Object.values(f as Record<string, unknown>).forEach((ff) => (ff as ReturnType<typeof vi.fn>).mockReset?.());
+    }),
   );
+  stripeMock.checkout.sessions.create.mockReset();
   setResult(null, null);
   // Restore upsert to resolve cleanly after mockClear
   chain.upsert = vi.fn(() => Promise.resolve({ data: null, error: null }));
@@ -136,4 +143,34 @@ test("applySubscriptionEvent records a canceled status", async () => {
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => resolve({ data: [{ org_id: "orgA" }], error: null });
   await applySubscriptionEvent(sub({ id: "sub_1", status: "canceled", items: { data: [{ current_period_end: 4102444800 }] }, metadata: { orgId: "orgA" } }));
   expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ status: "canceled" }));
+});
+
+// ── createCheckoutSession unit tests ─────────────────────────────────────────
+
+test("createCheckoutSession builds a one-time payment session for unlock and returns the url", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: { stripe_customer_id: "cus_1" }, error: null }));
+  stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://stripe/x" });
+  const url = await createCheckoutSession({ orgId: "orgA", type: "unlock", origin: "https://app" });
+  expect(url).toBe("https://stripe/x");
+  const params = stripeMock.checkout.sessions.create.mock.calls[0][0];
+  expect(params).toMatchObject({ mode: "payment", customer: "cus_1", metadata: { orgId: "orgA", type: "unlock" } });
+  expect(params.line_items).toEqual([{ price: "price_unlock", quantity: 1 }]);
+  expect(params.success_url).toBe("https://app/billing/return?session_id={CHECKOUT_SESSION_ID}");
+  expect(params.cancel_url).toBe("https://app/productions");
+});
+
+test("createCheckoutSession uses subscription mode + metadata for unlimited", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: { stripe_customer_id: "cus_1" }, error: null }));
+  stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://stripe/y" });
+  await createCheckoutSession({ orgId: "orgA", type: "unlimited", origin: "https://app" });
+  const params = stripeMock.checkout.sessions.create.mock.calls[0][0];
+  expect(params).toMatchObject({ mode: "subscription", subscription_data: { metadata: { orgId: "orgA" } } });
+  expect(params.line_items).toEqual([{ price: "price_unlimited", quantity: 1 }]);
+});
+
+test("createCheckoutSession passes productionId metadata for a seat", async () => {
+  chain.maybeSingle = vi.fn(() => Promise.resolve({ data: { stripe_customer_id: "cus_1" }, error: null }));
+  stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://stripe/z" });
+  await createCheckoutSession({ orgId: "orgA", type: "seat", productionId: "prod1", origin: "https://app" });
+  expect(stripeMock.checkout.sessions.create.mock.calls[0][0].metadata).toEqual({ orgId: "orgA", type: "seat", productionId: "prod1" });
 });
