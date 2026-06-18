@@ -13,5 +13,5 @@ create table if not exists production_shares (
   created_at              timestamptz not null default now(),
   accepted_at             timestamptz
 );
-create index if not exists production_shares_token_idx on production_shares (token);
+-- token already has a unique index from the column's UNIQUE constraint, so no extra index here.
 create index if not exists production_shares_source_idx on production_shares (source_production_id);

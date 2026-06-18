@@ -108,6 +108,10 @@ export async function markShareAccepted(shareId: string, input: {
 }
 
 // Single-use: copy the source design layer into recipientOrgId, then mark accepted.
+// Known low-severity race: the pending-check and the mark-accepted update are not atomic,
+// so two near-simultaneous accepts of one token could each produce a copy. Bounded (a
+// duplicate production, no cross-org leak) and acceptable at this app's scale; harden with
+// a `.eq("status","pending")`-guarded update + affected-row check if it ever matters.
 export async function acceptProductionShare(input: {
   token: string;
   recipientOrgId: string;
