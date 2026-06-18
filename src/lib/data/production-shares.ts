@@ -25,7 +25,8 @@ export async function createProductionShare(input: {
   userId: string;
   recipientEmail: string | null;
 }): Promise<ProductionShare> {
-  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  // Short, URL-safe, unguessable: 12 random bytes → 16 base64url chars (96 bits).
+  const token = Buffer.from(crypto.getRandomValues(new Uint8Array(12))).toString("base64url");
   const { data, error } = await supabaseAdmin
     .from("production_shares")
     .insert({
