@@ -6,6 +6,7 @@ import { listShowDates } from "@/lib/data/show-dates";
 import { CountdownBadge } from "@/components/CountdownBadge";
 import { PastAndInactiveProductions } from "@/components/PastAndInactiveProductions";
 import { InventoryQuickAddCard } from "@/components/InventoryQuickAddCard";
+import { FeedbackCard } from "@/components/FeedbackCard";
 import { ShowingsList } from "@/components/ShowingsList";
 import { nextUpcomingDate, todayIso } from "@/lib/countdown";
 import { partitionProductions } from "@/lib/production-status";
@@ -74,6 +75,7 @@ export default async function ProductionsPage() {
         <span className="font-display text-xl font-semibold">User Guide →</span>
         <span className="mt-0.5 block text-sm muted">How to use every feature, step by step</span>
       </Link>
+      <FeedbackCard />
     </main>
   );
 }
