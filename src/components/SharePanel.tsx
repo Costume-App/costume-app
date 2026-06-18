@@ -16,6 +16,7 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
   const [created, setCreated] = useState<Share | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [resent, setResent] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(`/api/productions/${productionId}/shares`, { credentials: "include" });
@@ -79,12 +80,15 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
 
   async function revoke(shareId: string) {
     setBusy(true);
+    setRevoking(shareId); // strike the row through while it's being invalidated
     try {
       await fetch(`/api/productions/${productionId}/shares/${shareId}`, { method: "DELETE", credentials: "include" });
       if (created?.id === shareId) setCreated(null);
+      await new Promise((r) => setTimeout(r, 400)); // let the strike-through register before it drops out
       await load();
     } finally {
       setBusy(false);
+      setRevoking(null);
     }
   }
 
@@ -175,22 +179,31 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
               <span className="lbl block">Active links</span>
               <ul className="space-y-1.5 text-sm">
                 {others.map((s) => (
-                  <li key={s.id} className="space-y-0.5">
+                  <li
+                    key={s.id}
+                    className={`space-y-0.5 transition-opacity ${revoking === s.id ? "opacity-50" : ""}`}
+                  >
                     {s.recipient_email && (
-                      <span className="muted block text-xs">
+                      <span className={`muted block text-xs ${revoking === s.id ? "line-through" : ""}`}>
                         Sent to {s.recipient_email}{" "}
-                        <button type="button" className="link-red" disabled={busy} onClick={() => void resend(s.id)}>
-                          {resent === s.id ? "Sent!" : "Resend"}
-                        </button>
+                        {revoking !== s.id && (
+                          <button type="button" className="link-red" disabled={busy} onClick={() => void resend(s.id)}>
+                            {resent === s.id ? "Sent!" : "Resend"}
+                          </button>
+                        )}
                       </span>
                     )}
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="muted min-w-0 flex-1 truncate">{linkFor(s.token)}</span>
-                      <button type="button" className="link-red" onClick={() => void copy(s.token, s.id)}>
-                        {copied === s.id ? "Copied!" : "Copy"}
-                      </button>
+                      <span className={`muted min-w-0 flex-1 truncate ${revoking === s.id ? "line-through" : ""}`}>
+                        {linkFor(s.token)}
+                      </span>
+                      {revoking !== s.id && (
+                        <button type="button" className="link-red" onClick={() => void copy(s.token, s.id)}>
+                          {copied === s.id ? "Copied!" : "Copy"}
+                        </button>
+                      )}
                       <button type="button" className="link-muted" disabled={busy} onClick={() => void revoke(s.id)}>
-                        Revoke
+                        {revoking === s.id ? "Revoking…" : "Revoke"}
                       </button>
                     </div>
                   </li>
