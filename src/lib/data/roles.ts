@@ -93,3 +93,19 @@ export async function deleteRole(productionId: string, id: string): Promise<void
     .eq("production_id", productionId);
   if (error) throw new Error(error.message);
 }
+
+// Insert a role preserving name/notes/display_order (used by the share copy engine).
+export async function insertRoleCopy(input: {
+  productionId: string;
+  name: string;
+  notes: string | null;
+  displayOrder: number;
+}): Promise<Role> {
+  const { data, error } = await supabaseAdmin
+    .from("roles")
+    .insert({ production_id: input.productionId, name: input.name, notes: input.notes, display_order: input.displayOrder })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as Role;
+}

@@ -125,3 +125,15 @@ export async function deleteProduction(orgId: string, productionId: string): Pro
     .eq("org_id", orgId);
   if (error) throw new Error(error.message);
 }
+
+// Fetch a production by id WITHOUT an org filter. Only for capability-gated paths
+// (e.g. a share token), never for normal org-scoped reads — use getProduction for those.
+export async function getProductionByIdUnscoped(id: string): Promise<Production | null> {
+  const { data, error } = await supabaseAdmin
+    .from("productions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Production) ?? null;
+}

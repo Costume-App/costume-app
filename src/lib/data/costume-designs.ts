@@ -106,3 +106,21 @@ export async function deleteCostumeDesign(productionId: string, id: string): Pro
     .eq("production_id", productionId);
   if (error) throw new Error(error.message);
 }
+
+// Insert a costume design preserving role/name/notes/display_order (share copy engine).
+// inventory_item_id is intentionally not copied — inventory is org-specific.
+export async function insertCostumeDesignCopy(input: {
+  productionId: string;
+  roleId: string;
+  name: string;
+  notes: string | null;
+  displayOrder: number;
+}): Promise<CostumeDesign> {
+  const { data, error } = await supabaseAdmin
+    .from("costume_designs")
+    .insert({ production_id: input.productionId, role_id: input.roleId, name: input.name, notes: input.notes, display_order: input.displayOrder })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CostumeDesign;
+}
