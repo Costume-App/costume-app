@@ -92,9 +92,12 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
       {canShare && open && (
         <div className="mt-3 mb-6 space-y-4 border-t border-[var(--field-line)] pt-3">
           <p className="text-sm muted">
-            Creates a one-time link. The recipient signs in and copies this production&rsquo;s roles,
-            costume designs, and their notes &amp; idea photos into their own organization. Performers
-            and measurements are not shared.
+            Share this production with another school or organization. Put the email of the person
+            you want to share with in the email box below or, to create a link to share directly,
+            click share. Once shared, the recipient signs in and they will see a copy of your
+            production. This includes roles, costume designs, notes, ideas, and photos which they
+            can start to use for their own version of the same production. Performers and their
+            measurements are not shared.
           </p>
 
           {/* Create — email is optional; the link is generated either way. */}
