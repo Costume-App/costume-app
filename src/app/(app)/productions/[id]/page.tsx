@@ -89,9 +89,12 @@ export default async function ProductionDetailPage({
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <Link href="/productions" className="link-muted text-sm">
-        ← Productions
-      </Link>
+      <div className="flex items-start justify-between gap-4">
+        <Link href="/productions" className="link-muted text-sm">
+          ← Productions
+        </Link>
+        {isAdmin && <SharePanel productionId={id} />}
+      </div>
       <div className="mt-2 mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <EditableProductionHeader
           productionId={id}
@@ -106,12 +109,6 @@ export default async function ProductionDetailPage({
           </span>
         )}
       </div>
-
-      {isAdmin && (
-        <div className="mb-6">
-          <SharePanel productionId={id} />
-        </div>
-      )}
 
       {showDates.length > 0 && (
         <div className="mb-6">
