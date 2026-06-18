@@ -110,7 +110,7 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
               />
             </label>
             <button type="button" className="btn-primary" disabled={busy} onClick={() => void create()}>
-              Create share link
+              Share
             </button>
           </div>
           {error && <p className="text-sm text-[var(--red)]">{error}</p>}
@@ -118,9 +118,19 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
           {/* The just-created link, front and center. */}
           {created && (
             <div className="surface space-y-2 p-3">
-              <span className="lbl block">
-                Share link ready{created.recipient_email ? ` — emailed to ${created.recipient_email}` : ""}
-              </span>
+              <div className="flex items-start justify-between gap-2">
+                <span className="lbl">
+                  Share link ready{created.recipient_email ? ` — emailed to ${created.recipient_email}` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCreated(null)}
+                  aria-label="Close"
+                  className="link-muted shrink-0 text-lg leading-none"
+                >
+                  ×
+                </button>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <input
                   readOnly
@@ -142,14 +152,19 @@ export function SharePanel({ productionId, canShare }: { productionId: string; c
               <span className="lbl block">Active links</span>
               <ul className="space-y-1.5 text-sm">
                 {others.map((s) => (
-                  <li key={s.id} className="flex flex-wrap items-center gap-3">
-                    <span className="muted min-w-0 flex-1 truncate">{s.recipient_email ?? linkFor(s.token)}</span>
-                    <button type="button" className="link-red" onClick={() => void copy(s.token, s.id)}>
-                      {copied === s.id ? "Copied!" : "Copy"}
-                    </button>
-                    <button type="button" className="link-muted" disabled={busy} onClick={() => void revoke(s.id)}>
-                      Revoke
-                    </button>
+                  <li key={s.id} className="space-y-0.5">
+                    {s.recipient_email && (
+                      <span className="muted block text-xs">Sent to {s.recipient_email}</span>
+                    )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="muted min-w-0 flex-1 truncate">{linkFor(s.token)}</span>
+                      <button type="button" className="link-red" onClick={() => void copy(s.token, s.id)}>
+                        {copied === s.id ? "Copied!" : "Copy"}
+                      </button>
+                      <button type="button" className="link-muted" disabled={busy} onClick={() => void revoke(s.id)}>
+                        Revoke
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
