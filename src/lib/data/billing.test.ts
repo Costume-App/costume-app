@@ -12,7 +12,7 @@ const from = vi.fn((_t: string) => chain);
 function setResult(data: unknown, error: unknown = null) { result.data = data; result.error = error; }
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (t: string) => from(t) } }));
 
-import { isUnlimited, isPaidOrg, canCreateProduction, consumeProductionUnlock } from "@/lib/data/billing";
+import { isUnlimited, isPaidOrg, canCreateProduction, consumeProductionUnlock, productionMakerIds, productionSeatCap, canAssignMakerToProduction } from "@/lib/data/billing";
 
 beforeEach(() => {
   Object.values(chain).forEach((m) => typeof m === "function" && (m as ReturnType<typeof vi.fn>).mockClear?.());
@@ -83,8 +83,6 @@ test("consumeProductionUnlock returns false when nothing to bind", async () => {
   expect(await consumeProductionUnlock("orgA", "prod1")).toBe(false);
 });
 
-import { productionMakerIds, productionSeatCap, canAssignMakerToProduction } from "@/lib/data/billing";
-
 test("productionMakerIds returns distinct non-null maker ids", async () => {
   let call = 0;
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => {
@@ -112,13 +110,16 @@ test("productionSeatCap is Infinity for unlimited orgs", async () => {
 test("canAssignMaker allows an already-assigned maker even at cap", async () => {
   chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null })); // not unlimited
   let call = 0;
+  let thenCalls = 0;
   (chain as { then: unknown }).then = (resolve: (r: typeof result) => unknown) => {
+    thenCalls += 1;
     call += 1;
     if (call === 1) return resolve({ data: [{ id: "d1" }], error: null });               // designs
     return resolve({ data: [{ maker_id: "m1" }, { maker_id: "m2" }, { maker_id: "m3" }], error: null }); // makers (at cap 3)
   };
   const gate = await canAssignMakerToProduction("orgA", "prod1", "m2");
   expect(gate).toEqual({ allowed: true });
+  expect(thenCalls).toBe(2);
 });
 
 test("canAssignMaker blocks a new maker at cap", async () => {
