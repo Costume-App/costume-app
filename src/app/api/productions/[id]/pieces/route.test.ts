@@ -19,6 +19,10 @@ vi.mock("@/lib/data/costume-pieces", () => ({
   listCostumePieces: (...a: unknown[]) => listCostumePieces(...a),
   upsertPieceSource: (...a: unknown[]) => upsertPieceSource(...a),
 }));
+const canAssignMakerToProduction = vi.fn();
+vi.mock("@/lib/data/billing", () => ({
+  canAssignMakerToProduction: (...a: unknown[]) => canAssignMakerToProduction(...a),
+}));
 
 import { PUT } from "@/app/api/productions/[id]/pieces/route";
 
@@ -27,11 +31,12 @@ const put = (body: unknown) =>
   new Request("http://t", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, assertCastingInProduction, listCostumeDesigns, listCostumePieces, upsertPieceSource].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, assertCastingInProduction, listCostumeDesigns, listCostumePieces, upsertPieceSource, canAssignMakerToProduction].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
   assertCastingInProduction.mockResolvedValue(undefined);
   listCostumeDesigns.mockResolvedValue([{ id: "d1" }]);
+  canAssignMakerToProduction.mockResolvedValue({ allowed: true });
 });
 
 test("PUT upserts a piece source (200)", async () => {
@@ -133,4 +138,26 @@ test("PUT 400 on negative purchasePrice", async () => {
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT blocks assigning a maker beyond the cap with 402 needs_seat", async () => {
+  canAssignMakerToProduction.mockResolvedValue({ allowed: false, reason: "needs_seat" });
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", makerId: "m4" }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(402);
+  expect((await res.json()).reason).toBe("needs_seat");
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT allows assigning a maker within the cap", async () => {
+  upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make", maker_id: "m1" });
+  canAssignMakerToProduction.mockResolvedValue({ allowed: true });
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", makerId: "m1" }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(200);
+  expect(upsertPieceSource).toHaveBeenCalled();
 });
