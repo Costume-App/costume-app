@@ -90,7 +90,7 @@ test("fulfill seat inserts a seat_purchases row bound to the production", async 
 });
 
 test("fulfill unlimited upserts org_subscriptions by org_id, preserving comped (not in payload)", async () => {
-  stripeMock.subscriptions.retrieve.mockResolvedValue({ id: "sub_1", status: "active", current_period_end: 4102444800 });
+  stripeMock.subscriptions.retrieve.mockResolvedValue({ id: "sub_1", status: "active", items: { data: [{ current_period_end: 4102444800 }] } });
   await fulfillCheckoutSession(sess({ id: "cs_3", mode: "subscription", customer: "cus_1", subscription: "sub_1", metadata: { orgId: "orgA", type: "unlimited" } }));
   expect(stripeMock.subscriptions.retrieve).toHaveBeenCalledWith("sub_1");
   const [payload, opts] = chain.upsert.mock.calls.at(-1)!;

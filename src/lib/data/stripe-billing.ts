@@ -3,6 +3,12 @@ import type Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getStripe } from "@/lib/stripe";
 
+// Period end lives on the subscription item in Stripe API 2026-05-27.dahlia
+// (it was removed from the Subscription object itself).
+export function subscriptionPeriodEndIso(sub: Stripe.Subscription): string {
+  return new Date(sub.items.data[0].current_period_end * 1000).toISOString();
+}
+
 export async function getStripeCustomerId(orgId: string): Promise<string | null> {
   const { data, error } = await supabaseAdmin
     .from("org_subscriptions")
@@ -60,16 +66,13 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
   }
   if (type === "unlimited") {
     const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
-    // current_period_end was removed from Stripe's TS types in newer SDK versions;
-    // it still exists on the API response object at runtime.
-    const periodEnd = (sub as unknown as { current_period_end: number }).current_period_end;
     const { error } = await supabaseAdmin.from("org_subscriptions").upsert(
       {
         org_id: orgId,
         stripe_customer_id: session.customer as string,
         stripe_subscription_id: sub.id,
         status: sub.status,
-        current_period_end: new Date(periodEnd * 1000).toISOString(),
+        current_period_end: subscriptionPeriodEndIso(sub),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "org_id" },
