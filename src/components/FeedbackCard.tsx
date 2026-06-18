@@ -38,7 +38,7 @@ export function FeedbackCard() {
   return (
     <div className="surface mt-3 p-4">
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="block text-left">
+        <button type="button" onClick={() => setOpen(true)} className="block text-left" aria-expanded="false">
           <span className="font-display text-xl font-semibold">Submit feedback →</span>
           <span className="mt-0.5 block text-sm muted">Tell us what to fix or improve</span>
         </button>
@@ -46,7 +46,14 @@ export function FeedbackCard() {
         <p className="text-sm">Thanks — we got your feedback.</p>
       ) : (
         <form onSubmit={submit} className="space-y-3">
-          <p className="font-display text-xl font-semibold">Submit feedback</p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="block text-left font-display text-xl font-semibold"
+            aria-expanded="true"
+          >
+            Submit feedback
+          </button>
           <fieldset className="space-y-1">
             {FEEDBACK_TYPES.map((t) => (
               <label key={t} className="flex items-center gap-2 text-sm">
