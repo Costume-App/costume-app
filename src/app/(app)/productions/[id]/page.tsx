@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { listRoles } from "@/lib/data/roles";
@@ -23,6 +24,7 @@ import { DeleteProductionButton } from "@/components/DeleteProductionButton";
 import { classifyProduction } from "@/lib/production-status";
 import { buildMakeWorklist } from "@/lib/tailor-summary";
 import { CostumesDueSummary } from "@/components/CostumesDueSummary";
+import { SharePanel } from "@/components/SharePanel";
 
 export default async function ProductionDetailPage({
   params,
@@ -30,6 +32,8 @@ export default async function ProductionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { orgId } = await getAuthContext();
+  const { orgRole } = await auth();
+  const isAdmin = orgRole === "org:admin";
   const { id } = await params;
 
   let production;
@@ -96,6 +100,7 @@ export default async function ProductionDetailPage({
           isActive={production.is_active}
           costumesDue={production.costumes_due_date}
         />
+        {isAdmin && <SharePanel productionId={id} />}
         {statusLabel && (
           <span className="inline-flex items-center self-start rounded-full border border-[var(--field-line)] px-2.5 py-0.5 text-xs muted sm:self-end">
             {statusLabel}
