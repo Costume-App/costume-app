@@ -26,13 +26,15 @@ export async function PUT(request: Request, { params }: Ctx) {
     const body = (await request.json()) as {
       measurementKey?: string;
       valueNumeric?: unknown;
+      valueText?: unknown;
       unit?: string;
     };
     const measurement = await upsertMeasurement({
       performerId,
       measurementKey: String(body.measurementKey ?? ""),
-      valueNumeric: Number(body.valueNumeric),
-      unit: String(body.unit ?? "in"),
+      valueNumeric: body.valueNumeric == null ? null : Number(body.valueNumeric),
+      valueText: body.valueText == null ? null : String(body.valueText),
+      unit: String(body.unit ?? ""),
     });
     return NextResponse.json({ measurement });
   } catch (err) {

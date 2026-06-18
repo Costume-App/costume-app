@@ -51,7 +51,7 @@ test("GET returns measurements", async () => {
   expect(getMeasurements).toHaveBeenCalledWith("pf1");
 });
 
-test("PUT upserts one measurement", async () => {
+test("PUT upserts one numeric measurement", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   upsertMeasurement.mockResolvedValue({ measurement_key: "waist", value_numeric: 28, unit: "in" });
   const res = await PUT(putReq({ measurementKey: "waist", valueNumeric: 28, unit: "in" }), ctx("pf1"));
@@ -60,7 +60,22 @@ test("PUT upserts one measurement", async () => {
     performerId: "pf1",
     measurementKey: "waist",
     valueNumeric: 28,
+    valueText: null,
     unit: "in",
+  });
+});
+
+test("PUT upserts a text measurement", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  upsertMeasurement.mockResolvedValue({ measurement_key: "shirt_size", value_text: "L", unit: "" });
+  const res = await PUT(putReq({ measurementKey: "shirt_size", valueText: "L", unit: "" }), ctx("pf1"));
+  expect(res.status).toBe(200);
+  expect(upsertMeasurement).toHaveBeenCalledWith({
+    performerId: "pf1",
+    measurementKey: "shirt_size",
+    valueNumeric: null,
+    valueText: "L",
+    unit: "",
   });
 });
 
