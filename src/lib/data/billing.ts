@@ -23,7 +23,8 @@ export async function isUnlimited(orgId: string): Promise<boolean> {
   return false;
 }
 
-// Paying == unlimited OR has bought at least one production unlock.
+// Paying == unlimited OR has ever bought a production unlock (even one whose
+// production was later deleted). Used to gate "only paying orgs may share".
 export async function isPaidOrg(orgId: string): Promise<boolean> {
   if (await isUnlimited(orgId)) return true;
   const { data, error } = await supabaseAdmin
@@ -52,8 +53,12 @@ export async function canCreateProduction(
     : { allowed: false, reason: "needs_unlock", unlimited: false };
 }
 
-// Atomically bind one unbound unlock to a production. Race-safe: the update's
-// `.is("production_id", null)` guard means only one concurrent caller wins.
+// Bind one unbound unlock to a production. The guarded UPDATE
+// (.is("production_id", null)) is a per-row compare-and-set: if two callers
+// select the same row, only one UPDATE matches and the loser gets [] -> false.
+// It does NOT serialize the whole create flow; the route-level compensating
+// delete (delete the just-created production when this returns false) is the
+// real safety net against two concurrent creates sharing one unlock.
 export async function consumeProductionUnlock(orgId: string, productionId: string): Promise<boolean> {
   const { data: rows, error: selErr } = await supabaseAdmin
     .from("production_purchases")
