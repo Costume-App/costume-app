@@ -29,14 +29,10 @@ vi.mock("@/lib/stripe", () => ({
   getStripe: () => stripeMock,
 }));
 
-// ── Clerk + organizations mocks (getOrCreateStripeCustomer ensures the org row) ─
-const getOrganization = vi.fn();
-vi.mock("@clerk/nextjs/server", () => ({
-  clerkClient: vi.fn(async () => ({ organizations: { getOrganization } })),
-}));
-const ensureOrganization = vi.fn();
+// ── organizations mock (getOrCreateStripeCustomer ensures the FK-target row) ───
+const ensureOrgRow = vi.fn();
 vi.mock("@/lib/data/organizations", () => ({
-  ensureOrganization: (...a: unknown[]) => ensureOrganization(...a),
+  ensureOrgRow: (...a: unknown[]) => ensureOrgRow(...a),
 }));
 
 // ── chain.upsert resolves with the shared result by default ───────────────────
@@ -59,10 +55,8 @@ beforeEach(() => {
   chain.upsert = vi.fn(() => Promise.resolve({ data: null, error: null }));
   // Restore maybeSingle
   chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }));
-  getOrganization.mockReset();
-  getOrganization.mockResolvedValue({ name: "Org A" });
-  ensureOrganization.mockReset();
-  ensureOrganization.mockResolvedValue(undefined);
+  ensureOrgRow.mockReset();
+  ensureOrgRow.mockResolvedValue(undefined);
 });
 
 const sess = (o: Record<string, unknown>) => o as unknown as Stripe.Checkout.Session;
@@ -72,7 +66,7 @@ test("getOrCreateStripeCustomer returns the stored id without creating", async (
   const id = await getOrCreateStripeCustomer("orgA");
   expect(id).toBe("cus_existing");
   expect(stripeMock.customers.create).not.toHaveBeenCalled();
-  expect(ensureOrganization).not.toHaveBeenCalled();
+  expect(ensureOrgRow).not.toHaveBeenCalled();
 });
 
 test("getOrCreateStripeCustomer ensures the org row (FK target) before the billing write", async () => {
@@ -80,10 +74,9 @@ test("getOrCreateStripeCustomer ensures the org row (FK target) before the billi
   stripeMock.customers.create.mockResolvedValue({ id: "cus_new" });
   const id = await getOrCreateStripeCustomer("orgA");
   expect(id).toBe("cus_new");
-  // Ensures organizations(clerk_org_id) exists (with the Clerk org name) so the
-  // org_subscriptions FK holds for an org that hasn't created a production yet.
-  expect(getOrganization).toHaveBeenCalledWith({ organizationId: "orgA" });
-  expect(ensureOrganization).toHaveBeenCalledWith("orgA", "Org A");
+  // Ensures the organizations(clerk_org_id) FK-target row exists before the
+  // org_subscriptions write (covers an org that hasn't created a production).
+  expect(ensureOrgRow).toHaveBeenCalledWith("orgA");
   expect(stripeMock.customers.create).toHaveBeenCalledWith(expect.objectContaining({ metadata: { orgId: "orgA" } }));
   expect(chain.upsert).toHaveBeenCalledWith(
     expect.objectContaining({ org_id: "orgA", stripe_customer_id: "cus_new" }),

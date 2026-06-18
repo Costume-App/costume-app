@@ -1,9 +1,8 @@
 import "server-only";
 import type Stripe from "stripe";
-import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getStripe } from "@/lib/stripe";
-import { ensureOrganization } from "@/lib/data/organizations";
+import { ensureOrgRow } from "@/lib/data/organizations";
 
 // Period end lives on the subscription item in Stripe API 2026-05-27.dahlia
 // (it was removed from the Subscription object itself).
@@ -26,13 +25,10 @@ export async function getStripeCustomerId(orgId: string): Promise<string | null>
 export async function getOrCreateStripeCustomer(orgId: string): Promise<string> {
   const existing = await getStripeCustomerId(orgId);
   if (existing) return existing;
-  // org_subscriptions FKs to organizations(clerk_org_id). A brand-new org that
-  // hasn't created a production yet has no organizations row, so the billing
-  // write below would hit a foreign-key violation. Ensure the row first, using
-  // the org's real name from Clerk.
-  const client = await clerkClient();
-  const org = await client.organizations.getOrganization({ organizationId: orgId });
-  await ensureOrganization(orgId, org.name);
+  // org_subscriptions FKs to organizations(clerk_org_id); a brand-new org that
+  // hasn't created a production yet has no row, which would FK-violate the
+  // billing write below. Ensure it first.
+  await ensureOrgRow(orgId);
   const customer = await getStripe().customers.create({ metadata: { orgId } });
   const { error } = await supabaseAdmin
     .from("org_subscriptions")

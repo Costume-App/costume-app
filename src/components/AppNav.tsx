@@ -3,17 +3,20 @@ import { UserButton } from "@clerk/nextjs";
 import { currentUser, auth } from "@clerk/nextjs/server";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { recordOrgDomain } from "@/lib/data/org-domains";
+import { ensureOrgRow } from "@/lib/data/organizations";
 
 export async function AppNav() {
   const user = await currentUser();
   const { orgId } = await auth();
   const primaryEmail = user?.emailAddresses?.[0]?.emailAddress;
-  if (orgId && primaryEmail) {
-    // Lazy backfill of the org→domain map; never let it break the nav.
+  if (orgId) {
+    // Ensure the organizations row exists (other tables FK to it), then lazily
+    // backfill the org→domain map. Best-effort; never let it break the nav.
     try {
-      await recordOrgDomain(orgId, primaryEmail);
+      await ensureOrgRow(orgId);
+      if (primaryEmail) await recordOrgDomain(orgId, primaryEmail);
     } catch (e) {
-      console.error("recordOrgDomain failed (non-fatal):", e);
+      console.error("org backfill failed (non-fatal):", e);
     }
   }
   const userName =
