@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Width = { id: string; value: string; is_default: boolean };
-type Supplier = { id: string; name: string; price_per_yard: number | null; is_default: boolean };
+type Supplier = { id: string; name: string; price_per_yard: number | null; is_default: boolean; url: string | null };
 
 export function FabricTabIcon() {
   // Spool-of-thread glyph for the custom profile-page label.
@@ -23,6 +23,7 @@ export function OrgFabricPanel() {
   const [newWidth, setNewWidth] = useState("");
   const [newSupplier, setNewSupplier] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const [newUrl, setNewUrl] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -87,9 +88,10 @@ export function OrgFabricPanel() {
       return;
     }
     const price = newPrice.trim() === "" ? null : parsed;
-    if (await send("/api/org/fabric-settings/suppliers", "POST", { name: newSupplier, pricePerYard: price })) {
+    if (await send("/api/org/fabric-settings/suppliers", "POST", { name: newSupplier, pricePerYard: price, url: newUrl })) {
       setNewSupplier("");
       setNewPrice("");
+      setNewUrl("");
     }
   }
 
@@ -128,9 +130,21 @@ export function OrgFabricPanel() {
         <h3 className="mb-2 font-medium">Suppliers</h3>
         <ul className="space-y-1">
           {suppliers.map((s) => (
-            <li key={s.id} className="flex items-center gap-2 text-sm">
+            <li key={s.id} className="flex flex-wrap items-center gap-2 text-sm">
               <span className="flex-1">{s.name}</span>
               <span className="muted">{s.price_per_yard != null ? `$${s.price_per_yard}/yd` : "—"}</span>
+              <input
+                key={`url-${s.id}-${s.url ?? ""}`}
+                className="field !p-1.5 text-xs w-40"
+                defaultValue={s.url ?? ""}
+                placeholder="Website"
+                aria-label={`Website for ${s.name}`}
+                disabled={busy}
+                onBlur={(e) => {
+                  if (e.target.value.trim() === (s.url ?? "").trim()) return;
+                  void send(`/api/org/fabric-settings/suppliers/${s.id}`, "PATCH", { url: e.target.value });
+                }}
+              />
               <button type="button" className="link-muted text-xs" disabled={busy || s.is_default} aria-label={`Set ${s.name} as the default supplier`} onClick={() => void send(`/api/org/fabric-settings/suppliers/${s.id}`, "PATCH", { isDefault: true })}>
                 {s.is_default ? "★ default" : "set default"}
               </button>
@@ -143,6 +157,7 @@ export function OrgFabricPanel() {
         <div className="mt-2 flex flex-wrap gap-2">
           <input className="field !p-1.5 text-sm" value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Supplier name" aria-label="New supplier name" />
           <input className="field !p-1.5 text-sm w-28" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} inputMode="decimal" placeholder="$/yd" aria-label="New supplier price per yard" />
+          <input className="field !p-1.5 text-sm w-40" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="Website (optional)" aria-label="New supplier website" />
           <button type="button" className="btn-primary" disabled={busy} onClick={() => void addSupplier()}>Add supplier</button>
         </div>
       </section>
