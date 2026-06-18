@@ -172,7 +172,7 @@ export function MeasurementForm({
               <span className="min-w-0 flex-1">
                 <span className="font-medium">
                   {def.label}
-                  {" "}
+                  {"\u00A0"}
                   <span className="muted">({def.unit})</span>
                 </span>
                 {def.help_text && <span className="block text-xs muted">{def.help_text}</span>}
