@@ -121,6 +121,9 @@ export async function upsertMeasurement(input: {
   valueText?: string | null;
   unit: string;
 }): Promise<PerformerMeasurement> {
+  // Definition-agnostic by design: a non-empty valueText is stored as text, otherwise
+  // the numeric value is used. The caller (MeasurementForm, via measurementPayload)
+  // sends the field that matches the definition's input_type, so we don't re-look it up.
   const text = typeof input.valueText === "string" ? input.valueText.trim() : "";
   let value_numeric: number | null = null;
   let value_text: string | null = null;
