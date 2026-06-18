@@ -9,7 +9,7 @@ export interface EstimateItem {
   key: string; // pieceKey(castingId, designId)
   garment: string; // design name, e.g. "Cloak"
   fabricWidth: string | null; // e.g. '60"' if entered
-  measurements: { label: string; value: number; unit: string }[];
+  measurements: { label: string; value: number | string; unit: string }[];
 }
 
 const ESTIMATE_SCHEMA = {
