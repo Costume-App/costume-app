@@ -16,14 +16,16 @@ const listRoles = vi.fn();
 vi.mock("@/lib/data/roles", () => ({ listRoles: (...a: unknown[]) => listRoles(...a) }));
 const listCostumeDesigns = vi.fn();
 vi.mock("@/lib/data/costume-designs", () => ({ listCostumeDesigns: (...a: unknown[]) => listCostumeDesigns(...a) }));
+const copyDesignLayer = vi.fn();
+vi.mock("@/lib/data/production-copy", () => ({ copyDesignLayer: (...a: unknown[]) => copyDesignLayer(...a) }));
 
 import {
-  createProductionShare, getShareByToken, listSharesForProduction, revokeShare,
+  createProductionShare, getShareByToken, listSharesForProduction, revokeShare, acceptProductionShare,
 } from "@/lib/data/production-shares";
 
 beforeEach(() => {
   Object.values(chain).forEach((m) => typeof m === "function" && (m as ReturnType<typeof vi.fn>).mockClear?.());
-  [from, getProductionByIdUnscoped, listRoles, listCostumeDesigns].forEach((m) => m.mockReset?.());
+  [from, getProductionByIdUnscoped, listRoles, listCostumeDesigns, copyDesignLayer].forEach((m) => m.mockReset?.());
   from.mockImplementation((_t: string) => chain);
   setResult(null, null);
 });
@@ -65,4 +67,28 @@ test("revokeShare updates status scoped by id, production, and pending", async (
   expect(chain.eq).toHaveBeenCalledWith("id", "s1");
   expect(chain.eq).toHaveBeenCalledWith("source_production_id", "p1");
   expect(chain.eq).toHaveBeenCalledWith("status", "pending");
+});
+
+test("acceptProductionShare copies the design layer and marks the share accepted", async () => {
+  setResult({ id: "s1", source_production_id: "p1", status: "pending" });
+  copyDesignLayer.mockResolvedValue({ productionId: "p2" });
+  const out = await acceptProductionShare({ token: "abc", recipientOrgId: "orgB", userId: "u1" });
+  expect(copyDesignLayer).toHaveBeenCalledWith({ sourceProductionId: "p1", targetOrgId: "orgB", userId: "u1" });
+  expect(chain.update).toHaveBeenCalledWith(
+    expect.objectContaining({ status: "accepted", accepted_by_org_id: "orgB", accepted_production_id: "p2" }),
+  );
+  expect(out).toEqual({ productionId: "p2" });
+});
+
+test("acceptProductionShare rejects an already-accepted token without copying", async () => {
+  const { ValidationError } = await import("@/lib/errors");
+  setResult({ id: "s1", source_production_id: "p1", status: "accepted" });
+  await expect(acceptProductionShare({ token: "abc", recipientOrgId: "orgB", userId: "u1" })).rejects.toBeInstanceOf(ValidationError);
+  expect(copyDesignLayer).not.toHaveBeenCalled();
+});
+
+test("acceptProductionShare rejects an unknown token", async () => {
+  const { ValidationError } = await import("@/lib/errors");
+  setResult(null);
+  await expect(acceptProductionShare({ token: "nope", recipientOrgId: "orgB", userId: "u1" })).rejects.toBeInstanceOf(ValidationError);
 });

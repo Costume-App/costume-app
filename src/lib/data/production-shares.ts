@@ -2,6 +2,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getProductionByIdUnscoped } from "@/lib/data/productions";
 import { listRoles } from "@/lib/data/roles";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
+import { ValidationError } from "@/lib/errors";
+import { copyDesignLayer } from "@/lib/data/production-copy";
 
 export interface ProductionShare {
   id: string;
@@ -86,4 +88,44 @@ export async function revokeShare(productionId: string, shareId: string): Promis
     .eq("source_production_id", productionId)
     .eq("status", "pending");
   if (error) throw new Error(error.message);
+}
+
+export async function markShareAccepted(shareId: string, input: {
+  acceptedByOrgId: string;
+  acceptedProductionId: string;
+  acceptedAt: string;
+}): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("production_shares")
+    .update({
+      status: "accepted",
+      accepted_by_org_id: input.acceptedByOrgId,
+      accepted_production_id: input.acceptedProductionId,
+      accepted_at: input.acceptedAt,
+    })
+    .eq("id", shareId);
+  if (error) throw new Error(error.message);
+}
+
+// Single-use: copy the source design layer into recipientOrgId, then mark accepted.
+export async function acceptProductionShare(input: {
+  token: string;
+  recipientOrgId: string;
+  userId: string;
+}): Promise<{ productionId: string }> {
+  const share = await getShareRowByToken(input.token);
+  if (!share || share.status !== "pending") {
+    throw new ValidationError("This share link is no longer valid.");
+  }
+  const { productionId } = await copyDesignLayer({
+    sourceProductionId: share.source_production_id,
+    targetOrgId: input.recipientOrgId,
+    userId: input.userId,
+  });
+  await markShareAccepted(share.id, {
+    acceptedByOrgId: input.recipientOrgId,
+    acceptedProductionId: productionId,
+    acceptedAt: new Date().toISOString(),
+  });
+  return { productionId };
 }
