@@ -26,14 +26,14 @@ export interface Marker {
 // size) intentionally have no marker. Coordinates are tuned against the silhouettes in
 // BodyDiagram and are the single source of truth for the dot, the label, and the span line.
 export const MEASUREMENT_MARKERS: Record<string, Marker> = {
-  height: { label: "Height", view: "front", x: 22, y: 50, line: { x1: 22, y1: 6, x2: 22, y2: 95 } },
+  height: { label: "Height", view: "front", x: 22, y: 50, line: { x1: 22, y1: 2, x2: 22, y2: 96.5 } },
   head: { label: "Head", view: "front", x: 50, y: 8, line: { x1: 38, y1: 8, x2: 62, y2: 8 } },
   neck: { label: "Neck", view: "front", x: 50, y: 16, line: { x1: 43, y1: 16, x2: 57, y2: 16 } },
   shoulder: { label: "Shoulder", view: "front", x: 64, y: 22, line: { x1: 32, y1: 22, x2: 68, y2: 22 } },
   chest: { label: "Chest", view: "front", x: 50, y: 30, line: { x1: 36, y1: 30, x2: 64, y2: 30 } },
   arm_circumference: { label: "Arm", view: "front", x: 72, y: 31, line: { x1: 66, y1: 33, x2: 84, y2: 33 } },
   sleeve: { label: "Sleeve", view: "front", x: 84, y: 43, line: { x1: 66, y1: 23, x2: 86, y2: 49 } },
-  wrist: { label: "Wrist", view: "front", x: 86, y: 54, line: { x1: 79, y1: 49, x2: 90, y2: 49 } },
+  wrist: { label: "Wrist", view: "front", x: 86, y: 51, line: { x1: 79, y1: 49, x2: 90, y2: 49 } },
   waist: { label: "Waist", view: "front", x: 50, y: 43, line: { x1: 36, y1: 43, x2: 64, y2: 43 } },
   hips: { label: "Hips", view: "front", x: 50, y: 51, line: { x1: 36, y1: 51, x2: 64, y2: 51 } },
   thigh: { label: "Thigh", view: "front", x: 43, y: 62, line: { x1: 36, y1: 62, x2: 50, y2: 62 } },
