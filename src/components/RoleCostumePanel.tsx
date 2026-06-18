@@ -483,7 +483,7 @@ export function RoleCostumePanel({
         </>
       )}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
-      {limitMsg && <PlanLimitNotice message={limitMsg} />}
+      {limitMsg && <PlanLimitNotice message={limitMsg} reason="needs_seat" productionId={productionId} />}
     </div>
   );
 }
