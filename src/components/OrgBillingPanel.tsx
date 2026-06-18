@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckoutButton } from "@/components/CheckoutButton";
+import { PlanCard } from "@/components/PlanCard";
+import { PLANS } from "@/lib/billing-plans";
 
 type Status = {
   isUnlimited: boolean;
@@ -70,8 +71,24 @@ export function OrgBillingPanel() {
       </div>
       {!status.billingConfigured && <p className="muted">Online checkout isn&rsquo;t set up yet.</p>}
       {status.billingConfigured && (
-        <div className="flex flex-wrap gap-2">
-          {!status.isUnlimited && <CheckoutButton type="unlimited" label="Go Unlimited — $99.99/yr" />}
+        <div className="space-y-3">
+          {!status.isUnlimited && (
+            <div className="space-y-2">
+              <PlanCard
+                type="unlock"
+                name={PLANS.perProduction.label}
+                price={PLANS.perProduction.price}
+                includes={PLANS.perProduction.includes}
+              />
+              <PlanCard
+                type="unlimited"
+                name={PLANS.unlimited.label}
+                price={PLANS.unlimited.price}
+                includes={PLANS.unlimited.includes}
+                highlight
+              />
+            </div>
+          )}
           {status.hasStripeCustomer && (
             <button type="button" className="btn-ghost" disabled={busy} onClick={() => void manage()}>
               {busy ? "Opening…" : "Manage billing"}
