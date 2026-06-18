@@ -24,3 +24,14 @@ test("every marker has a label, a valid view, and in-range coordinates", () => {
     expect(m.y).toBeLessThanOrEqual(100);
   }
 });
+
+test("every marker has a span line with in-range endpoints", () => {
+  for (const [key, m] of Object.entries(MEASUREMENT_MARKERS)) {
+    for (const v of [m.line.x1, m.line.y1, m.line.x2, m.line.y2]) {
+      expect(v, key).toBeGreaterThanOrEqual(0);
+      expect(v, key).toBeLessThanOrEqual(100);
+    }
+    // A line must have length — not a degenerate point.
+    expect(m.line.x1 !== m.line.x2 || m.line.y1 !== m.line.y2, key).toBe(true);
+  }
+});

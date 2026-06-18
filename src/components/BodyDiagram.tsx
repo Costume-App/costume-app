@@ -18,6 +18,33 @@ function View({ view, activeKey }: { view: DiagramView; activeKey?: string }) {
           <circle cx="50" cy="18" r="13" fill="var(--field-line)" />
           <path d={SILHOUETTE} fill="var(--field-line)" />
         </svg>
+        {/* Span lines showing where each measurement is taken. Same 0–100 % space as the
+            dots; with a field focused, only that line shows (red); otherwise all show faint. */}
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          {markers.map(([key, m]) => {
+            const active = key === activeKey;
+            if (activeKey && !active) return null;
+            return (
+              <line
+                key={key}
+                x1={m.line.x1}
+                y1={m.line.y1}
+                x2={m.line.x2}
+                y2={m.line.y2}
+                stroke={active ? "var(--red)" : "var(--muted)"}
+                strokeWidth={active ? 2 : 1}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                opacity={active ? 1 : 0.4}
+              />
+            );
+          })}
+        </svg>
         {markers.map(([key, m]) => {
           const active = key === activeKey;
           return (
