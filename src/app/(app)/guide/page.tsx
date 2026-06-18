@@ -190,7 +190,11 @@ export default function GuidePage() {
       </div>
 
       <p className="mt-10 border-t border-[var(--field-line)] pt-4 text-sm muted">
-        Can&rsquo;t find something, or want a feature? Tell your administrator.
+        Can&rsquo;t find something, or want a feature?{" "}
+        <Link href="/productions#feedback" className="link-red">
+          Leave us feedback
+        </Link>
+        .
       </p>
     </main>
   );

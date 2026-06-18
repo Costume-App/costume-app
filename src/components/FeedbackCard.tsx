@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FEEDBACK_TYPES, FEEDBACK_TYPE_LABELS, type FeedbackType } from "@/lib/feedback-types";
 
 export function FeedbackCard() {
   const [open, setOpen] = useState(false);
+
+  // Auto-expand when linked to directly (e.g. "Leave us feedback" on the User Guide).
+  useEffect(() => {
+    if (window.location.hash === "#feedback") setOpen(true);
+  }, []);
+
   const [type, setType] = useState<FeedbackType>("fix");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,7 +42,7 @@ export function FeedbackCard() {
   }
 
   return (
-    <div className="surface mt-3 p-4">
+    <div id="feedback" className="surface mt-3 scroll-mt-6 p-4">
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} className="block text-left" aria-expanded="false">
           <span className="font-display text-xl font-semibold">Submit feedback →</span>
