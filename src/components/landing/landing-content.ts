@@ -62,7 +62,7 @@ export const PRICING_TIERS: PricingTier[] = [
   },
   {
     name: "Unlimited",
-    price: "$99",
+    price: "$99.99",
     cadence: "per year",
     points: ["Unlimited productions", "Unlimited makers", "Best for ongoing programs"],
     highlight: true,
