@@ -80,7 +80,7 @@ test("getMeasurements filters by performer", async () => {
 
 test("upsertMeasurement upserts on (performer_id, measurement_key)", async () => {
   upsertSingle.mockResolvedValue({
-    data: { performer_id: "pf1", measurement_key: "waist", value_numeric: 28, unit: "in" },
+    data: { performer_id: "pf1", measurement_key: "waist", value_numeric: 28, value_text: null, unit: "in" },
     error: null,
   });
   const row = await upsertMeasurement({
@@ -90,14 +90,43 @@ test("upsertMeasurement upserts on (performer_id, measurement_key)", async () =>
     unit: "in",
   });
   expect(upsert).toHaveBeenCalledWith(
-    { performer_id: "pf1", measurement_key: "waist", value_numeric: 28, unit: "in" },
+    { performer_id: "pf1", measurement_key: "waist", value_numeric: 28, value_text: null, unit: "in" },
     { onConflict: "performer_id,measurement_key" },
   );
-  expect(row).toEqual({ performer_id: "pf1", measurement_key: "waist", value_numeric: 28, unit: "in" });
+  expect(row).toEqual({ performer_id: "pf1", measurement_key: "waist", value_numeric: 28, value_text: null, unit: "in" });
 });
 
 test("upsertMeasurement rejects a non-finite value", async () => {
   await expect(
     upsertMeasurement({ performerId: "pf1", measurementKey: "waist", valueNumeric: NaN, unit: "in" }),
+  ).rejects.toBeInstanceOf(ValidationError);
+});
+
+test("upsertMeasurement stores a trimmed text value and clears the numeric value", async () => {
+  upsertSingle.mockResolvedValue({
+    data: { performer_id: "pf1", measurement_key: "shirt_size", value_numeric: null, value_text: "L", unit: "" },
+    error: null,
+  });
+  await upsertMeasurement({
+    performerId: "pf1",
+    measurementKey: "shirt_size",
+    valueText: "  L  ",
+    unit: "",
+  });
+  expect(upsert).toHaveBeenCalledWith(
+    { performer_id: "pf1", measurement_key: "shirt_size", value_numeric: null, value_text: "L", unit: "" },
+    { onConflict: "performer_id,measurement_key" },
+  );
+});
+
+test("upsertMeasurement rejects an empty text value", async () => {
+  await expect(
+    upsertMeasurement({ performerId: "pf1", measurementKey: "shirt_size", valueText: "   ", unit: "" }),
+  ).rejects.toBeInstanceOf(ValidationError);
+});
+
+test("upsertMeasurement rejects when neither value is given", async () => {
+  await expect(
+    upsertMeasurement({ performerId: "pf1", measurementKey: "waist", unit: "in" }),
   ).rejects.toBeInstanceOf(ValidationError);
 });

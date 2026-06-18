@@ -305,3 +305,13 @@ test("buildPurchaseWorklist: a null price contributes 0", () => {
   expect(pl.totalCost).toBe(30);
   expect(pl.items.find((i) => i.designName === "Cloak")!.price).toBeNull();
 });
+
+test("buildMeasurementsByCasting uses value_text when present", () => {
+  const defs = [{ key: "shirt_size", label: "Shirt size", display_order: 0 }];
+  const meas = [
+    { performer_id: "p1", measurement_key: "shirt_size", value_numeric: null, value_text: "L", unit: "" },
+  ];
+  const castings = [{ id: "c1", performer_id: "p1" }];
+  const map = buildMeasurementsByCasting(defs, meas, castings);
+  expect(map["c1"]).toEqual([{ key: "shirt_size", label: "Shirt size", value: "L", unit: "" }]);
+});

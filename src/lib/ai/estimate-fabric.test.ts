@@ -79,3 +79,21 @@ test("returns an empty map when the model output is not valid JSON", async () =>
   const out = await estimateFabricYardage(items);
   expect(out.size).toBe(0);
 });
+
+test("serializes a text measurement with no unit", async () => {
+  create.mockResolvedValue(aiText({ estimates: [] }));
+  await estimateFabricYardage([
+    {
+      key: "c1:d1",
+      garment: "Cloak",
+      fabricWidth: '60"',
+      measurements: [
+        { label: "Shirt size", value: "L", unit: "" },
+        { label: "Waist", value: 30, unit: "in" },
+      ],
+    },
+  ]);
+  const content = create.mock.calls[0][0].messages[0].content as string;
+  expect(content).toContain("Shirt size: L");
+  expect(content).toContain("Waist: 30in");
+});

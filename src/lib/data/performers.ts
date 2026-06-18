@@ -13,7 +13,8 @@ export interface PerformerMeasurement {
   id: string;
   performer_id: string;
   measurement_key: string;
-  value_numeric: number;
+  value_numeric: number | null;
+  value_text: string | null;
   unit: string;
   updated_at: string;
 }
@@ -116,11 +117,25 @@ export async function getFilledMeasurementCounts(
 export async function upsertMeasurement(input: {
   performerId: string;
   measurementKey: string;
-  valueNumeric: number;
+  valueNumeric?: number | null;
+  valueText?: string | null;
   unit: string;
 }): Promise<PerformerMeasurement> {
-  if (!Number.isFinite(input.valueNumeric)) {
-    throw new ValidationError("Measurement must be a number");
+  // Definition-agnostic by design: a non-empty valueText is stored as text, otherwise
+  // the numeric value is used. The caller (MeasurementForm, via measurementPayload)
+  // sends the field that matches the definition's input_type, so we don't re-look it up.
+  const text = typeof input.valueText === "string" ? input.valueText.trim() : "";
+  let value_numeric: number | null = null;
+  let value_text: string | null = null;
+  if (text) {
+    value_text = text;
+  } else if (input.valueNumeric != null) {
+    if (!Number.isFinite(input.valueNumeric)) {
+      throw new ValidationError("Measurement must be a number");
+    }
+    value_numeric = input.valueNumeric;
+  } else {
+    throw new ValidationError("Measurement value is required");
   }
   const { data, error } = await supabaseAdmin
     .from("performer_measurements")
@@ -128,7 +143,8 @@ export async function upsertMeasurement(input: {
       {
         performer_id: input.performerId,
         measurement_key: input.measurementKey,
-        value_numeric: input.valueNumeric,
+        value_numeric,
+        value_text,
         unit: input.unit,
       },
       { onConflict: "performer_id,measurement_key" },
