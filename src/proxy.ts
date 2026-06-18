@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { orgGate } from "@/lib/route-guard";
 
-const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/preview(.*)"]);
+const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/preview(.*)", "/api/billing/webhook"]);
 const isOnboarding = createRouteMatcher(["/onboarding(.*)"]);
 
 // Marketing domains: each one's homepage serves its landing page (A/B for the app
