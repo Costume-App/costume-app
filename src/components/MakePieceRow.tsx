@@ -174,7 +174,7 @@ export function MakePieceRow({
                 {measurements.map((m) => (
                   <span key={m.label}>
                     <span className="muted">{m.label}:</span>{" "}
-                    {m.key === "height" ? formatHeight(m.value) : `${m.value}${m.unit}`}
+                    {m.key === "height" ? formatHeight(Number(m.value)) : `${m.value}${m.unit}`}
                   </span>
                 ))}
               </div>
