@@ -29,6 +29,16 @@ vi.mock("@/lib/stripe", () => ({
   getStripe: () => stripeMock,
 }));
 
+// ── Clerk + organizations mocks (getOrCreateStripeCustomer ensures the org row) ─
+const getOrganization = vi.fn();
+vi.mock("@clerk/nextjs/server", () => ({
+  clerkClient: vi.fn(async () => ({ organizations: { getOrganization } })),
+}));
+const ensureOrganization = vi.fn();
+vi.mock("@/lib/data/organizations", () => ({
+  ensureOrganization: (...a: unknown[]) => ensureOrganization(...a),
+}));
+
 // ── chain.upsert resolves with the shared result by default ───────────────────
 // (billing.test.ts uses .then on the chain; here upsert needs to resolve)
 // Override: make upsert return a resolved promise with {data: null, error: null}
@@ -49,6 +59,10 @@ beforeEach(() => {
   chain.upsert = vi.fn(() => Promise.resolve({ data: null, error: null }));
   // Restore maybeSingle
   chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }));
+  getOrganization.mockReset();
+  getOrganization.mockResolvedValue({ name: "Org A" });
+  ensureOrganization.mockReset();
+  ensureOrganization.mockResolvedValue(undefined);
 });
 
 const sess = (o: Record<string, unknown>) => o as unknown as Stripe.Checkout.Session;
@@ -58,13 +72,18 @@ test("getOrCreateStripeCustomer returns the stored id without creating", async (
   const id = await getOrCreateStripeCustomer("orgA");
   expect(id).toBe("cus_existing");
   expect(stripeMock.customers.create).not.toHaveBeenCalled();
+  expect(ensureOrganization).not.toHaveBeenCalled();
 });
 
-test("getOrCreateStripeCustomer creates + upserts when none stored", async () => {
+test("getOrCreateStripeCustomer ensures the org row (FK target) before the billing write", async () => {
   chain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }));
   stripeMock.customers.create.mockResolvedValue({ id: "cus_new" });
   const id = await getOrCreateStripeCustomer("orgA");
   expect(id).toBe("cus_new");
+  // Ensures organizations(clerk_org_id) exists (with the Clerk org name) so the
+  // org_subscriptions FK holds for an org that hasn't created a production yet.
+  expect(getOrganization).toHaveBeenCalledWith({ organizationId: "orgA" });
+  expect(ensureOrganization).toHaveBeenCalledWith("orgA", "Org A");
   expect(stripeMock.customers.create).toHaveBeenCalledWith(expect.objectContaining({ metadata: { orgId: "orgA" } }));
   expect(chain.upsert).toHaveBeenCalledWith(
     expect.objectContaining({ org_id: "orgA", stripe_customer_id: "cus_new" }),
