@@ -158,7 +158,7 @@ export function LandingPage() {
                 ))}
               </ul>
               <Link
-                href="/sign-up"
+                href={`/get-started?plan=${tier.checkoutType}`}
                 className={`mt-6 text-center ${tier.highlight ? "btn-primary" : "btn-ghost"}`}
               >
                 Get started →

@@ -27,6 +27,12 @@ export default clerkMiddleware(async (auth, req) => {
   if (decision.type === "redirect") {
     return NextResponse.redirect(new URL(decision.to, req.url));
   }
+
+  // Resume a checkout started from the landing once the user has an org. Skip
+  // /billing/* to avoid looping with /billing/resume and /billing/return.
+  if (orgId && req.cookies.get("checkout_intent") && !req.nextUrl.pathname.startsWith("/billing")) {
+    return NextResponse.redirect(new URL("/billing/resume", req.url));
+  }
 });
 
 export const config = {

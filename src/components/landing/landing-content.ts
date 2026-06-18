@@ -50,6 +50,7 @@ export interface PricingTier {
   cadence: string;
   points: string[];
   highlight?: boolean;
+  checkoutType: "unlock" | "unlimited";
 }
 
 // Marketing copy — keep in sync by eye with PLANS in src/lib/billing-plans.ts.
@@ -59,6 +60,7 @@ export const PRICING_TIERS: PricingTier[] = [
     price: "$49.99",
     cadence: "one-time, per production",
     points: ["1 production", "3 makers included", "+$10 per extra maker"],
+    checkoutType: "unlock",
   },
   {
     name: "Unlimited",
@@ -66,6 +68,7 @@ export const PRICING_TIERS: PricingTier[] = [
     cadence: "per year",
     points: ["Unlimited productions", "Unlimited makers", "Best for ongoing programs"],
     highlight: true,
+    checkoutType: "unlimited",
   },
 ];
 
