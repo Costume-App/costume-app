@@ -63,6 +63,7 @@ export interface FabricLine {
   color: string | null;
   width: string | null;
   supplier: string | null;
+  supplierUrl: string | null;
   totalYardage: number;
   estCost: number;
   pieceCount: number;
@@ -286,6 +287,7 @@ function norm(s: string | null): string {
 export function buildFabricPurchaseList(
   items: MakeItem[],
   supplierPrices: Record<string, number> = {},
+  supplierUrls: Record<string, string> = {},
 ): PurchaseList {
   const lines = new Map<string, FabricLine>();
   const unspecified: MakeItem[] = [];
@@ -318,6 +320,7 @@ export function buildFabricPurchaseList(
         color: color || null,
         width: width || null,
         supplier: supplier || null,
+        supplierUrl: supplier ? supplierUrls[supplier.toLowerCase()] ?? null : null,
         totalYardage: yardage,
         estCost: cost,
         pieceCount: 1,
