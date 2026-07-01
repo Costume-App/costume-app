@@ -6,6 +6,8 @@ export interface InventoryRow {
   quantity: number;
   location: string | null;
   notes: string | null;
+  /** Signed URL of the item's first photo; null/absent when it has none. */
+  photoUrl?: string | null;
 }
 
 export interface CategoryGroup {
@@ -61,4 +63,17 @@ export function uniqueCategories(items: InventoryRow[]): string[] {
     if (!seen.has(key)) seen.set(key, display);
   }
   return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
+// Attach each item's first-photo signed URL. The caller batches the lookups
+// (one firstImagePaths + one signImageUrls call for the whole list).
+export function attachInventoryPhotoUrls(
+  items: InventoryRow[],
+  pathsById: Record<string, string>,
+  urlsByPath: Record<string, string>,
+): InventoryRow[] {
+  return items.map((item) => {
+    const path = pathsById[item.id];
+    return { ...item, photoUrl: (path && urlsByPath[path]) || null };
+  });
 }
