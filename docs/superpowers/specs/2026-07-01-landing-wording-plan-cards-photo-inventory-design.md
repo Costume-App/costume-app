@@ -107,17 +107,26 @@ Both card lists switch from vertical `space-y-2` stacks to
 `src/lib/inventory-grouping.ts` (`InventoryRow`),
 `src/components/InventoryManager.tsx`.
 
+Photo-first means a **tile grid**: within each category, items are photo
+cards flowing left-to-right and wrapping to a new row at max width. Category
+group labels (and their collapse/expand headers) are kept exactly as today.
+
 - `InventoryRow` gains optional `photoUrl?: string | null`.
 - `inventory/page.tsx`: after `listInventoryItems`, call the existing
   `firstImagePaths(itemIds)` (`src/lib/data/inventory-item-images.ts`) +
   `signImageUrls` (`src/lib/storage.ts`, 7-day expiry) and attach `photoUrl`
   per row. One batched signing call, not per item.
-- Row layout (`InventoryManager.tsx` list button): prepend a 56px square
-  thumbnail — `h-14 w-14 shrink-0 rounded-lg object-cover` `<img>` when
-  `photoUrl`, else a muted placeholder tile (same box, `bg-[#8c2b22]/10` with
-  a small feather-style garment/scissors icon). Name/size/qty/chevron
-  unchanged; row padding may tighten (`p-2`) so rows don't balloon.
-- Search, grouping, collapse, expand-to-edit all unchanged.
+- List layout (`InventoryManager.tsx`): each category's `ul` becomes
+  `grid grid-cols-2 gap-3 sm:grid-cols-3`. Each item is a tile button:
+  photo on top (`aspect-square w-full rounded-t object-cover` `<img>` when
+  `photoUrl`, else the same box as a muted placeholder — `bg-[#8c2b22]/10`
+  with a small feather-style garment/scissors icon), then name (truncated,
+  `font-medium text-sm`) and the `size · ×quantity` muted line below,
+  inside the existing `surface` treatment.
+- Expand-to-edit: tapping a tile still toggles `expandedId`; the
+  `InventoryItemDetail` renders full-width (`col-span-full`) immediately
+  after the tile so the grid flow isn't broken.
+- Search, category grouping, and collapse behavior unchanged.
 - Accepted limitation (YAGNI): uploading a photo in the expanded editor does
   not live-update the row thumbnail; it appears on next page load.
 
