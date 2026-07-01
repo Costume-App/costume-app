@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   filterItemsByName,
   groupItemsByCategory,
@@ -175,31 +175,44 @@ export function InventoryManager({
               {!searching && <span className="ml-auto text-sm muted">{isCollapsed ? "›" : "⌄"}</span>}
             </button>
             {!isCollapsed && (
-              <ul className="space-y-1.5">
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {group.items.map((item) => (
-                  <li key={item.id} id={`inv-item-${item.id}`}>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedId((cur) => (cur === item.id ? null : item.id))}
-                      className="surface !shadow-none flex w-full items-center gap-3 p-2.5 text-left transition-colors hover:bg-[var(--bg)]"
-                    >
-                      <span className="min-w-0 flex-1 truncate font-medium">{item.name}</span>
-                      <span className="shrink-0 text-xs muted">
-                        {[item.size, `×${item.quantity}`].filter(Boolean).join(" · ")}
-                      </span>
-                      <span className="shrink-0 text-sm muted">{expandedId === item.id ? "⌄" : "›"}</span>
-                    </button>
+                  <Fragment key={item.id}>
+                    <li id={`inv-item-${item.id}`}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId((cur) => (cur === item.id ? null : item.id))}
+                        className={`surface !shadow-none block h-full w-full overflow-hidden text-left transition-colors hover:bg-[var(--bg)] ${
+                          expandedId === item.id ? "ring-2 ring-[var(--red)]" : ""
+                        }`}
+                      >
+                        {item.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.photoUrl} alt="" className="aspect-square w-full object-cover" />
+                        ) : (
+                          <span className="flex aspect-square w-full items-center justify-center bg-[#8c2b22]/10 text-[var(--red)]">
+                            <GarmentIcon />
+                          </span>
+                        )}
+                        <span className="block p-2">
+                          <span className="block truncate text-sm font-medium">{item.name}</span>
+                          <span className="block text-xs muted">
+                            {[item.size, `×${item.quantity}`].filter(Boolean).join(" · ") || " "}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
                     {expandedId === item.id && (
-                      <div className="mt-1.5">
+                      <li className="col-span-full">
                         <InventoryItemDetail
                           item={item}
                           busy={busy}
                           onChange={(patch) => updateItem(item.id, patch)}
                           onRemove={() => remove(item.id)}
                         />
-                      </div>
+                      </li>
                     )}
-                  </li>
+                  </Fragment>
                 ))}
               </ul>
             )}
@@ -214,5 +227,24 @@ export function InventoryManager({
       )}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
     </div>
+  );
+}
+
+// Placeholder for items with no photo yet: a simple garment outline.
+function GarmentIcon() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m8 3-4 3 2 4 2-1v9h8v-9l2 1 2-4-4-3a4 4 0 0 1-8 0Z" />
+    </svg>
   );
 }
