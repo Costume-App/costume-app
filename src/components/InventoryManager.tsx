@@ -175,7 +175,7 @@ export function InventoryManager({
               {!searching && <span className="ml-auto text-sm muted">{isCollapsed ? "›" : "⌄"}</span>}
             </button>
             {!isCollapsed && (
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {group.items.map((item) => (
                   <Fragment key={item.id}>
                     <li id={`inv-item-${item.id}`}>
