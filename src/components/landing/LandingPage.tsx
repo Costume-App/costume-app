@@ -96,7 +96,7 @@ export function LandingPage() {
         <div className="lp-rise mb-12 text-center" style={{ animationDelay: "0.05s" }}>
           <p className="lbl">The program</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
-            Everything a production needs, in one place
+            Everything a Production Needs, in One Place
           </h2>
         </div>
 
@@ -132,7 +132,7 @@ export function LandingPage() {
         <div className="mb-12 text-center">
           <p className="lbl">Pricing</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
-            Simple plans for every program
+            Simple Plans for Every Program
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -182,7 +182,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-4xl px-5 py-20 text-center">
           <p className="text-xs uppercase tracking-[0.2em] opacity-80">Curtain call</p>
           <h2 className="mt-3 font-display text-3xl font-semibold sm:text-[2.75rem]">
-            Ready for your next production?
+            Ready for Your Next Production?
           </h2>
           <p className="mx-auto mt-3 max-w-md opacity-90">
             Spin up the show, build the cast, and let the costumes follow.
@@ -301,8 +301,11 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   ),
   "ai-fabric": (
     <>
-      <path d="M12 3c.4 3.2 1.8 4.6 5 5-3.2.4-4.6 1.8-5 5-.4-3.2-1.8-4.6-5-5 3.2-.4 4.6-1.8 5-5Z" />
-      <path d="M18.5 14.5c.2 1.4.8 2 2 2.2-1.2.2-1.8.8-2 2.2-.2-1.4-.8-2-2-2.2 1.2-.2 1.8-.8 2-2.2Z" />
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <path d="M20 4 8.12 15.88" />
+      <path d="M14.47 14.48 20 20" />
+      <path d="M8.12 8.12 12 12" />
     </>
   ),
   cost: (
