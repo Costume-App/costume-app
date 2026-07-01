@@ -58,7 +58,7 @@ export function OrgBillingPanel() {
   if (error) return <p className="text-sm text-[var(--red)]">{error}</p>;
   if (!status) return <p className="text-sm muted">Loading…</p>;
 
-  const planLabel = status.isUnlimited ? "Unlimited ($99.99/yr)" : status.isPaidOrg ? "Pay per production" : "No plan yet";
+  const planLabel = status.isUnlimited ? "Unlimited ($99.99/yr)" : status.isPaidOrg ? "Pay Per Production" : "No plan yet";
 
   return (
     <div className="space-y-4 text-sm">
@@ -73,18 +73,20 @@ export function OrgBillingPanel() {
       {status.billingConfigured && (
         <div className="space-y-3">
           {!status.isUnlimited && (
-            <div className="space-y-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <PlanCard
                 type="unlock"
                 name={PLANS.perProduction.label}
                 price={PLANS.perProduction.price}
-                includes={PLANS.perProduction.includes}
+                cadence={PLANS.perProduction.cadence}
+                points={PLANS.perProduction.points}
               />
               <PlanCard
                 type="unlimited"
                 name={PLANS.unlimited.label}
                 price={PLANS.unlimited.price}
-                includes={PLANS.unlimited.includes}
+                cadence={PLANS.unlimited.cadence}
+                points={PLANS.unlimited.points}
                 highlight
               />
             </div>

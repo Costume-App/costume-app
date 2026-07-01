@@ -20,36 +20,40 @@ export function PlanLimitNotice({
       <p className="font-medium">{message}</p>
       {!reason && <p className="muted">Online checkout is coming soon.</p>}
       {reason === "needs_seat" && (
-        <div className="space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <PlanCard
             type="seat"
             productionId={productionId}
             name={PLANS.extraSeat.label}
             price={PLANS.extraSeat.price}
-            includes={PLANS.extraSeat.includes}
+            cadence={PLANS.extraSeat.cadence}
+            points={PLANS.extraSeat.points}
           />
           <PlanCard
             type="unlimited"
             name={PLANS.unlimited.label}
             price={PLANS.unlimited.price}
-            includes={PLANS.unlimited.includes}
+            cadence={PLANS.unlimited.cadence}
+            points={PLANS.unlimited.points}
             highlight
           />
         </div>
       )}
       {(reason === "needs_paid_plan" || reason === "needs_unlock") && (
-        <div className="space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <PlanCard
             type="unlock"
             name={PLANS.perProduction.label}
             price={PLANS.perProduction.price}
-            includes={PLANS.perProduction.includes}
+            cadence={PLANS.perProduction.cadence}
+            points={PLANS.perProduction.points}
           />
           <PlanCard
             type="unlimited"
             name={PLANS.unlimited.label}
             price={PLANS.unlimited.price}
-            includes={PLANS.unlimited.includes}
+            cadence={PLANS.unlimited.cadence}
+            points={PLANS.unlimited.points}
             highlight
           />
         </div>
