@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  attachInventoryPhotoUrls,
   filterItemsByName,
   groupItemsByCategory,
   uniqueCategories,
@@ -76,4 +77,23 @@ test("uniqueCategories: collapses 3+ casing variants to a single first-seen labe
     row({ id: "c", name: "c", category: "Hats" }),
   ];
   expect(uniqueCategories(items)).toEqual(["HATS"]);
+});
+
+test("attachInventoryPhotoUrls maps each item's first-photo path to its signed url", () => {
+  const out = attachInventoryPhotoUrls(
+    [row({ id: "1", name: "Top hat" }), row({ id: "2", name: "Bowler" })],
+    { "1": "inventory/1/a.jpg" },
+    { "inventory/1/a.jpg": "https://signed.example/a.jpg" },
+  );
+  expect(out[0].photoUrl).toBe("https://signed.example/a.jpg");
+  expect(out[1].photoUrl).toBeNull();
+});
+
+test("attachInventoryPhotoUrls: path with no signed url falls back to null", () => {
+  const out = attachInventoryPhotoUrls(
+    [row({ id: "1", name: "Top hat" })],
+    { "1": "inventory/1/a.jpg" },
+    {},
+  );
+  expect(out[0].photoUrl).toBeNull();
 });

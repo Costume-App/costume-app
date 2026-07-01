@@ -15,24 +15,26 @@ export default async function NewProductionPage() {
   // so a direct submit still can't bypass this.
   if (!gate.allowed) {
     return (
-      <main className="mx-auto max-w-md p-6">
+      <main className="mx-auto max-w-2xl p-6">
         <h1 className="font-display mb-3 text-3xl font-semibold">Subscribe to add a production</h1>
         <p className="muted mb-4">
           Your current plan doesn&rsquo;t include another production. Choose a plan to add one:
         </p>
         {isBillingConfigured() ? (
-          <div className="mb-4 space-y-3">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <PlanCard
               type="unlock"
               name={PLANS.perProduction.label}
               price={PLANS.perProduction.price}
-              includes={PLANS.perProduction.includes}
+              cadence={PLANS.perProduction.cadence}
+              points={PLANS.perProduction.points}
             />
             <PlanCard
               type="unlimited"
               name={PLANS.unlimited.label}
               price={PLANS.unlimited.price}
-              includes={PLANS.unlimited.includes}
+              cadence={PLANS.unlimited.cadence}
+              points={PLANS.unlimited.points}
               highlight
             />
           </div>
@@ -42,7 +44,7 @@ export default async function NewProductionPage() {
               <li key={plan.id} className="surface p-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="font-medium">{plan.label}</span>
-                  <span className="text-sm muted">{plan.price}</span>
+                  <span className="text-sm muted">{plan.price} · {plan.cadence}</span>
                 </div>
                 <span className="text-sm muted">{plan.includes}</span>
               </li>

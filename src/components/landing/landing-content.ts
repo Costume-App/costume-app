@@ -12,17 +12,17 @@ export interface Feature {
 
 // `id` keys an icon in LandingPage. Order within a group is the display order.
 export const FEATURES: Feature[] = [
-  { id: "all-in-one", group: "Production", title: "Everything in one place", blurb: "Casts, roles, costumes, fabric, and budget for a whole show — together." },
-  { id: "auto-roles", group: "Production", title: "Auto-built cast lists", blurb: "Generate the standard roles for popular productions in a click." },
-  { id: "character-boards", group: "Production", title: "Character boards", blurb: "Pin reference photos, ideas, and notes to every role." },
-  { id: "measurements", group: "Production", title: "Cast measurements", blurb: "Capture each performer's measurements right where you need them." },
+  { id: "all-in-one", group: "Production", title: "Everything in One Place", blurb: "Casts, roles, costumes, fabric, and budget for a whole show — together." },
+  { id: "auto-roles", group: "Production", title: "Auto-Built Cast Lists", blurb: "Generate the standard roles for popular productions in a click." },
+  { id: "character-boards", group: "Production", title: "Character Boards", blurb: "Pin reference photos, ideas, and notes to every role." },
+  { id: "measurements", group: "Production", title: "Cast Measurements", blurb: "Capture each performer's measurements right where you need them." },
 
-  { id: "sourcing", group: "Costumes & Inventory", title: "Source every piece", blurb: "Decide each costume: make it, buy it, or pull it from inventory." },
-  { id: "inspiration", group: "Costumes & Inventory", title: "Piece inspiration", blurb: "Collect photos and ideas for every costume piece in one place." },
-  { id: "inventory", group: "Costumes & Inventory", title: "House inventory", blurb: "Track your stock with photos and a storage location for every piece." },
-  { id: "ai-fabric", group: "Costumes & Inventory", title: "AI fabric estimates", blurb: "Let AI calculate the yardage to bring each costume to life." },
+  { id: "sourcing", group: "Costumes & Inventory", title: "Source Every Piece", blurb: "Decide each costume: make it, buy it, or pull it from inventory." },
+  { id: "inspiration", group: "Costumes & Inventory", title: "Piece Inspiration", blurb: "Collect photos and ideas for every costume piece in one place." },
+  { id: "inventory", group: "Costumes & Inventory", title: "House Inventory", blurb: "Track your stock with photos and a storage location for every piece." },
+  { id: "ai-fabric", group: "Costumes & Inventory", title: "Automatic Fabric Estimates", blurb: "Get the yardage for every costume piece, calculated automatically." },
 
-  { id: "cost", group: "Cost", title: "Cost at a glance", blurb: "See your production's whole estimated cost in one place." },
+  { id: "cost", group: "Cost", title: "Cost at a Glance", blurb: "See your production's whole estimated cost in one place." },
 ];
 
 export interface LandingConfig {
@@ -56,7 +56,7 @@ export interface PricingTier {
 // Marketing copy — keep in sync by eye with PLANS in src/lib/billing-plans.ts.
 export const PRICING_TIERS: PricingTier[] = [
   {
-    name: "Pay per production",
+    name: "Pay Per Production",
     price: "$49.99",
     cadence: "one-time, per production",
     points: ["1 production", "3 makers included", "+$10 per extra maker"],
