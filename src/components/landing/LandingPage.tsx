@@ -115,7 +115,7 @@ export function LandingPage() {
                   className="lp-rise surface p-5 transition-transform hover:-translate-y-0.5"
                   style={{ animationDelay: `${0.1 + i * 0.05}s` }}
                 >
-                  <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#8c2b22]/10 text-[var(--red)]">
+                  <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#c62828]/10 text-[var(--red)]">
                     <Icon id={f.id} />
                   </span>
                   <h3 className="font-display text-lg font-semibold">{f.title}</h3>

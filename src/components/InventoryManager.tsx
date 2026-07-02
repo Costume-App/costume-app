@@ -190,7 +190,7 @@ export function InventoryManager({
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.photoUrl} alt="" className="aspect-square w-full object-cover" />
                         ) : (
-                          <span className="flex aspect-square w-full items-center justify-center bg-[#8c2b22]/10 text-[var(--red)]">
+                          <span className="flex aspect-square w-full items-center justify-center bg-[#c62828]/10 text-[var(--red)]">
                             <GarmentIcon />
                           </span>
                         )}

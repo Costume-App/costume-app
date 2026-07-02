@@ -3,7 +3,7 @@
 // the object is structurally validated where it's passed to `appearance={...}`.
 export const clerkAppearance = {
   variables: {
-    colorPrimary: "#8c2b22", // curtain red
+    colorPrimary: "#c62828", // curtain crimson
     colorText: "#241c19", // ink
     colorBackground: "#fbf5e9", // surface cream
     colorInputBackground: "#fbf5e9",
