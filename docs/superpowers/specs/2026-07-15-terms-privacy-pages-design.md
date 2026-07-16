@@ -118,12 +118,18 @@ Plain-English voice matching the site. Effective/last-updated date: July 15, 202
 
 ## Testing (Vitest, TDD per repo convention)
 
-- Extend route matcher coverage: `/terms` and `/privacy` are public (reachable
-  logged-out) — test alongside the existing route-guard tests.
-- Render tests: landing footer contains links to `/terms` and `/privacy`; sign-up
-  page contains the consent line with both links.
+The Vitest suite runs in a node environment with pure-logic tests only (no
+jsdom/testing-library), so link coverage is data-driven, matching the existing
+`landing-content.test.ts` pattern:
+
+- Extract the middleware's public route patterns into a tested data module
+  (`src/lib/public-routes.ts`); test that `/terms` and `/privacy` are included and
+  existing public routes are preserved.
+- Extract the legal links into `LEGAL_LINKS` in `landing-content.ts` (consumed by
+  both the footer and the sign-up consent line); test hrefs and labels.
 - The legal page content itself is static JSX and is not unit-tested (same stance
-  as `/guide`).
+  as `/guide`); a final verification task curls the dev server logged-out to check
+  the pages render publicly and the footer/sign-up links are present.
 
 ## Out of scope
 
