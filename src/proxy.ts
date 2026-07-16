@@ -1,8 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { orgGate } from "@/lib/route-guard";
+import { PUBLIC_ROUTES } from "@/lib/public-routes";
 
-const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/get-started", "/api/billing/webhook"]);
+const isPublic = createRouteMatcher(PUBLIC_ROUTES);
 const isOnboarding = createRouteMatcher(["/onboarding(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
