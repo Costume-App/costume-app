@@ -4,6 +4,7 @@ import {
   LANDING,
   PRICING_TIERS,
   CONTACT_EMAIL,
+  LEGAL_LINKS,
   type FeatureGroup,
 } from "@/components/landing/landing-content";
 
@@ -211,10 +212,15 @@ export function LandingPage() {
             <p className="font-display text-lg font-semibold">{v.brand}</p>
             <p className="text-sm muted">Production &amp; costume management for the stage.</p>
           </div>
-          <div className="flex items-center gap-5 text-sm">
+          <div className="flex flex-wrap items-center justify-center gap-5 text-sm">
             <Link href="/sign-in" className="link-muted">Log in</Link>
             <Link href="/sign-up" className="link-muted">Get started</Link>
             <a href={DEMO_HREF} className="link-muted">Contact</a>
+            {LEGAL_LINKS.map((l) => (
+              <Link key={l.href} href={l.href} className="link-muted">
+                {l.label}
+              </Link>
+            ))}
           </div>
         </div>
       </footer>

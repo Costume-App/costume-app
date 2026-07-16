@@ -73,3 +73,16 @@ export const PRICING_TIERS: PricingTier[] = [
 ];
 
 export const CONTACT_EMAIL = "hello@measuremycostume.com";
+
+export interface LegalLink {
+  href: string;
+  /** Short label for the landing footer row. */
+  label: string;
+  /** Full document name for consent sentences. */
+  fullLabel: string;
+}
+
+export const LEGAL_LINKS: LegalLink[] = [
+  { href: "/terms", label: "Terms", fullLabel: "Terms of Service" },
+  { href: "/privacy", label: "Privacy", fullLabel: "Privacy Policy" },
+];

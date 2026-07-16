@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { FEATURES, LANDING, PRICING_TIERS } from "@/components/landing/landing-content";
+import { FEATURES, LANDING, PRICING_TIERS, LEGAL_LINKS } from "@/components/landing/landing-content";
 
 const MINOR_WORDS = new Set([
   "a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or", "per", "the", "to", "with",
@@ -41,4 +41,12 @@ test("fabric estimates card matches Nada's wording", () => {
   const fabric = FEATURES.find((f) => f.id === "ai-fabric");
   expect(fabric?.title).toBe("Automatic Fabric Estimates");
   expect(fabric?.blurb.endsWith("automatically.")).toBe(true);
+});
+
+test("legal links point at the terms and privacy pages", () => {
+  expect(LEGAL_LINKS.map((l) => l.href)).toEqual(["/terms", "/privacy"]);
+  for (const l of LEGAL_LINKS) {
+    expect(l.label.length).toBeGreaterThan(0);
+    expect(l.fullLabel.length).toBeGreaterThan(0);
+  }
 });
