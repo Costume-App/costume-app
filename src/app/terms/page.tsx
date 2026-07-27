@@ -8,7 +8,7 @@ export default function TermsPage() {
   return (
     <LegalShell
       title="Terms of Service"
-      updated="July 15, 2026"
+      updated="July 27, 2026"
       intro="The plain-English rules for using Measure My Costume."
     >
       <Section id="agreement" title="1. Agreeing to these terms">
@@ -20,7 +20,11 @@ export default function TermsPage() {
           you are using the service on behalf of an organization, you are agreeing for that
           organization too.
         </P>
-        <P>You must be at least 18 years old to create an account.</P>
+        <P>
+          You must be old enough to enter into a binding contract where you live. If you create an
+          account on behalf of an organization, you confirm that you have authority to bind that
+          organization to these terms. You confirm both when you create your account.
+        </P>
       </Section>
 
       <Section id="service" title="2. The service">
@@ -55,7 +59,7 @@ export default function TermsPage() {
           Much of what the service stores is information about performers — names, body
           measurements, and photos — entered by your organization. <B>Your organization is
           responsible for having permission to collect and store that information</B>, including
-          consent from a parent or guardian for performers under 18. Do not enter information
+          consent from a parent or guardian for any performer under 18 years of age. Do not enter information
           about a performer if you do not have that permission.
         </P>
       </Section>
@@ -77,6 +81,13 @@ export default function TermsPage() {
           Fees are nonrefundable except where the law requires otherwise. If prices change, we
           will let you know before your next renewal.
         </P>
+        <P>
+          Questions about billing? Email{" "}
+          <a href="mailto:billing@measuremycostume.com" className="link-red">
+            billing@measuremycostume.com
+          </a>
+          .
+        </P>
       </Section>
 
       <Section id="ai" title="8. Automatic estimates">
@@ -91,11 +102,12 @@ export default function TermsPage() {
         <P>
           You can stop using the service at any time, and you can ask us to delete your
           organization and its data by emailing{" "}
-          <a href="mailto:hello@measuremycostume.com" className="link-red">
-            hello@measuremycostume.com
+          <a href="mailto:privacy@measuremycostume.com" className="link-red">
+            privacy@measuremycostume.com
           </a>
-          . We may suspend or close accounts that violate these terms, with notice where
-          practical.
+          . We will remove it within 30 days of a verified request, except for records we are
+          required by law to retain. We may suspend or close accounts that violate these terms,
+          with notice where practical.
         </P>
       </Section>
 
@@ -124,13 +136,27 @@ export default function TermsPage() {
       </Section>
 
       <Section id="contact" title="13. Contact">
-        <P>
-          Questions about these terms? Email{" "}
-          <a href="mailto:hello@measuremycostume.com" className="link-red">
-            hello@measuremycostume.com
-          </a>
-          .
-        </P>
+        <P>Reach us at the address that matches your question:</P>
+        <UL>
+          <LI>
+            <B>General questions</B> —{" "}
+            <a href="mailto:hello@measuremycostume.com" className="link-red">
+              hello@measuremycostume.com
+            </a>
+          </LI>
+          <LI>
+            <B>Billing</B> —{" "}
+            <a href="mailto:billing@measuremycostume.com" className="link-red">
+              billing@measuremycostume.com
+            </a>
+          </LI>
+          <LI>
+            <B>Privacy and data requests</B> —{" "}
+            <a href="mailto:privacy@measuremycostume.com" className="link-red">
+              privacy@measuremycostume.com
+            </a>
+          </LI>
+        </UL>
       </Section>
 
       <p className="border-t border-[var(--field-line)] pt-4 text-sm muted">

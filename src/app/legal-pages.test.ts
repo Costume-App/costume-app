@@ -29,6 +29,7 @@ function copyOf(relPath: string): string {
 }
 
 const PRIVACY = copyOf("src/app/privacy/page.tsx");
+const TERMS = copyOf("src/app/terms/page.tsx");
 
 test("privacy policy commits to a concrete 30-day deletion window", () => {
   expect(PRIVACY).toContain("within 30 days");
@@ -66,4 +67,25 @@ test("privacy policy names no service provider", () => {
 test("privacy policy makes no specific security claims", () => {
   expect(PRIVACY).toContain("commercially reasonable");
   expect(PRIVACY).not.toMatch(/HTTPS|signed URL/i);
+});
+
+test("terms route each question to its own address", () => {
+  expect(TERMS).toContain("hello@measuremycostume.com");
+  expect(TERMS).toContain("billing@measuremycostume.com");
+  expect(TERMS).toContain("privacy@measuremycostume.com");
+});
+
+test("terms require contractual capacity rather than an unverifiable age", () => {
+  expect(TERMS).toContain("binding contract");
+  expect(TERMS).toContain("authority to bind that organization");
+  expect(TERMS).not.toMatch(/at least 18 years old/i);
+});
+
+test("terms keep parent or guardian consent explicit for performers", () => {
+  expect(TERMS).toContain("under 18 years of age");
+});
+
+test("both pages promise the same deletion window", () => {
+  expect(TERMS).toContain("within 30 days");
+  expect(PRIVACY).toContain("within 30 days");
 });
