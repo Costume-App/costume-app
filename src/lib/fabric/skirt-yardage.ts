@@ -105,13 +105,14 @@ export function estimateSkirtYardage(input: SkirtYardageInput): SkirtYardageResu
     if (input.fullness == null) {
       steps.push(`No fullness set — assuming ${DEFAULT_FULLNESS}× the waist.`);
     }
+    requirePositive("Fullness", fullness);
     const panelWidth = input.waistInches * fullness;
     const panels = Math.ceil(panelWidth / usableWidth);
     const panelLength = input.lengthInches + HEM_ALLOWANCE_IN + WAIST_SEAM_IN;
     inches = panels * panelLength;
     steps.push(`Gathered · ${input.fabricWidthInches}" fabric (${usableWidth}" usable)`);
     steps.push(`waist ${input.waistInches}" × ${fullness} fullness = ${r2(panelWidth)}" to gather`);
-    steps.push(`${r2(panelWidth)}" ÷ ${usableWidth}" usable = ${plural(panels, "panel")}`);
+    steps.push(`${r2(panelWidth)}" ÷ ${usableWidth}" usable → ${plural(panels, "panel")} (rounded up)`);
     steps.push(
       `${panels} × (length ${input.lengthInches}" + hem ${HEM_ALLOWANCE_IN}" + seam ${WAIST_SEAM_IN}") = ${r2(inches)}"`,
     );

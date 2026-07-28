@@ -162,6 +162,21 @@ describe("edge cases", () => {
     ).toThrow();
   });
 
+  test.each([
+    ["fullness 0", { construction: "gathered" as const, fullness: 0 }],
+    ["fullness -2", { construction: "gathered" as const, fullness: -2 }],
+    ["fullness NaN", { construction: "gathered" as const, fullness: Number.NaN }],
+  ])("throws on invalid %s", (_label, patch) => {
+    expect(() =>
+      estimateSkirtYardage({
+        waistInches: 27,
+        lengthInches: 32,
+        fabricWidthInches: 45,
+        ...patch,
+      }),
+    ).toThrow();
+  });
+
   test("throws when the fabric is narrower than the selvage allowance", () => {
     expect(() =>
       estimateSkirtYardage({
@@ -178,6 +193,30 @@ describe("edge cases", () => {
       expect(r.steps.length, `no steps for ${construction}`).toBeGreaterThan(2);
       expect(r.yards).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("constants are pinned", () => {
+  test("waste allowance is exactly 10% and shown honestly", () => {
+    const r = estimateSkirtYardage({
+      construction: "full_circle",
+      waistInches: 27,
+      lengthInches: 32,
+      fabricWidthInches: 45,
+    });
+    // The step text must show the actual constant, not a range or approximation.
+    expect(r.steps.join(" ")).toContain("10% allowance");
+  });
+
+  test("gathered waste allowance is also exactly 10%", () => {
+    const r = estimateSkirtYardage({
+      construction: "gathered",
+      waistInches: 27,
+      lengthInches: 32,
+      fabricWidthInches: 45,
+      fullness: 3,
+    });
+    expect(r.steps.join(" ")).toContain("10% allowance");
   });
 });
 
