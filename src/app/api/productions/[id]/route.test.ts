@@ -40,7 +40,7 @@ beforeEach(() => {
   [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction, setProductionActive, setProductionNotes, setCostumesDue, listProductionImagePaths, removeImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
-  listProductionImagePaths.mockResolvedValue([]);
+  listProductionImagePaths.mockResolvedValue(["p1/r1/a.jpg", "p1/designs/d1/b.jpg"]);
   removeImages.mockResolvedValue(undefined);
 });
 
@@ -54,7 +54,7 @@ test("DELETE removes the production, scoped to the caller's org (200)", async ()
   expect(await res.json()).toEqual({ ok: true });
   expect(assertProductionInOrg).toHaveBeenCalledWith("org_1", "p1");
   expect(listProductionImagePaths).toHaveBeenCalledWith("p1");
-  expect(removeImages).toHaveBeenCalled();
+  expect(removeImages).toHaveBeenCalledWith(["p1/r1/a.jpg", "p1/designs/d1/b.jpg"]);
   expect(deleteProduction).toHaveBeenCalledWith("org_1", "p1");
 });
 

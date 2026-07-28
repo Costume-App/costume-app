@@ -36,7 +36,7 @@ beforeEach(() => {
   [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole, listRoleImagePaths, removeImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
-  listRoleImagePaths.mockResolvedValue([]);
+  listRoleImagePaths.mockResolvedValue(["p1/r1/a.jpg"]);
   removeImages.mockResolvedValue(undefined);
 });
 
@@ -53,7 +53,7 @@ test("DELETE removes a role (200)", async () => {
   const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
   expect(res.status).toBe(200);
   expect(listRoleImagePaths).toHaveBeenCalledWith("r1");
-  expect(removeImages).toHaveBeenCalled();
+  expect(removeImages).toHaveBeenCalledWith(["p1/r1/a.jpg"]);
   expect(deleteRole).toHaveBeenCalledWith("p1", "r1");
 });
 
