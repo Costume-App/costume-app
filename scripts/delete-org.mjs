@@ -96,47 +96,106 @@ if (!requestedAt) {
 
 console.log("\nDeleting — do not interrupt.\n");
 
-// 1. Stripe first. After the org row goes, its webhooks fail the org FK and
-//    Stripe retries them forever; and an uncancelled subscription keeps charging.
-if (env.STRIPE_SECRET_KEY) {
-  const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-  const { cancelled, subscriptionId } = await cancelOrgSubscription(stripe, sb, orgId);
-  console.log(cancelled ? `  ✓ Stripe subscription ${subscriptionId} cancelled` : "  · no Stripe subscription");
-} else {
-  console.log("  · STRIPE_SECRET_KEY not set — skipping Stripe (cancel by hand if the org had a subscription)");
-}
-
-// 2. Storage before the cascade — afterwards the paths are unreachable.
-const paths = await collectOrgStoragePaths(sb, orgId);
-if (paths.length > 0) {
-  const { error } = await sb.storage.from("role-images").remove(paths);
-  if (error) throw new Error(`storage removal failed: ${error.message}`);
-}
-console.log(`  ✓ ${paths.length} storage objects removed`);
-
-// 3. Feedback before the org row — this matches on org_id.
-console.log(`  ✓ ${await anonymizeOrgFeedback(sb, orgId)} feedback rows anonymized`);
-
-// 4. The tables the cascade misses, then the org row. deleteOrgRows returns
-//    production_shares_deleted (this org was the share's source — genuinely
-//    deleted) and production_shares_released (this org was the recipient of a
-//    DIFFERENT org's share — only accepted_by_org_id was nulled, the row itself
-//    belongs to that other customer and is left in place). Label the release
-//    distinctly so the printed output can't be misread as "N more rows deleted."
-for (const [table, count] of Object.entries(await deleteOrgRows(sb, orgId))) {
-  const note = table === "production_shares_released" ? " (unlinked, not deleted — belongs to another org)" : "";
-  console.log(`  ✓ ${table.padEnd(28)} ${count} rows${note}`);
-}
-
-// 5. Proof the request was honored.
-await writeDeletionLog(sb, {
+// There is no transaction spanning Stripe, Storage, and Postgres, so a failure
+// partway through is possible by construction. `completed` is only pushed to
+// AFTER a step's own success is printed, so on failure it is an honest record
+// of what really happened — not a guess — and everything not in it is exactly
+// what remains unproven.
+const STEP_NAMES = {
+  stripe: "1. Stripe subscription cancel",
+  storage: "2. storage object removal",
+  feedback: "3. feedback anonymization",
+  rows: "4. row deletion (fabric_widths, fabric_suppliers, production_shares, organizations)",
+  log: "5. deletion_log write",
+};
+const completed = [];
+const logEntry = {
   orgId,
   orgName: summary.orgName,
   requestedAt,
   requestedBy: arg("requested-by"),
   notes: arg("notes"),
-});
-console.log("  ✓ deletion_log written");
+};
+
+try {
+  // 1. Stripe first. After the org row goes, its webhooks fail the org FK and
+  //    Stripe retries them forever; and an uncancelled subscription keeps charging.
+  if (env.STRIPE_SECRET_KEY) {
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+    const { cancelled, subscriptionId } = await cancelOrgSubscription(stripe, sb, orgId);
+    console.log(cancelled ? `  ✓ Stripe subscription ${subscriptionId} cancelled` : "  · no Stripe subscription");
+  } else {
+    console.log("  · STRIPE_SECRET_KEY not set — skipping Stripe (cancel by hand if the org had a subscription)");
+  }
+  completed.push(STEP_NAMES.stripe);
+
+  // 2. Storage before the cascade — afterwards the paths are unreachable.
+  const paths = await collectOrgStoragePaths(sb, orgId);
+  if (paths.length > 0) {
+    const { error } = await sb.storage.from("role-images").remove(paths);
+    if (error) throw new Error(`storage removal failed: ${error.message}`);
+  }
+  console.log(`  ✓ ${paths.length} storage objects removed`);
+  completed.push(STEP_NAMES.storage);
+
+  // 3. Feedback before the org row — this matches on org_id.
+  console.log(`  ✓ ${await anonymizeOrgFeedback(sb, orgId)} feedback rows anonymized`);
+  completed.push(STEP_NAMES.feedback);
+
+  // 4. The tables the cascade misses, then the org row. deleteOrgRows returns
+  //    production_shares_deleted (this org was the share's source — genuinely
+  //    deleted) and production_shares_released (this org was the recipient of a
+  //    DIFFERENT org's share — only accepted_by_org_id was nulled, the row itself
+  //    belongs to that other customer and is left in place). Label the release
+  //    distinctly so the printed output can't be misread as "N more rows deleted."
+  //
+  //    deleteOrgRows performs five sequential operations internally as one
+  //    promise (frozen module, not ours to instrument). If it throws partway,
+  //    we cannot know which of the five landed — that is reported honestly as
+  //    "unknown" below, not as zero.
+  for (const [table, count] of Object.entries(await deleteOrgRows(sb, orgId))) {
+    const note = table === "production_shares_released" ? " (unlinked, not deleted — belongs to another org)" : "";
+    console.log(`  ✓ ${table.padEnd(28)} ${count} rows${note}`);
+  }
+  completed.push(STEP_NAMES.rows);
+
+  // 5. Proof the request was honored.
+  await writeDeletionLog(sb, logEntry);
+  console.log("  ✓ deletion_log written");
+  completed.push(STEP_NAMES.log);
+} catch (err) {
+  const allSteps = Object.values(STEP_NAMES);
+  const failedStep = allSteps[completed.length];
+  const remaining = allSteps.slice(completed.length + 1);
+
+  console.error(`\n  ✗ FAILED during: ${failedStep}`);
+  console.error(`    ${err.message}`);
+  console.error("");
+  console.error(`  Confirmed complete: ${completed.length ? completed.join("; ") : "(none)"}`);
+  console.error(`  Unknown (failed mid-step — may be partially applied, check Supabase/Stripe by hand): ${failedStep}`);
+  console.error(`  Not attempted: ${remaining.length ? remaining.join("; ") : "(none)"}`);
+
+  // The writeDeletionLog failure is materially different from every earlier
+  // one: everything the request exists to do has already happened, and only
+  // the compliance record is missing. Give the operator what they need to
+  // write it by hand instead of leaving them to reconstruct it.
+  if (failedStep === STEP_NAMES.log) {
+    console.error("");
+    console.error("  The deletion itself SUCCEEDED — Stripe, storage, feedback, and every row");
+    console.error("  (including the organizations row) are gone. Only the deletion_log insert failed.");
+    console.error("  Insert it by hand into deletion_log with these values:");
+    console.error(`    org_id:       ${logEntry.orgId}`);
+    console.error(`    org_name:     ${logEntry.orgName}`);
+    console.error(`    requested_at: ${logEntry.requestedAt}`);
+    console.error(`    requested_by: ${logEntry.requestedBy ?? "(null)"}`);
+    console.error(`    notes:        ${logEntry.notes ?? "(null)"}`);
+  } else {
+    console.error("");
+    console.error("  There is no transaction spanning Stripe, storage, and Postgres — do not assume");
+    console.error("  re-running this script is safe without checking Supabase and Stripe by hand first.");
+  }
+  process.exit(1);
+}
 
 console.log("\n  ⚠ MANUAL STEP REMAINING");
 console.log("    Delete the Clerk organization by hand:");
