@@ -22,18 +22,43 @@ export const ORG_TABLES = [
   "org_domains",
 ];
 
-function unwrap({ data, error }) {
-  if (error) throw new Error(error.message);
+// Unwraps a Supabase response, throwing with enough context (table + PostgREST
+// code) to make a partial run legible instead of a bare "undefined" message.
+function unwrap({ data, error }, label) {
+  if (error) throw new Error(`${label}: ${error.code ?? "unknown"} ${error.message}`);
   return data ?? [];
 }
 
+// PostgREST caps an unbounded select at the project's max_rows (default 1000)
+// with nothing distinguishing "this is all of them" from "this is the first
+// 1000 of 4000." Requesting the exact count alongside the data and refusing to
+// proceed on a mismatch turns silent truncation (files left unreachable forever
+// once their rows cascade away) into a loud, actionable failure instead.
+async function fetchColumn(sb, table, column, apply, label) {
+  const { data, error, count } = await apply(sb.from(table).select(column, { count: "exact" }));
+  if (error) throw new Error(`${label}: ${error.code ?? "unknown"} ${error.message}`);
+  const rows = data ?? [];
+  if (count != null && rows.length !== count) {
+    throw new Error(
+      `${label}: fetched ${rows.length} of ${count} rows — PostgREST truncated the result ` +
+        `(likely max_rows). Refusing to proceed with a partial row set.`,
+    );
+  }
+  return rows.map((r) => r[column]);
+}
+
 async function idsBy(sb, table, column, value) {
-  return unwrap(await sb.from(table).select("id").eq(column, value)).map((r) => r.id);
+  return fetchColumn(sb, table, "id", (n) => n.eq(column, value), table);
+}
+
+async function idsWhereIn(sb, table, column, values) {
+  if (values.length === 0) return [];
+  return fetchColumn(sb, table, "id", (n) => n.in(column, values), table);
 }
 
 async function pathsIn(sb, table, column, ids) {
   if (ids.length === 0) return [];
-  return unwrap(await sb.from(table).select("storage_path").in(column, ids)).map((r) => r.storage_path);
+  return fetchColumn(sb, table, "storage_path", (n) => n.in(column, ids), table);
 }
 
 // Every storage object the org owns. The bucket key format carries no org id, and
@@ -45,26 +70,39 @@ export async function collectOrgStoragePaths(sb, orgId) {
   let rolePaths = [];
   let designPaths = [];
   if (productionIds.length > 0) {
-    const roleIds = unwrap(
-      await sb.from("roles").select("id").in("production_id", productionIds),
-    ).map((r) => r.id);
-    const designIds = unwrap(
-      await sb.from("costume_designs").select("id").in("production_id", productionIds),
-    ).map((r) => r.id);
+    const roleIds = await idsWhereIn(sb, "roles", "production_id", productionIds);
+    const designIds = await idsWhereIn(sb, "costume_designs", "production_id", productionIds);
     rolePaths = await pathsIn(sb, "role_images", "role_id", roleIds);
     designPaths = await pathsIn(sb, "costume_design_images", "costume_design_id", designIds);
   }
 
+  // Inventory items are org-scoped directly (not through a production), so this
+  // branch runs unconditionally — an org can have inventory with zero productions.
   const itemIds = await idsBy(sb, "inventory_items", "org_id", orgId);
   const inventoryPaths = await pathsIn(sb, "inventory_item_images", "inventory_item_id", itemIds);
 
   return [...new Set([...rolePaths, ...designPaths, ...inventoryPaths])];
 }
 
+// NOTE: `organizations` (PK clerk_org_id) and `org_subscriptions` (PK org_id)
+// have no `id` column at all. Every count below selects "*" with head:true
+// instead of "id" — with head:true no rows come back, so the wider column list
+// costs nothing, and it can't break on a table whose PK isn't called `id`
+// (selecting "id" here is exactly how this broke before review: 42703 column
+// org_subscriptions.id does not exist, on every single run).
 async function countIn(sb, table, orgId) {
-  const column = table === "production_shares" ? "source_org_id" : "org_id";
-  const { count, error } = await sb.from(table).select("id", { count: "exact", head: true }).eq(column, orgId);
-  if (error) throw new Error(error.message);
+  if (table === "production_shares") {
+    // Must cover both operations deleteOrgRows performs on this table (delete by
+    // source_org_id, release by accepted_by_org_id) or the dry-run undercounts.
+    const { count, error } = await sb
+      .from(table)
+      .select("*", { count: "exact", head: true })
+      .or(`source_org_id.eq."${orgId}",accepted_by_org_id.eq."${orgId}"`);
+    if (error) throw new Error(`${table}: ${error.code ?? "unknown"} ${error.message}`);
+    return count ?? 0;
+  }
+  const { count, error } = await sb.from(table).select("*", { count: "exact", head: true }).eq("org_id", orgId);
+  if (error) throw new Error(`${table}: ${error.code ?? "unknown"} ${error.message}`);
   return count ?? 0;
 }
 
@@ -74,7 +112,7 @@ export async function summarizeOrg(sb, orgId) {
     .select("name")
     .eq("clerk_org_id", orgId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`organizations: ${error.code ?? "unknown"} ${error.message}`);
 
   const tables = {};
   for (const table of ORG_TABLES) tables[table] = await countIn(sb, table, orgId);
@@ -91,7 +129,7 @@ export async function cancelOrgSubscription(stripe, sb, orgId) {
     .select("stripe_subscription_id")
     .eq("org_id", orgId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`org_subscriptions: ${error.code ?? "unknown"} ${error.message}`);
 
   const subscriptionId = data?.stripe_subscription_id ?? null;
   if (!subscriptionId) return { cancelled: false, subscriptionId: null };
@@ -111,33 +149,58 @@ export async function anonymizeOrgFeedback(sb, orgId) {
       .update({ user_email: null, user_id: null, org_id: null })
       .eq("org_id", orgId)
       .select("id"),
+    "feedback",
   );
   return rows.length;
 }
 
-// The three tables the cascade misses (feedback is the fourth, handled above),
-// then the org row itself — that cascade takes everything else.
+// The two tables the cascade misses outright (fabric_widths, fabric_suppliers —
+// feedback is the third, handled above by anonymizing instead of deleting),
+// production_shares (see below), then the org row itself — that cascade takes
+// everything else (productions, makers, inventory_items, org_subscriptions, ...).
+//
+// production_shares is split into two operations rather than one delete matching
+// either org column:
+//   - rows where this org is the SOURCE (source_org_id) cascade away anyway once
+//     `organizations` is deleted below (source_production_id -> productions ->
+//     organizations, all ON DELETE CASCADE). Deleting them here explicitly just
+//     makes the reported count honest instead of silently relying on a cascade
+//     the operator never sees.
+//   - rows where this org is the RECIPIENT (accepted_by_org_id) belong to a
+//     DIFFERENT org's share: source_production_id, created_by, token, and
+//     recipient_email are all that other customer's data. Deleting the row would
+//     destroy their record that a share was ever accepted, so this is an UPDATE
+//     that only clears the reference to the org being deleted — not a delete.
 export async function deleteOrgRows(sb, orgId) {
   const counts = {};
 
   counts.fabric_widths = unwrap(
     await sb.from("fabric_widths").delete().eq("org_id", orgId).select("id"),
+    "fabric_widths",
   ).length;
 
   counts.fabric_suppliers = unwrap(
     await sb.from("fabric_suppliers").delete().eq("org_id", orgId).select("id"),
+    "fabric_suppliers",
   ).length;
 
-  counts.production_shares = unwrap(
+  counts.production_shares_deleted = unwrap(
+    await sb.from("production_shares").delete().eq("source_org_id", orgId).select("id"),
+    "production_shares",
+  ).length;
+
+  counts.production_shares_released = unwrap(
     await sb
       .from("production_shares")
-      .delete()
-      .or(`source_org_id.eq.${orgId},accepted_by_org_id.eq.${orgId}`)
+      .update({ accepted_by_org_id: null })
+      .eq("accepted_by_org_id", orgId)
       .select("id"),
+    "production_shares",
   ).length;
 
   counts.organizations = unwrap(
     await sb.from("organizations").delete().eq("clerk_org_id", orgId).select("clerk_org_id"),
+    "organizations",
   ).length;
 
   return counts;
@@ -151,5 +214,5 @@ export async function writeDeletionLog(sb, entry) {
     requested_by: entry.requestedBy ?? null,
     notes: entry.notes ?? null,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`deletion_log: ${error.code ?? "unknown"} ${error.message}`);
 }
