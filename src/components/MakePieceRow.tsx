@@ -212,6 +212,10 @@ export function MakePieceRow({
 
   function applyConstruction(nextConstruction: string, nextFullness: string) {
     const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn, effectiveLengthIn);
+    // Captured before `applyComputedYardage` runs below, though reordering
+    // wouldn't actually change today's result — React doesn't retroactively
+    // mutate this bound `const` when a setter fires mid-handler. The ordering
+    // is deliberate future-proofing, not a fix for a live hazard.
     const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
     void save({
@@ -232,6 +236,7 @@ export function MakePieceRow({
       return;
     }
     const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth), effectiveLengthIn);
+    // Captured before `applyComputedYardage` — see the comment in `applyConstruction`.
     const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
     void save({
@@ -251,6 +256,7 @@ export function MakePieceRow({
     }
     const nextEffectiveLength = resolveLengthOverride(nextLength, outseamIn) ?? outseamIn;
     const nextYardage = computeYardage(construction, fullness, widthIn, nextEffectiveLength);
+    // Captured before `applyComputedYardage` — see the comment in `applyConstruction`.
     const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
     void save({
@@ -469,7 +475,7 @@ export function MakePieceRow({
               placeholder="Estimated # of yards"
               hint={
                 estimate
-                  ? "Calculated from the measurements — type over it to override, or clear it to hand it back."
+                  ? "Calculated from the measurements — type over it to override, or clear it and change a measurement to hand it back."
                   : construction
                     ? "Enter yardage manually until the measurements below are filled in."
                     : "Leave blank to have the system estimate yardage."
@@ -521,6 +527,14 @@ export function MakePieceRow({
                         type="button"
                         className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
                         onClick={() => {
+                          // Deliberately bypasses `applyComputedYardage`, unlike the
+                          // "Measurements changed" button just above: that function
+                          // now refuses to touch the field when it holds a manual
+                          // override — which is exactly the state this button only
+                          // ever renders in. Setting state directly here is how the
+                          // user hands the piece back to the calculator on purpose.
+                          // Do not "unify" these two buttons' handlers — doing so
+                          // would silently reintroduce the override-overwrite bug.
                           const next = String(estimate.yards);
                           setYardage(next);
                           setCalculatorYardage(estimate.yards);
