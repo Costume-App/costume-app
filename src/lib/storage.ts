@@ -30,7 +30,8 @@ export async function signImageUrls(paths: string[], expiresIn = 604800): Promis
 
 export async function removeImages(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
-  await supabaseAdmin.storage.from(ROLE_IMAGES_BUCKET).remove(paths);
+  const { error } = await supabaseAdmin.storage.from(ROLE_IMAGES_BUCKET).remove(paths);
+  if (error) throw new Error(error.message);
 }
 
 // Copy an object within the bucket (design photo → inventory photo live here).

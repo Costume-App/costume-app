@@ -3,6 +3,8 @@ import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { deleteProduction, updateProduction, setProductionActive, setProductionNotes, setCostumesDue } from "@/lib/data/productions";
+import { listProductionImagePaths } from "@/lib/data/storage-paths";
+import { removeImages } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -11,6 +13,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id } = await params;
     await assertProductionInOrg(orgId, id);
+    await removeImages(await listProductionImagePaths(id));
     await deleteProduction(orgId, id);
     return NextResponse.json({ ok: true });
   } catch (err) {
