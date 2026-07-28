@@ -107,11 +107,15 @@ export interface PurchasedItem {
   // skirt construction the piece already carries (e.g. set while it was still
   // a "make" piece, then switched to "purchase") instead of nulling it — the
   // same preserve-what's-recorded contract as the PUT bodies in
-  // RoleCostumePanel and MakePieceRow.
+  // RoleCostumePanel and MakePieceRow. `fabricYardage` is included alongside
+  // these four for the same reason: a piece can carry a hand-typed or
+  // calculator-derived yardage from before the switch to "purchase", and a
+  // purchase-price edit must not silently clear it.
   skirtConstruction: string | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
   calculatedYardage: number | null;
+  fabricYardage: number | null;
 }
 
 export interface PurchasedSummary {
@@ -295,6 +299,7 @@ export function buildPurchaseWorklist(
           skirtFullness: row.skirt_fullness,
           skirtLengthIn: row.skirt_length_in,
           calculatedYardage: row.calculated_yardage,
+          fabricYardage: row.fabric_yardage,
         });
         totalCost += price ?? 0;
       }

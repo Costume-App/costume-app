@@ -136,6 +136,16 @@ export function MakePieceRow({
   // instead of silently substituting the outseam and leaving the rejected
   // text sitting there unexplained.
   const lengthInvalid = length.trim() !== "" && parsePositiveNumber(length) == null;
+  // True only when the Yardage field holds non-blank text that doesn't parse
+  // as a real number ("6 1/2", "6 yards") — as opposed to being blank, or a
+  // valid (even negative) number, which the server itself rejects visibly.
+  // Unlike Length, there is no fallback value to substitute (no outseam
+  // equivalent for yardage), so an unnoticed invalid value would silently
+  // become `null` on save via `JSON.stringify(NaN) === "null"` — the same
+  // silent-loss shape this whole feature is calibrated against. Drives
+  // visible feedback instead of leaving the rejected text sitting there
+  // unexplained until a reload reveals the column went null.
+  const yardageInvalid = isYardageTextInvalid(yardage);
 
   // Recomputed for display; the value itself is saved on change, not on render.
   const estimate = useMemo(() => {
@@ -473,12 +483,17 @@ export function MakePieceRow({
               onBlur={() => void save()}
               inputMode="decimal"
               placeholder="Estimated # of yards"
+              warn={yardageInvalid}
               hint={
-                estimate
-                  ? "Calculated from the measurements — type over it to override, or clear it and change a measurement to hand it back."
-                  : construction
-                    ? "Enter yardage manually until the measurements below are filled in."
-                    : "Leave blank to have the system estimate yardage."
+                yardageInvalid
+                  ? `"${yardage.trim()}" isn't a number of yards — saving now would clear it. Enter a number, e.g. 4.5.`
+                  : estimate
+                    ? isManualOverride(yardage, calculatorYardage)
+                      ? "Your own number, not the calculator's — clear it, then re-pick the skirt type or change the width or length, to hand it back."
+                      : "Calculated from the skirt type, width, and length — type over it to override."
+                    : construction
+                      ? "Enter yardage manually until the measurements below are filled in."
+                      : "Leave blank to have the system estimate yardage."
               }
             />
             {construction && (
@@ -514,6 +529,19 @@ export function MakePieceRow({
                         type="button"
                         className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
                         onClick={() => {
+                          // `applyComputedYardage` may now decline to touch the field (when
+                          // it holds a manual override), while `save({ yardage: next })`
+                          // right below it writes `next` unconditionally. That divergence
+                          // is unreachable today ONLY because this button is gated on
+                          // `shouldOfferYardageUpdate`, which requires the field to still
+                          // equal `calculatorYardage` — the exact negation of
+                          // `isManualOverride`, the condition `applyComputedYardage` checks.
+                          // If that gating predicate ever widens to also fire on an
+                          // override, this handler would persist the calculator's number
+                          // to `fabric_yardage` while the field kept showing the user's —
+                          // a worse, equally silent version of the bug this button exists
+                          // to avoid. Don't loosen `shouldOfferYardageUpdate` without also
+                          // revisiting this `save` call.
                           const next = String(estimate.yards);
                           applyComputedYardage(next);
                           void save({ yardage: next });
@@ -612,6 +640,20 @@ function parsePositiveNumber(s: string): number | null {
   if (trimmed === "") return null;
   const n = Number(trimmed);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// Whether the Yardage field's raw text would silently become `null` on save.
+// A blank field is a deliberate clear, not invalid. A valid number — including
+// 0 or negative — is left alone here: the server's own `checkNum` rejects a
+// negative value with a visible error, so only text that fails to parse as a
+// number at all ("6 1/2", "6 yards") reaches this check. That's the case
+// `Number()` turns into `NaN`, which `JSON.stringify` then serializes as
+// `null` — indistinguishable, once it reaches the server, from a deliberate
+// clear.
+export function isYardageTextInvalid(yardageText: string): boolean {
+  const trimmed = yardageText.trim();
+  if (trimmed === "") return false;
+  return !Number.isFinite(Number(trimmed));
 }
 
 // Whether the Length field holds a genuine override of the performer's
