@@ -255,12 +255,18 @@ describe("helpers", () => {
     ["", null],
     [null, null],
     ["wide", null],
-    // "115cm" is a real width, just not in inches — reading its leading number
-    // as inches would be a 47% under-buy. No dress-fabric bolt runs this wide,
-    // so implausible widths are rejected rather than trusted.
-    ["115cm", null],
+    // Real theatrical goods a costume shop plausibly stocks — wide muslin and
+    // backdrop cloth run up to and including 150".
+    ["108", 108],
+    ["120", 120],
+    ["150", 150],
+    // "160cm" is a real width, just not in inches — reading its leading number
+    // as inches would be silently trusted as a 160" bolt. No dress-fabric
+    // bolt runs anywhere near that wide, so implausible widths (above the
+    // 150" ceiling) are rejected rather than trusted.
+    ["160cm", null],
     ["100", 100],
-    ["101", null],
+    ["151", null],
   ])("parseWidthInches(%p) -> %p", (raw, expected) => {
     expect(parseWidthInches(raw as string | null)).toBe(expected);
   });

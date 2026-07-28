@@ -187,9 +187,14 @@ different performer, which is the only sanity check available.
 ### Edge cases
 
 - **`R > usableWidth`** — a single panel is wider than the fabric. `perRow`
-  would be 0. Clamp to 1 and return `warning`: the panel must be pieced. Silently
-  dividing by zero, or silently returning a number that assumes an impossible
-  cut, would be expensive in real fabric.
+  would be 0. Clamp `perRow` to 1 and return a `warning`, but don't stop there:
+  piecing consumes real extra fabric, one whole additional width per panel
+  beyond the first, so the row count is also scaled — `widthsPerPanel =
+  Math.ceil(outerRadius / usableWidth)`, `rows = baseRows * widthsPerPanel` —
+  so the returned yardage accounts for the pieced cut instead of quietly
+  matching the fits-in-one-width case. Silently dividing by zero, or silently
+  returning a number that assumes an unpieced cut, would be expensive in real
+  fabric.
 - **Non-finite or non-positive `waistInches` / `lengthInches` / `fabricWidthInches`**
   — throw. The caller is responsible for not calling without measurements; see
   the UI section.
@@ -204,20 +209,36 @@ different performer, which is the only sanity check available.
 -- performer's measurements instead of estimated by the AI. Null construction
 -- means "not a skirt" and leaves the piece on the AI path, exactly as before.
 alter table costume_pieces add column if not exists skirt_construction text
+  constraint costume_pieces_skirt_construction_check
   check (skirt_construction in
     ('full_circle','three_quarter_circle','half_circle','gathered'));
 
 -- Gathered skirts only: how many times the waist measurement the panels total.
-alter table costume_pieces add column if not exists skirt_fullness numeric;
+alter table costume_pieces add column if not exists skirt_fullness numeric
+  constraint costume_pieces_skirt_fullness_check
+  check (skirt_fullness is null or skirt_fullness > 0);
+
+-- Per-piece skirt length override, in inches. When absent, the calculator
+-- falls back to the performer's outseam ("waist to ankle"), so a skirt
+-- defaults to floor-length unless the piece itself says otherwise.
+alter table costume_pieces add column if not exists skirt_length_in numeric
+  constraint costume_pieces_skirt_length_in_check
+  check (skirt_length_in is null or skirt_length_in > 0);
 ```
 
 Follows the established `alter table costume_pieces add column` pattern of
 `0011`, `0014`, `0020`, `0022`, `0023`. No new table, no backfill — every
 existing row gets a null construction and behaves as it does today.
 
-`upsertPieceSource` (`src/lib/data/costume-pieces.ts:66`) gains
-`skirtConstruction?: string | null` and `skirtFullness?: number | null`,
-following the shape of its existing optional fields.
+`upsertPieceSource` (`src/lib/data/costume-pieces.ts:69`) gains
+`skirtConstruction?: string | null`, `skirtFullness?: number | null`, and
+`skirtLengthIn?: number | null`, following the shape of its existing optional
+fields.
+
+`skirt_length_in` is written only when the designer's entry genuinely diverges
+from the performer's current outseam — see the Length field below. A value
+that merely echoes the outseam pre-fill back is stored as `null`, so the
+fallback stays live and a later re-measurement still reaches the estimate.
 
 ## UI — `src/components/MakePieceRow.tsx`
 
@@ -228,18 +249,35 @@ values are in hand with no new plumbing.
 - A **Construction** select beside the existing fabric fields: *(not a skirt)*,
   Full circle, Three-quarter circle, Half circle, Gathered.
 - A **Fullness** select that appears only for Gathered: 2×, 2½×, 3×.
-- Changing either recomputes immediately and saves through the existing
-  `upsertPieceSource` call, writing `fabric_yardage` along with the two new
-  fields. Because the number lands in the same column as before, the cost
-  rollup, the tailor's summary, and the fabric purchase list pick it up with no
-  changes to any of them.
+- A **Length** field, in inches, that appears once a construction is picked.
+  It pre-fills from the performer's outseam so the field starts at a sensible
+  floor-length value, but only a value that genuinely diverges from the
+  outseam is ever persisted as `skirt_length_in` — a value that merely equals
+  the outseam is stored as `null`, so the field keeps tracking the performer's
+  measurements page instead of freezing at whatever the outseam happened to be
+  on last save. A `0`, negative, or non-numeric entry is rejected: it does not
+  save, and the field shows a visible warning (styled like the field's other
+  feedback) rather than silently falling back to the outseam with no
+  explanation.
+- Changing any of construction, fullness, width, or length recomputes
+  immediately and saves through the existing `upsertPieceSource` call, writing
+  `fabric_yardage` along with the skirt fields. Because the number lands in
+  the same column as before, the cost rollup, the tailor's summary, and the
+  fabric purchase list pick it up with no changes to any of them.
 - Beneath the yardage field, the derivation renders from `steps`, plus the
-  `warning` when present.
+  `warning` when present. When the live estimate has diverged from the
+  Yardage field's value *and* that field still holds the calculator's own
+  last output (i.e. nothing has been manually typed over it since), a
+  "Measurements changed — update to X yd" nudge offers to apply the new
+  number. It does not fire on a blank field, and it does not fire when the
+  designer has deliberately typed a different yardage — that is treated as an
+  intentional override, not a claim that measurements changed.
 
 Measurements are read from the row's existing `measurements` array by key:
 `waist`, and `outseam` — labeled **"Outseam"**, whose help text is
 **"Waist to ankle"** (`supabase/migrations/0002_performers.sql`), exactly the
-measurement Nada named.
+measurement Nada named. The effective length used for the estimate is the
+Length field's override when it has one, otherwise the outseam.
 
 **When a measurement is missing**, no yardage is computed. The row states which
 one is absent and links to the performer's measurements page. This will be the
@@ -281,8 +319,14 @@ the risk lives:
   transparency contract, not decoration.
 
 Component-level: `MakePieceRow` shows the fullness select only for gathered, and
-shows the missing-measurement message rather than a number when `waist` or
-`outseam` is absent.
+shows the missing-measurement message rather than a number when `waist` and
+the effective length (Length override, or outseam) are both absent. Its
+persistence and staleness decisions are pure functions exported alongside the
+component and unit-tested directly (`MakePieceRow.test.ts`):
+`resolveLengthOverride` (a length only counts as an override when it diverges
+from the current outseam) and `shouldOfferYardageUpdate` (the update nudge
+fires only when the Yardage field still holds the calculator's own last
+output and the live estimate has since diverged from it).
 
 The full suite (628 at the time of writing) must stay green.
 

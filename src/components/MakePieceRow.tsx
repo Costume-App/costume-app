@@ -82,7 +82,11 @@ export function MakePieceRow({
   // Per-piece length override, in inches — e.g. a knee-length skirt for a role
   // whose other pieces are floor-length. Pre-filled from the performer's outseam
   // ("waist to ankle") when no override is stored yet, so the field starts at a
-  // sensible value the designer can type over.
+  // sensible value the designer can type over. Only a value that genuinely
+  // diverges from that outseam is ever persisted (`resolveLengthOverride`
+  // below) — otherwise the stored length would freeze at whatever the outseam
+  // happened to be on last save, and a later re-measurement would never flow
+  // through to the estimate.
   const outseamIn = measurementInches(measurements, "outseam");
   const [length, setLength] = useState<string>(
     item.fabric.skirtLengthIn != null
@@ -92,6 +96,15 @@ export function MakePieceRow({
         : "",
   );
   const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
+  // The yardage value the calculator itself last produced — kept separate
+  // from `yardage` (what the field displays) so the "Measurements changed"
+  // prompt (see `shouldOfferYardageUpdate`) can tell a genuine staleness
+  // (the field still shows this value, but the live estimate has moved on)
+  // apart from a deliberate manual override (the field shows something else
+  // entirely, which is the user's choice, not a claim about measurements).
+  const [calculatorYardage, setCalculatorYardage] = useState<number | null>(
+    item.fabric.yardage ?? null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
@@ -102,10 +115,17 @@ export function MakePieceRow({
   const waistIn = measurementInches(measurements, "waist");
   const widthIn = parseWidthInches(width);
   // The effective length: the field's own value if it holds a real positive
-  // number, otherwise the performer's outseam. If neither is available, length
-  // is a missing measurement like waist or width.
-  const lengthOverrideIn = parsePositiveNumber(length);
+  // number that genuinely diverges from the outseam, otherwise the performer's
+  // outseam. If neither is available, length is a missing measurement like
+  // waist or width.
+  const lengthOverrideIn = resolveLengthOverride(length, outseamIn);
   const effectiveLengthIn = lengthOverrideIn ?? outseamIn;
+  // True only when the field holds non-blank text that fails the positive-
+  // number check (0, negative, non-numeric) — as opposed to being blank, or
+  // holding a value that simply matches the outseam. Drives visible feedback
+  // instead of silently substituting the outseam and leaving the rejected
+  // text sitting there unexplained.
+  const lengthInvalid = length.trim() !== "" && parsePositiveNumber(length) == null;
 
   // Recomputed for display; the value itself is saved on change, not on render.
   const estimate = useMemo(() => {
@@ -169,9 +189,19 @@ export function MakePieceRow({
     }
   }
 
+  // Applies a freshly computed yardage to both the visible field and the
+  // tracked "last calculator output" (see `calculatorYardage`) — one place so
+  // a recompute path can't update the field and forget to keep the tracker in
+  // sync with it.
+  function applyComputedYardage(nextYardage: string | undefined) {
+    if (nextYardage == null) return;
+    setYardage(nextYardage);
+    setCalculatorYardage(Number(nextYardage));
+  }
+
   function applyConstruction(nextConstruction: string, nextFullness: string) {
     const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn, effectiveLengthIn);
-    if (nextYardage != null) setYardage(nextYardage);
+    applyComputedYardage(nextYardage);
     void save({ construction: nextConstruction, fullness: nextFullness, yardage: nextYardage });
   }
 
@@ -185,7 +215,7 @@ export function MakePieceRow({
       return;
     }
     const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth), effectiveLengthIn);
-    if (nextYardage != null) setYardage(nextYardage);
+    applyComputedYardage(nextYardage);
     void save({ width: nextWidth, yardage: nextYardage });
   }
 
@@ -197,9 +227,9 @@ export function MakePieceRow({
       void save({ length: nextLength });
       return;
     }
-    const nextEffectiveLength = parsePositiveNumber(nextLength) ?? outseamIn;
+    const nextEffectiveLength = resolveLengthOverride(nextLength, outseamIn) ?? outseamIn;
     const nextYardage = computeYardage(construction, fullness, widthIn, nextEffectiveLength);
-    if (nextYardage != null) setYardage(nextYardage);
+    applyComputedYardage(nextYardage);
     void save({ length: nextLength, yardage: nextYardage });
   }
 
@@ -231,7 +261,7 @@ export function MakePieceRow({
       fabricUnitCost: uc.trim() === "" ? null : Number(uc),
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
-      skirtLengthIn: con ? parsePositiveNumber(len) : null,
+      skirtLengthIn: con ? resolveLengthOverride(len, outseamIn) : null,
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -382,10 +412,15 @@ export function MakePieceRow({
                 onBlur={() => applyLength(length)}
                 inputMode="decimal"
                 placeholder="Inches"
+                warn={lengthInvalid}
                 hint={
-                  outseamIn != null
-                    ? `Defaults to the outseam (${outseamIn}") — type over it for a shorter/longer piece.`
-                    : "No outseam recorded yet — enter the skirt length directly."
+                  lengthInvalid
+                    ? outseamIn != null
+                      ? `"${length.trim()}" isn't a valid length — using the outseam (${outseamIn}") until you enter a positive number.`
+                      : `"${length.trim()}" isn't a valid length — enter a positive number of inches.`
+                    : outseamIn != null
+                      ? `Defaults to the outseam (${outseamIn}") — type over it for a shorter/longer piece.`
+                      : "No outseam recorded yet — enter the skirt length directly."
                 }
               />
             )}
@@ -432,13 +467,13 @@ export function MakePieceRow({
                     {estimate.warning && (
                       <p className="mt-1 text-xs text-[var(--red)]">{estimate.warning}</p>
                     )}
-                    {estimate.yards !== Number(yardage) && (
+                    {shouldOfferYardageUpdate(yardage, estimate.yards, calculatorYardage) && (
                       <button
                         type="button"
                         className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
                         onClick={() => {
                           const next = String(estimate.yards);
-                          setYardage(next);
+                          applyComputedYardage(next);
                           void save({ yardage: next });
                         }}
                       >
@@ -515,6 +550,44 @@ function parsePositiveNumber(s: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+// Whether the Length field holds a genuine override of the performer's
+// outseam — used identically by the compute path (what number to estimate
+// against) and the save path (what to persist as `skirt_length_in`).
+//
+// A parsed value that merely *equals* the current outseam is not an override:
+// it is almost always the outseam pre-fill (see the `length` state initializer
+// in the component) echoed straight back, because `applyConstruction` saves on
+// every construction pick, well before the designer has typed anything. Once
+// that was persisted, the field would initialize from the stored number on
+// every future load instead of from the (possibly since-changed) outseam, so
+// a re-measurement would never reach the estimate — a silent under-buy. Blank
+// or invalid text (see `parsePositiveNumber`) is likewise "no override".
+export function resolveLengthOverride(rawLength: string, outseamIn: number | null): number | null {
+  const parsed = parsePositiveNumber(rawLength);
+  if (parsed == null) return null;
+  return outseamIn != null && parsed === outseamIn ? null : parsed;
+}
+
+// Whether to show the "Measurements changed" nudge beneath the derivation.
+// It must fire only on genuine staleness: the Yardage field still holds the
+// calculator's own last output (`lastCalculatedYardage`), and the live
+// estimate has since diverged from it — e.g. a re-measurement moved the
+// effective length. It must NOT fire on a blank field (`Number("")` is 0, a
+// false "divergence"), and it must NOT fire when the designer has typed a
+// different number on purpose: that is a deliberate override, not evidence
+// that measurements changed, and nagging about it forever would misdescribe
+// the designer's own choice.
+export function shouldOfferYardageUpdate(
+  yardageText: string,
+  estimateYards: number,
+  lastCalculatedYardage: number | null,
+): boolean {
+  if (yardageText.trim() === "" || lastCalculatedYardage == null) return false;
+  const current = Number(yardageText);
+  if (!Number.isFinite(current) || current !== lastCalculatedYardage) return false;
+  return estimateYards !== lastCalculatedYardage;
+}
+
 // "waist", "waist and outseam", "waist, outseam, and fabric width" — a comma
 // before the final "and" once there are 3+ items, instead of stacking "and"s.
 function joinList(items: string[]): string {
@@ -532,6 +605,7 @@ function Field({
   inputMode,
   prefix,
   hint,
+  warn,
 }: {
   label: string;
   value: string;
@@ -541,6 +615,9 @@ function Field({
   inputMode?: "decimal";
   prefix?: string;
   hint?: string;
+  // Renders `hint` as a warning instead of a muted aside — for feedback the
+  // user needs to notice (e.g. a rejected Length value), not routine help text.
+  warn?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-0.5">
@@ -560,7 +637,9 @@ function Field({
           onBlur={onBlur}
         />
       </div>
-      {hint && <span className="text-[11px] leading-tight muted">{hint}</span>}
+      {hint && (
+        <span className={`text-[11px] leading-tight ${warn ? "text-[var(--red)]" : "muted"}`}>{hint}</span>
+      )}
     </label>
   );
 }

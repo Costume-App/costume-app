@@ -78,11 +78,13 @@ export function isSkirtConstruction(v: unknown): v is SkirtConstruction {
 // Fabric widths are stored as free text from the org's Fabric settings — `45"`,
 // `60`, `54 in`. Take the leading number; null when there isn't one.
 //
-// The leading-number parse has no unit awareness, so `"115cm"` reads as 115
-// inches — a real width in cm but a 47% under-buy if trusted as inches. No
-// bolt of dress fabric runs anywhere near that wide, so reject anything over
-// 100" as implausible rather than silently under-buying.
-const MAX_PLAUSIBLE_WIDTH_IN = 100;
+// The leading-number parse has no unit awareness, so a cm value silently reads
+// as inches — e.g. `"160cm"` (a common European bolt width) would read as 160
+// inches, a drastic under-buy if trusted. 150" comfortably admits real
+// theatrical goods a costume shop plausibly stocks (108" muslin, 120" backdrop
+// cloth) while still catching that kind of unit confusion. Like SELVAGE_IN,
+// this is a boundary worth Nada's eye if a wider legitimate bolt ever surfaces.
+const MAX_PLAUSIBLE_WIDTH_IN = 150;
 
 export function parseWidthInches(raw: string | null | undefined): number | null {
   if (!raw) return null;
