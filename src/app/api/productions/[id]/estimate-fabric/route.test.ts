@@ -106,6 +106,8 @@ test("estimates only make-items missing a yardage and persists each via upsertPi
     fabricSupplier: null,
     fabricYardage: 3.5,
     fabricUnitCost: null,
+    skirtConstruction: null,
+    skirtFullness: null,
     purchasePrice: null,
     made: false,
     makerId: null,
@@ -155,6 +157,8 @@ test("preserves an existing piece's other fabric fields when filling its yardage
     fabricSupplier: "Mood",
     fabricYardage: 4,
     fabricUnitCost: 12,
+    skirtConstruction: null,
+    skirtFullness: null,
     purchasePrice: null,
     made: true,
     makerId: "m1",
@@ -174,6 +178,41 @@ test("returns estimated:0 without calling the AI when nothing is missing", async
   expect(estimateFabricYardage).not.toHaveBeenCalled();
   expect(upsertPieceSource).not.toHaveBeenCalled();
   expect(listCostumePieces).not.toHaveBeenCalled();
+});
+
+test("skips a piece whose skirt construction is set, even with no yardage yet (owned by the calculator)", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  isAiConfigured.mockReturnValue(true);
+  const initial = [piece({ skirt_construction: "full_circle", fabric_yardage: null })];
+  loadCostumeCreationsData.mockResolvedValue(dataWith(initial));
+
+  const res = await POST(req(), ctx("p1"));
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ pieces: initial, estimated: 0 });
+  expect(estimateFabricYardage).not.toHaveBeenCalled();
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+  expect(listCostumePieces).not.toHaveBeenCalled();
+});
+
+test("threads skirt fields through the write-back so an estimated piece's own skirt_fullness isn't nulled", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  isAiConfigured.mockReturnValue(true);
+  // No skirt_construction (so it is not calculator-owned and reaches the AI), but a
+  // stray skirt_fullness value already on the row — this must survive the AI's write.
+  loadCostumeCreationsData.mockResolvedValue(
+    dataWith([piece({ skirt_fullness: 3, fabric_yardage: null })]),
+  );
+  estimateFabricYardage.mockResolvedValue(new Map([["c1:d1", 4]]));
+  upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 4, skirt_fullness: 3 }));
+  listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 4, skirt_fullness: 3 })]);
+
+  await POST(req(), ctx("p1"));
+
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ skirtConstruction: null, skirtFullness: 3 }),
+  );
 });
 
 test("does not persist keys the model omits", async () => {
