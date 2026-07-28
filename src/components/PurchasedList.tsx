@@ -53,6 +53,7 @@ function PriceRow({
           skirtConstruction: item.skirtConstruction,
           skirtFullness: item.skirtFullness,
           skirtLengthIn: item.skirtLengthIn,
+          calculatedYardage: item.calculatedYardage,
         }),
       });
       if (!res.ok) {

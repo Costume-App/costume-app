@@ -19,6 +19,7 @@ export interface CostumePiece {
   skirt_construction: string | null;
   skirt_fullness: number | null;
   skirt_length_in: number | null;
+  calculated_yardage: number | null;
   purchase_price: number | null;
   made: boolean;
   made_at: string | null;
@@ -81,6 +82,7 @@ export async function upsertPieceSource(input: {
   skirtConstruction?: string | null;
   skirtFullness?: number | null;
   skirtLengthIn?: number | null;
+  calculatedYardage?: number | null;
   purchasePrice?: number | null;
   made?: boolean;
   makerId?: string | null;
@@ -99,6 +101,7 @@ export async function upsertPieceSource(input: {
   const skirtConstruction = clean(input.skirtConstruction);
   const skirtFullness = num(input.skirtFullness);
   const skirtLengthIn = num(input.skirtLengthIn);
+  const calculatedYardage = num(input.calculatedYardage);
   const purchasePrice = num(input.purchasePrice);
   const made = input.made ?? false;
   const makerId = input.makerId !== undefined ? input.makerId : null;
@@ -154,6 +157,7 @@ export async function upsertPieceSource(input: {
         skirt_construction: skirtConstruction,
         skirt_fullness: skirtFullness,
         skirt_length_in: skirtLengthIn,
+        calculated_yardage: calculatedYardage,
         purchase_price: purchasePrice,
         made,
         maker_id: makerId,

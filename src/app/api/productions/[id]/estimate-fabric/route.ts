@@ -89,6 +89,11 @@ export async function POST(_request: Request, { params }: Ctx) {
         skirtConstruction: existing?.skirt_construction ?? null,
         skirtFullness: existing?.skirt_fullness ?? null,
         skirtLengthIn: existing?.skirt_length_in ?? null,
+        // Preserve only — never set. This column means the skirt calculator
+        // produced the value; the AI is not the skirt calculator, and a piece
+        // it estimates has no construction, so there is nothing of its own to
+        // seed here.
+        calculatedYardage: existing?.calculated_yardage ?? null,
         purchasePrice: existing?.purchase_price ?? null,
         made: existing?.made ?? false,
         makerId: existing?.maker_id ?? null,

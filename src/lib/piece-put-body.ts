@@ -25,6 +25,7 @@ export interface SetSourceBody {
   skirtConstruction: string | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
+  calculatedYardage: number | null;
   purchasePrice: number | null;
   made: boolean;
   makerId: string | null;
@@ -57,6 +58,7 @@ export function buildSetSourceBody(
     skirtConstruction: existing?.skirt_construction ?? null,
     skirtFullness: existing?.skirt_fullness ?? null,
     skirtLengthIn: existing?.skirt_length_in ?? null,
+    calculatedYardage: existing?.calculated_yardage ?? null,
     purchasePrice: existing?.purchase_price ?? null,
     made: existing?.made ?? false,
     makerId: existing?.maker_id ?? null,
@@ -83,6 +85,7 @@ export interface SetPieceFieldBody {
   skirtConstruction: string | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
+  calculatedYardage: number | null;
   purchasePrice: number | null;
   made: boolean;
   makerId: string | null;
@@ -112,6 +115,7 @@ export function buildSetPieceFieldBody(
     skirtConstruction: existing?.skirt_construction ?? null,
     skirtFullness: existing?.skirt_fullness ?? null,
     skirtLengthIn: existing?.skirt_length_in ?? null,
+    calculatedYardage: existing?.calculated_yardage ?? null,
     purchasePrice:
       patch.purchasePrice !== undefined ? patch.purchasePrice : existing?.purchase_price ?? null,
     made: patch.made !== undefined ? patch.made : existing?.made ?? false,
