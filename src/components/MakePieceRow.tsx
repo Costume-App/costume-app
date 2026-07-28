@@ -110,29 +110,56 @@ export function MakePieceRow({
   const missing = construction
     ? [
         waistIn == null ? "waist" : null,
-        lengthIn == null ? "waist to ankle" : null,
+        lengthIn == null ? "outseam (waist to ankle)" : null,
         widthIn == null ? "fabric width" : null,
       ].filter((x): x is string => x !== null)
     : [];
 
-  function applyConstruction(nextConstruction: string, nextFullness: string) {
-    let nextYardage: string | undefined;
-    if (nextConstruction && waistIn != null && lengthIn != null && widthIn != null) {
-      try {
-        const r = estimateSkirtYardage({
-          construction: nextConstruction as SkirtConstruction,
-          waistInches: waistIn,
-          lengthInches: lengthIn,
-          fabricWidthInches: widthIn,
-          fullness: nextConstruction === "gathered" ? Number(nextFullness) : undefined,
-        });
-        nextYardage = String(r.yards);
-        setYardage(nextYardage);
-      } catch {
-        // Leave the yardage alone; `missing` or the thrown case is surfaced in the UI.
-      }
+  // Shared by every path that can change the estimate's inputs (construction,
+  // fullness, width). Takes the width in explicitly rather than reading the
+  // `widthIn` computed above, because a width edit needs to compute against
+  // its *new* value before that value has round-tripped through state.
+  function computeYardage(
+    nextConstruction: string,
+    nextFullness: string,
+    nextWidthIn: number | null,
+  ): string | undefined {
+    if (!nextConstruction || waistIn == null || lengthIn == null || nextWidthIn == null) {
+      return undefined;
     }
+    try {
+      const r = estimateSkirtYardage({
+        construction: nextConstruction as SkirtConstruction,
+        waistInches: waistIn,
+        lengthInches: lengthIn,
+        fabricWidthInches: nextWidthIn,
+        fullness: nextConstruction === "gathered" ? Number(nextFullness) : undefined,
+      });
+      return String(r.yards);
+    } catch {
+      // Leave the yardage alone; `missing` or the thrown case is surfaced in the UI.
+      return undefined;
+    }
+  }
+
+  function applyConstruction(nextConstruction: string, nextFullness: string) {
+    const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn);
+    if (nextYardage != null) setYardage(nextYardage);
     void save({ construction: nextConstruction, fullness: nextFullness, yardage: nextYardage });
+  }
+
+  // Width can change the estimate too (it's part of the same geometry), so it
+  // needs the same recompute-and-save treatment — otherwise the Yardage field
+  // is left showing a number computed for the *previous* width, which is the
+  // exact failure this feature exists to prevent.
+  function applyWidth(nextWidth: string) {
+    if (!construction) {
+      void save({ width: nextWidth });
+      return;
+    }
+    const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth));
+    if (nextYardage != null) setYardage(nextYardage);
+    void save({ width: nextWidth, yardage: nextYardage });
   }
 
   function save(opts?: {
@@ -275,10 +302,10 @@ export function MakePieceRow({
                 label="Width"
                 value={width}
                 options={optionValues(fabricWidths.map((w) => w.value), width)}
-                onChange={(v) => { setWidth(v); void save({ width: v }); }}
+                onChange={(v) => { setWidth(v); applyWidth(v); }}
               />
             ) : (
-              <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
+              <Field label="Width" value={width} onChange={setWidth} onBlur={() => applyWidth(width)} placeholder="Inches" />
             )}
             <SelectField
               label="Skirt type"
@@ -296,6 +323,7 @@ export function MakePieceRow({
                 label="Fullness"
                 value={fullness}
                 options={["2", "2.5", "3"]}
+                includeBlank={false}
                 onChange={(v) => {
                   setFullness(v);
                   applyConstruction(construction, v);
@@ -319,7 +347,7 @@ export function MakePieceRow({
               <div className="col-span-full rounded-md bg-[var(--bg)] px-2 py-1.5">
                 {missing.length > 0 ? (
                   <p className="text-xs muted">
-                    Add {missing.join(" and ")} to calculate yardage.{" "}
+                    Add {joinList(missing)} to calculate yardage.{" "}
                     <Link
                       href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}
                       className="link-red"
@@ -339,7 +367,11 @@ export function MakePieceRow({
                       <p className="mt-1 text-xs text-[var(--red)]">{estimate.warning}</p>
                     )}
                   </>
-                ) : null}
+                ) : (
+                  <p className="text-xs muted">
+                    Couldn&rsquo;t calculate yardage from these values — check the width and measurements.
+                  </p>
+                )}
               </div>
             )}
             <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" prefix="$" placeholder="Per yard" />
@@ -393,6 +425,14 @@ function measurementInches(rows: MeasurementView[], key: string): number | null 
   if (!row) return null;
   const n = Number(row.value);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// "waist", "waist and outseam", "waist, outseam, and fabric width" — a comma
+// before the final "and" once there are 3+ items, instead of stacking "and"s.
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  if (items.length === 2) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 function Field({
@@ -450,17 +490,21 @@ function SelectField({
   value,
   options,
   onChange,
+  includeBlank = true,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (v: string) => void;
+  // Off for pickers like Fullness, where every rendered option is meaningful
+  // and an empty selection would only produce bad data (see Fullness below).
+  includeBlank?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-0.5">
       <span className="lbl">{label}</span>
       <select className="field !p-1.5 text-sm w-full" value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">—</option>
+        {includeBlank && <option value="">—</option>}
         {options.map((o) => (
           <option key={o} value={o}>
             {o}
