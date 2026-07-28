@@ -44,6 +44,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       skirtConstruction?: string | null;
       skirtFullness?: number | null;
       skirtLengthIn?: number | null;
+      calculatedYardage?: number | null;
       purchasePrice?: number | null;
       made?: boolean;
       makerId?: string | null;
@@ -83,6 +84,7 @@ export async function PUT(request: Request, { params }: Ctx) {
     }
     checkPositive(body.skirtFullness, "Fullness");
     checkPositive(body.skirtLengthIn, "Skirt length");
+    checkPositive(body.calculatedYardage, "Calculated yardage");
     if (body.made !== undefined && typeof body.made !== "boolean") {
       throw new ValidationError("made must be a boolean");
     }
@@ -118,6 +120,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       skirtConstruction: body.skirtConstruction || null,
       skirtFullness: body.skirtFullness ?? null,
       skirtLengthIn: body.skirtLengthIn ?? null,
+      calculatedYardage: body.calculatedYardage ?? null,
       purchasePrice: body.purchasePrice ?? null,
       made: body.made ?? false,
       makerId: body.makerId ?? null,

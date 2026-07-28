@@ -1,5 +1,10 @@
 import { expect, test, describe } from "vitest";
-import { resolveLengthOverride, shouldOfferYardageUpdate } from "@/components/MakePieceRow";
+import {
+  resolveLengthOverride,
+  shouldOfferYardageUpdate,
+  deriveCalculatedYardage,
+  seedCalculatorYardage,
+} from "@/components/MakePieceRow";
 import { estimateSkirtYardage } from "@/lib/fabric/skirt-yardage";
 
 describe("resolveLengthOverride", () => {
@@ -63,6 +68,65 @@ describe("shouldOfferYardageUpdate", () => {
 
   test("does not fire on non-numeric yardage text", () => {
     expect(shouldOfferYardageUpdate("abc", 5, 4.75)).toBe(false);
+  });
+
+  test("no update is offered when the yardage never came from the calculator", () => {
+    // A hand-typed or AI-written value has no calculated_yardage, so there is no
+    // claim that measurements moved — prompting here would offer to overwrite the
+    // user's own number with the calculator's minimum.
+    expect(shouldOfferYardageUpdate("5.5", 4.75, null)).toBe(false);
+  });
+
+  test("no update is offered when the field holds a deliberate override", () => {
+    expect(shouldOfferYardageUpdate("5.5", 5.25, 4.75)).toBe(false);
+  });
+
+  test("an update is offered when the field still holds the calculator's own number", () => {
+    expect(shouldOfferYardageUpdate("4.75", 5.25, 4.75)).toBe(true);
+  });
+
+  test("no update is offered when the estimate has not moved", () => {
+    expect(shouldOfferYardageUpdate("4.75", 4.75, 4.75)).toBe(false);
+  });
+});
+
+describe("deriveCalculatedYardage", () => {
+  // The actual fix, isolated: a recompute's own output must win outright, not
+  // fall back to whatever was tracked before it. This is the assertion that
+  // catches an inverted ternary (`optsYardage !== undefined ? tracked : Number(optsYardage)`),
+  // which would otherwise silently drop every recompute's own number.
+  test("a recompute's yardage becomes the calculated value, not the tracked one", () => {
+    expect(deriveCalculatedYardage("5.5", 4.75)).toBe(5.5);
+  });
+
+  // A manual edit, a maker change, or a made toggle calls `save()` with no
+  // `yardage` in `opts` — no recompute happened, so the previously tracked
+  // calculator output must carry through unchanged. This is what lets a
+  // deliberate override diverge from the live estimate and stay diverged.
+  test("no recompute carries the tracked value through unchanged", () => {
+    expect(deriveCalculatedYardage(undefined, 4.75)).toBe(4.75);
+  });
+
+  // A piece that has never gone through the calculator (hand-typed or
+  // AI-written yardage) has a null tracked value. A save with no recompute
+  // must leave it null, not manufacture a calculated value out of nothing.
+  test("a manual edit on a never-calculated piece stays never-calculated", () => {
+    expect(deriveCalculatedYardage(undefined, null)).toBeNull();
+  });
+});
+
+describe("seedCalculatorYardage", () => {
+  // The fix, isolated: the seed must come from `calculatedYardage`, not
+  // `yardage` — the two fields differ here on purpose, so reading the wrong
+  // one fails this assertion (not just a type check).
+  test("seeds from calculatedYardage, not yardage, when they differ", () => {
+    expect(seedCalculatorYardage({ yardage: 5.5, calculatedYardage: 4.75 })).toBe(4.75);
+  });
+
+  // A hand-typed or AI-written yardage has no calculated_yardage — the seed
+  // must stay null, not fall back to the displayed yardage.
+  test("a piece with no calculated_yardage seeds null, even though yardage is set", () => {
+    expect(seedCalculatorYardage({ yardage: 5.5, calculatedYardage: null })).toBeNull();
   });
 });
 

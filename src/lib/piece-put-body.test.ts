@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { buildSetSourceBody, buildSetPieceFieldBody } from "@/lib/piece-put-body";
+import { buildSetSourceBody, buildSetPieceFieldBody, type SetPieceFieldPatch } from "@/lib/piece-put-body";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 
 // A piece already carrying a skirt construction — the exact shape that was
@@ -22,6 +22,7 @@ const existingWithSkirt: CostumePiece = {
   skirt_construction: "full_circle",
   skirt_fullness: null,
   skirt_length_in: 32,
+  calculated_yardage: 4.75,
   purchase_price: null,
   made: false,
   made_at: null,
@@ -60,6 +61,7 @@ test("buildSetSourceBody defaults every field when there is no existing row", ()
     skirtConstruction: null,
     skirtFullness: null,
     skirtLengthIn: null,
+    calculatedYardage: null,
     purchasePrice: null,
     made: false,
     makerId: null,
@@ -109,8 +111,32 @@ test("buildSetPieceFieldBody defaults every field with no existing row", () => {
     skirtConstruction: null,
     skirtFullness: null,
     skirtLengthIn: null,
+    calculatedYardage: null,
     purchasePrice: null,
     made: true,
     makerId: null,
   });
+});
+
+test("buildSetSourceBody preserves the calculated yardage", () => {
+  expect(buildSetSourceBody("d1", "c1", "make", null, existingWithSkirt).calculatedYardage).toBe(4.75);
+});
+
+test("buildSetPieceFieldBody preserves the calculated yardage across every trigger", () => {
+  const triggers: SetPieceFieldPatch[] = [
+    { makerId: "m1" },
+    { made: true },
+    { purchasePrice: 12 },
+  ];
+  for (const patch of triggers) {
+    expect(
+      buildSetPieceFieldBody("d1", "c1", existingWithSkirt, patch).calculatedYardage,
+      `lost on ${JSON.stringify(patch)}`,
+    ).toBe(4.75);
+  }
+});
+
+test("both builders default the calculated yardage to null with no existing row", () => {
+  expect(buildSetSourceBody("d1", "c1", "make", null, undefined).calculatedYardage).toBeNull();
+  expect(buildSetPieceFieldBody("d1", "c1", undefined, { made: true }).calculatedYardage).toBeNull();
 });

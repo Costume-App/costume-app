@@ -188,6 +188,36 @@ test("PUT 400 on negative skirtLengthIn", async () => {
   expect(upsertPieceSource).not.toHaveBeenCalled();
 });
 
+test("PUT forwards calculatedYardage", async () => {
+  upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make" });
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", calculatedYardage: 4.75 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(200);
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ skirtConstruction: "full_circle", calculatedYardage: 4.75 }),
+  );
+});
+
+test("PUT 400 on calculatedYardage of 0", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", calculatedYardage: 0 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT 400 on negative calculatedYardage", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", calculatedYardage: -1 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
 test("PUT blocks assigning a maker beyond the cap with 402 needs_seat", async () => {
   canAssignMakerToProduction.mockResolvedValue({ allowed: false, reason: "needs_seat" });
   const res = await PUT(

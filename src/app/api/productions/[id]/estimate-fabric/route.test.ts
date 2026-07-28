@@ -55,6 +55,7 @@ const piece = (over: Partial<PieceRow> = {}): PieceRow => ({
   skirt_construction: null,
   skirt_fullness: null,
   skirt_length_in: null,
+  calculated_yardage: null,
   purchase_price: null,
   made: false,
   maker_id: null,
@@ -110,6 +111,7 @@ test("estimates only make-items missing a yardage and persists each via upsertPi
     skirtConstruction: null,
     skirtFullness: null,
     skirtLengthIn: null,
+    calculatedYardage: null,
     purchasePrice: null,
     made: false,
     makerId: null,
@@ -162,6 +164,7 @@ test("preserves an existing piece's other fabric fields when filling its yardage
     skirtConstruction: null,
     skirtFullness: null,
     skirtLengthIn: null,
+    calculatedYardage: null,
     purchasePrice: null,
     made: true,
     makerId: "m1",
@@ -231,10 +234,38 @@ test("threads skirt fields through the write-back so an estimated piece's own sk
     skirtConstruction: null,
     skirtFullness: 3,
     skirtLengthIn: null,
+    calculatedYardage: null,
     purchasePrice: null,
     made: false,
     makerId: null,
   });
+});
+
+test("an AI estimate preserves an existing calculated yardage without setting one", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  isAiConfigured.mockReturnValue(true);
+  // A piece with no *current* skirt_construction (so it reaches the AI path)
+  // but a leftover calculated_yardage from before the construction was cleared,
+  // and no fabric_yardage yet. The AI fills fabric_yardage with its own 6 —
+  // it must not claim authorship by writing that 6 into calculated_yardage too;
+  // the column must still read the calculator's original 4.75.
+  loadCostumeCreationsData.mockResolvedValue(
+    dataWith([piece({ calculated_yardage: 4.75, fabric_yardage: null, skirt_construction: null })]),
+  );
+  estimateFabricYardage.mockResolvedValue(new Map([["c1:d1", 6]]));
+  upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 6, calculated_yardage: 4.75 }));
+  listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 6, calculated_yardage: 4.75 })]);
+
+  await POST(req(), ctx("p1"));
+
+  expect(upsertPieceSource).toHaveBeenCalledTimes(1);
+  for (const call of upsertPieceSource.mock.calls) {
+    expect(call[0]).toHaveProperty("calculatedYardage");
+  }
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ fabricYardage: 6, calculatedYardage: 4.75 }),
+  );
 });
 
 test("does not persist keys the model omits", async () => {

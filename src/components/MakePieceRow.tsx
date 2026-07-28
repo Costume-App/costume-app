@@ -8,7 +8,7 @@ import { MakeAssignment } from "@/components/MakeAssignment";
 import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { PhotoStrip } from "@/components/PhotoStrip";
-import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
+import type { MakeItem, PieceRow, MeasurementView, Fabric } from "@/lib/tailor-summary";
 import {
   estimateSkirtYardage,
   parseWidthInches,
@@ -30,6 +30,7 @@ interface PiecePutBody {
   skirtConstruction: string | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
+  calculatedYardage: number | null;
   makerId: string | null;
   made: boolean;
 }
@@ -102,8 +103,17 @@ export function MakePieceRow({
   // (the field still shows this value, but the live estimate has moved on)
   // apart from a deliberate manual override (the field shows something else
   // entirely, which is the user's choice, not a claim about measurements).
+  // Persisted as `calculated_yardage`, not merely tracked in memory — so a
+  // hand-typed or AI-written value (which never sets this column) is never
+  // mistaken for a stale calculator output after a reload.
+  //
+  // Seeded via `seedCalculatorYardage`, pulled out for the same reason
+  // `deriveCalculatedYardage` below was: `item.fabric.yardage` and
+  // `item.fabric.calculatedYardage` are both typed `number | null`, so a
+  // field swap here would typecheck clean and stay green — the extracted
+  // function is what puts that swap under direct test.
   const [calculatorYardage, setCalculatorYardage] = useState<number | null>(
-    item.fabric.yardage ?? null,
+    seedCalculatorYardage(item.fabric),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -262,6 +272,7 @@ export function MakePieceRow({
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
       skirtLengthIn: con ? resolveLengthOverride(len, outseamIn) : null,
+      calculatedYardage: deriveCalculatedYardage(opts?.yardage, calculatorYardage),
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -586,6 +597,43 @@ export function shouldOfferYardageUpdate(
   const current = Number(yardageText);
   if (!Number.isFinite(current) || current !== lastCalculatedYardage) return false;
   return estimateYards !== lastCalculatedYardage;
+}
+
+// What `save` persists as `calculated_yardage` — extracted from the inline
+// body-builder so this ternary, the actual fix for the override-reverting
+// bug, is under direct test rather than only exercised incidentally through
+// `save()`.
+//
+// `optsYardage` is `save`'s own `opts.yardage` — present only on a recompute
+// (a construction/width/length change, or the "Measurements changed" button),
+// where it holds the exact string `computeYardage` just produced. When
+// present, that value IS the calculator's output, full stop. When absent —
+// a manual edit, a maker change, a made toggle — there was no recompute, so
+// the previously tracked value carries through unchanged; this is what lets
+// a deliberate override permanently diverge from the live estimate and
+// silence the "Measurements changed" prompt for this piece instead of having
+// every unrelated save quietly re-stamp it as calculator-derived.
+export function deriveCalculatedYardage(
+  optsYardage: string | undefined,
+  trackedCalculatorYardage: number | null,
+): number | null {
+  return optsYardage !== undefined ? Number(optsYardage) : trackedCalculatorYardage;
+}
+
+// What seeds `calculatorYardage` on mount/reload — extracted from the inline
+// `item.fabric.calculatedYardage ?? null` for the same reason as
+// `deriveCalculatedYardage` above: `yardage` and `calculatedYardage` are both
+// typed `number | null`, so a field swap here (reading `yardage` instead of
+// `calculatedYardage`) would typecheck clean and pass every existing test —
+// which is exactly the failure this branch exists to prevent, since it would
+// make every hand-typed override look calculator-derived again. `yardage` is
+// included in the parameter type on purpose, even though it's unused: it's
+// what makes a field swap fail this function's own assertion instead of only
+// failing to compile.
+export function seedCalculatorYardage(
+  fabric: Pick<Fabric, "yardage" | "calculatedYardage">,
+): number | null {
+  return fabric.calculatedYardage ?? null;
 }
 
 // "waist", "waist and outseam", "waist, outseam, and fabric width" — a comma

@@ -15,6 +15,7 @@ export interface PieceRow {
   skirt_construction: string | null;
   skirt_fullness: number | null;
   skirt_length_in: number | null;
+  calculated_yardage: number | null;
   purchase_price: number | null;
   made: boolean;
   maker_id: string | null;
@@ -31,6 +32,7 @@ export interface Fabric {
   skirtConstruction: SkirtConstruction | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
+  calculatedYardage: number | null;
 }
 
 export interface MakeItem {
@@ -109,6 +111,7 @@ export interface PurchasedItem {
   skirtConstruction: string | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
+  calculatedYardage: number | null;
 }
 
 export interface PurchasedSummary {
@@ -167,7 +170,7 @@ export function buildMeasurementsByCasting(
 
 const EMPTY_FABRIC: Fabric = {
   type: null, color: null, width: null, supplier: null, yardage: null, unitCost: null,
-  skirtConstruction: null, skirtFullness: null, skirtLengthIn: null,
+  skirtConstruction: null, skirtFullness: null, skirtLengthIn: null, calculatedYardage: null,
 };
 
 function fabricFromRow(row: PieceRow | undefined): Fabric {
@@ -182,6 +185,7 @@ function fabricFromRow(row: PieceRow | undefined): Fabric {
     skirtConstruction: isSkirtConstruction(row.skirt_construction) ? row.skirt_construction : null,
     skirtFullness: row.skirt_fullness,
     skirtLengthIn: row.skirt_length_in,
+    calculatedYardage: row.calculated_yardage,
   };
 }
 
@@ -290,6 +294,7 @@ export function buildPurchaseWorklist(
           skirtConstruction: row.skirt_construction,
           skirtFullness: row.skirt_fullness,
           skirtLengthIn: row.skirt_length_in,
+          calculatedYardage: row.calculated_yardage,
         });
         totalCost += price ?? 0;
       }
