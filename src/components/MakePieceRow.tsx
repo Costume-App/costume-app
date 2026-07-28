@@ -29,6 +29,7 @@ interface PiecePutBody {
   fabricUnitCost: number | null;
   skirtConstruction: string | null;
   skirtFullness: number | null;
+  skirtLengthIn: number | null;
   makerId: string | null;
   made: boolean;
 }
@@ -78,6 +79,18 @@ export function MakePieceRow({
   const [fullness, setFullness] = useState<string>(
     item.fabric.skirtFullness != null ? String(item.fabric.skirtFullness) : "3",
   );
+  // Per-piece length override, in inches — e.g. a knee-length skirt for a role
+  // whose other pieces are floor-length. Pre-filled from the performer's outseam
+  // ("waist to ankle") when no override is stored yet, so the field starts at a
+  // sensible value the designer can type over.
+  const outseamIn = measurementInches(measurements, "outseam");
+  const [length, setLength] = useState<string>(
+    item.fabric.skirtLengthIn != null
+      ? String(item.fabric.skirtLengthIn)
+      : outseamIn != null
+        ? String(outseamIn)
+        : "",
+  );
   const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,51 +100,65 @@ export function MakePieceRow({
   const saveChain = useRef<Promise<void>>(Promise.resolve());
 
   const waistIn = measurementInches(measurements, "waist");
-  const lengthIn = measurementInches(measurements, "outseam");
   const widthIn = parseWidthInches(width);
+  // The effective length: the field's own value if it holds a real positive
+  // number, otherwise the performer's outseam. If neither is available, length
+  // is a missing measurement like waist or width.
+  const lengthOverrideIn = parsePositiveNumber(length);
+  const effectiveLengthIn = lengthOverrideIn ?? outseamIn;
 
   // Recomputed for display; the value itself is saved on change, not on render.
   const estimate = useMemo(() => {
-    if (!construction || waistIn == null || lengthIn == null || widthIn == null) return null;
+    if (!construction || waistIn == null || effectiveLengthIn == null || widthIn == null) return null;
     try {
       return estimateSkirtYardage({
         construction: construction as SkirtConstruction,
         waistInches: waistIn,
-        lengthInches: lengthIn,
+        lengthInches: effectiveLengthIn,
         fabricWidthInches: widthIn,
         fullness: construction === "gathered" ? Number(fullness) : undefined,
       });
     } catch {
       return null;
     }
-  }, [construction, fullness, waistIn, lengthIn, widthIn]);
+  }, [construction, fullness, waistIn, effectiveLengthIn, widthIn]);
 
-  // What the user has to supply before a number is possible.
+  // What the user has to supply before a number is possible. `missingWaist` and
+  // `missingLength` map to an actual performer measurement (waist directly;
+  // length via outseam, since the Length field itself is right here) — only
+  // those justify the Measurements-page link. `missingWidth` is a field two
+  // columns to the left on this same row, never on the measurements page.
+  const missingWaist = waistIn == null;
+  const missingLength = effectiveLengthIn == null;
+  const missingWidth = widthIn == null;
   const missing = construction
     ? [
-        waistIn == null ? "waist" : null,
-        lengthIn == null ? "outseam (waist to ankle)" : null,
-        widthIn == null ? "fabric width" : null,
+        missingWaist ? "waist" : null,
+        missingLength ? "length" : null,
+        missingWidth ? "fabric width" : null,
       ].filter((x): x is string => x !== null)
     : [];
+  const missingMeasurement = construction ? missingWaist || missingLength : false;
 
   // Shared by every path that can change the estimate's inputs (construction,
-  // fullness, width). Takes the width in explicitly rather than reading the
-  // `widthIn` computed above, because a width edit needs to compute against
-  // its *new* value before that value has round-tripped through state.
+  // fullness, width, length). Takes width and length in explicitly rather than
+  // reading the `widthIn`/`effectiveLengthIn` computed above, because an edit to
+  // either needs to compute against its *new* value before that value has
+  // round-tripped through state.
   function computeYardage(
     nextConstruction: string,
     nextFullness: string,
     nextWidthIn: number | null,
+    nextLengthIn: number | null,
   ): string | undefined {
-    if (!nextConstruction || waistIn == null || lengthIn == null || nextWidthIn == null) {
+    if (!nextConstruction || waistIn == null || nextLengthIn == null || nextWidthIn == null) {
       return undefined;
     }
     try {
       const r = estimateSkirtYardage({
         construction: nextConstruction as SkirtConstruction,
         waistInches: waistIn,
-        lengthInches: lengthIn,
+        lengthInches: nextLengthIn,
         fabricWidthInches: nextWidthIn,
         fullness: nextConstruction === "gathered" ? Number(nextFullness) : undefined,
       });
@@ -143,7 +170,7 @@ export function MakePieceRow({
   }
 
   function applyConstruction(nextConstruction: string, nextFullness: string) {
-    const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn);
+    const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn, effectiveLengthIn);
     if (nextYardage != null) setYardage(nextYardage);
     void save({ construction: nextConstruction, fullness: nextFullness, yardage: nextYardage });
   }
@@ -157,15 +184,30 @@ export function MakePieceRow({
       void save({ width: nextWidth });
       return;
     }
-    const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth));
+    const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth), effectiveLengthIn);
     if (nextYardage != null) setYardage(nextYardage);
     void save({ width: nextWidth, yardage: nextYardage });
+  }
+
+  // Length has the identical not-yet-flushed-state hazard as width: compute
+  // against the field's *new* value explicitly, falling back to outseam only
+  // when the new value itself isn't a usable override.
+  function applyLength(nextLength: string) {
+    if (!construction) {
+      void save({ length: nextLength });
+      return;
+    }
+    const nextEffectiveLength = parsePositiveNumber(nextLength) ?? outseamIn;
+    const nextYardage = computeYardage(construction, fullness, widthIn, nextEffectiveLength);
+    if (nextYardage != null) setYardage(nextYardage);
+    void save({ length: nextLength, yardage: nextYardage });
   }
 
   function save(opts?: {
     made?: boolean;
     makerId?: string | null;
     width?: string;
+    length?: string;
     supplier?: string;
     unitCost?: string;
     construction?: string;
@@ -176,6 +218,7 @@ export function MakePieceRow({
     const yd = opts?.yardage ?? yardage;
     const con = opts?.construction ?? construction;
     const ful = opts?.fullness ?? fullness;
+    const len = opts?.length ?? length;
     const body: PiecePutBody = {
       designId: item.designId,
       castingId: item.castingId,
@@ -188,6 +231,7 @@ export function MakePieceRow({
       fabricUnitCost: uc.trim() === "" ? null : Number(uc),
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
+      skirtLengthIn: con ? parsePositiveNumber(len) : null,
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -330,6 +374,21 @@ export function MakePieceRow({
                 }}
               />
             )}
+            {construction && (
+              <Field
+                label="Length"
+                value={length}
+                onChange={setLength}
+                onBlur={() => applyLength(length)}
+                inputMode="decimal"
+                placeholder="Inches"
+                hint={
+                  outseamIn != null
+                    ? `Defaults to the outseam (${outseamIn}") — type over it for a shorter/longer piece.`
+                    : "No outseam recorded yet — enter the skirt length directly."
+                }
+              />
+            )}
             <Field
               label="Yardage"
               value={yardage}
@@ -338,22 +397,29 @@ export function MakePieceRow({
               inputMode="decimal"
               placeholder="Estimated # of yards"
               hint={
-                construction
+                estimate
                   ? "Calculated from the measurements — type over it to override."
-                  : "Leave blank to have the system estimate yardage."
+                  : construction
+                    ? "Enter yardage manually until the measurements below are filled in."
+                    : "Leave blank to have the system estimate yardage."
               }
             />
             {construction && (
               <div className="col-span-full rounded-md bg-[var(--bg)] px-2 py-1.5">
                 {missing.length > 0 ? (
                   <p className="text-xs muted">
-                    Add {joinList(missing)} to calculate yardage.{" "}
-                    <Link
-                      href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}
-                      className="link-red"
-                    >
-                      Measurements ↗
-                    </Link>
+                    Add {joinList(missing)} to calculate yardage.
+                    {missingMeasurement && (
+                      <>
+                        {" "}
+                        <Link
+                          href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}
+                          className="link-red"
+                        >
+                          Measurements ↗
+                        </Link>
+                      </>
+                    )}
                   </p>
                 ) : estimate ? (
                   <>
@@ -365,6 +431,19 @@ export function MakePieceRow({
                     </ul>
                     {estimate.warning && (
                       <p className="mt-1 text-xs text-[var(--red)]">{estimate.warning}</p>
+                    )}
+                    {estimate.yards !== Number(yardage) && (
+                      <button
+                        type="button"
+                        className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
+                        onClick={() => {
+                          const next = String(estimate.yards);
+                          setYardage(next);
+                          void save({ yardage: next });
+                        }}
+                      >
+                        Measurements changed — update to {estimate.yards} yd
+                      </button>
                     )}
                   </>
                 ) : (
@@ -424,6 +503,15 @@ function measurementInches(rows: MeasurementView[], key: string): number | null 
   const row = rows.find((m) => m.key === key);
   if (!row) return null;
   const n = Number(row.value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// Parses the free-typed Length field. Blank or non-positive/non-finite text is
+// "no override" rather than an error — the caller falls back to outseam.
+function parsePositiveNumber(s: string): number | null {
+  const trimmed = s.trim();
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 

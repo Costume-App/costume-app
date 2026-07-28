@@ -27,22 +27,40 @@ repo, the docs directory, either meeting transcript, or the meeting PDF. Chris
 elected to proceed on standard drafting math rather than block, with the cut
 layout flagged for Nada to confirm.
 
-### The anchor from the earlier meeting
+### The anchor from the earlier meeting — a plausibility check, not a validation
 
 The May meeting transcript (`docs/TranscriptFromMeetingwithNadaCostumeApp.odt`)
-contains a usable data point:
+contains the only real-world data point available, and it is weaker than it
+first looks. In context, she was reasoning live about a specific performer's
+measurements — a 6-foot, 190 lb performer with roughly a 45" waist:
 
+> So her. So how much fabric? [waist ~]45[", ...] 32 inch hip and 190 pounds.
+> And what is 72 inches? [Six foot?] I just. I need feet. I can't do inches.
+> Okay, tall girl. So anywhere from 2.5 to 4 yards. So you estimated 4 yards.
+> That's good.
+>
 > So a full circle skirt with gathering is going to be 4. 4 yards. I always
 > guesstimate my yards. Which then leaves us with more fabric left over, which
 > is fine.
 
-**That number turns out to be correct, not generous.** An early derivation in
-this design session treated a full circle skirt as two panels and produced
-~2.1 yd, roughly half her figure. That derivation was wrong. A full circle skirt
-is cut as four quarter-panels, each requiring an R × R square, and at 45" width
-only one panel fits per row — so it needs 4 × R ≈ 149" ≈ 4.1 yards.
+**No skirt length was ever stated for this performer**, and she is explicit
+that the 4 yards is a habitual over-guess ("I always guesstimate my yards"),
+not a measured or priced figure. The 27"/32" waist/length pairing used in the
+worked examples below comes from a separate, later call and was never checked
+against this performer, or any real garment — there is no dimensioned garment
+in the transcript that this module's output can be validated against.
 
-Her instinct matched the geometry. This matters for the allowance decision below.
+An early derivation in this design session treated a full circle skirt as two
+panels and produced ~2.1 yd — clearly wrong, since even the low end of her
+guesstimated range (2.5 yd) is above it. A full circle skirt is cut as four
+quarter-panels, each requiring an R × R square, and at 45" width only one panel
+fits per row — so it needs 4 × R ≈ 149" ≈ 4.1 yards, which is what the 27"/32"
+worked example computes. That number happening to land inside her remembered
+2.5–4 yd range is a sanity check, not proof: applying the same geometry to the
+performer she was actually describing (45" waist, full length assumed since
+none was stated) lands at roughly 5.75–6.5 yd — well above her guess. This
+matters for the allowance decision below, but the anchor is a plausibility
+check against a guesstimate, not a validation against a real garment.
 
 ## Decisions
 
@@ -157,11 +175,14 @@ yards = ceil( (inches / 36) · (1 + WASTE_ALLOWANCE) / 0.25 ) · 0.25
 
 | Case | Construction | Waist | Length | Width | Raw | Final |
 |---|---|---|---|---|---|---|
-| Nada's stated figure | full circle | 27 | 32 | 45 | 4.14 yd | **4.75 yd** |
+| Full circle, plausibility check | full circle | 27 | 32 | 45 | 4.14 yd | **4.75 yd** |
 | Knee-length, wide goods | full circle | 26 | 20 | 60 | 1.40 yd | **1.75 yd** |
 | Gathered, triple fullness | gathered | 27 | 32 | 45 | 1.89 yd | **2.25 yd** |
 
-The first row is the one to show Nada: 4.14 yd raw against her stated 4 yards.
+The first row is the one to show Nada — not because it is her garment (it
+isn't: these dimensions come from a different call than her 4-yard guesstimate),
+but because 4.14 yd raw lands inside the guesstimated range she gave for a
+different performer, which is the only sanity check available.
 
 ### Edge cases
 
@@ -216,8 +237,9 @@ values are in hand with no new plumbing.
   `warning` when present.
 
 Measurements are read from the row's existing `measurements` array by key:
-`waist`, and `outseam` — which is already labeled **"Waist to ankle"**
-(`supabase/migrations/0002_performers.sql`), exactly the measurement Nada named.
+`waist`, and `outseam` — labeled **"Outseam"**, whose help text is
+**"Waist to ankle"** (`supabase/migrations/0002_performers.sql`), exactly the
+measurement Nada named.
 
 **When a measurement is missing**, no yardage is computed. The row states which
 one is absent and links to the performer's measurements page. This will be the
@@ -277,9 +299,14 @@ The full suite (628 at the time of writing) must stay green.
 
 ## Risks
 
-- **The formula is not Nada's.** It is standard drafting math that reproduces her
-  stated figure on the one case we can check. Show her the 27/32/45 example
-  before this reaches her users, and treat the cut-layout rule as the part most
+- **The formula is not Nada's, and it is not validated.** It is standard
+  drafting math checked only against a remembered, undimensioned guesstimate —
+  4 yards, "I always guesstimate my yards," for a 6-foot/190 lb/~45"-waist
+  performer with no stated length — not a garment she measured or priced.
+  Applying the same geometry to the performer she was actually describing
+  gives roughly 5.75–6.5 yd, well above her guess, so even that check is
+  inconclusive rather than confirming. Show her the 27/32/45 example before
+  this reaches her users, and treat the cut-layout rule as the part most
   likely to need revision.
 - **Nobody has validated the gathered path against a real project.** The circle
   path has Nada's 4-yard anchor; the gathered path has nothing equivalent.

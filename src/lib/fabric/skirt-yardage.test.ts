@@ -7,9 +7,18 @@ import {
   CONSTRUCTION_LABELS,
 } from "@/lib/fabric/skirt-yardage";
 
-// The three anchors from the spec. The first is the one to show Nada: she said a
-// full circle skirt takes 4 yards, and the raw geometry lands at 4.14 before the
-// allowance. If this test changes, the change needs her eyes.
+// The three anchors from the spec. The first is a plausibility check, not a
+// validation: Nada guesstimated 4 yards ("anywhere from 2.5 to 4 yards... you
+// estimated 4 yards. That's good" / "a full circle skirt with gathering is
+// going to be 4. 4 Yards. I always guesstimate my yards.") for a different,
+// undimensioned performer — 6-foot, 190 lb, roughly a 45" waist, no skirt
+// length ever stated. The 27"/32" dimensions below come from a separate, later
+// call and were never priced against that performer or any real garment; the
+// raw geometry (4.14 before allowance) merely lands inside her guesstimated
+// range. Applying this same geometry to the performer she actually described
+// gives roughly 5.75-6.5 yd — well above her range. If this test changes, the
+// change still needs her eyes (it's the only real-world data point this module
+// has), but do not describe it as validated.
 describe("worked anchors", () => {
   test("full circle, 27\" waist, 32\" length, 45\" fabric", () => {
     const r = estimateSkirtYardage({
@@ -146,6 +155,23 @@ describe("edge cases", () => {
     expect(r.yards).toBeGreaterThan(0);
   });
 
+  // Pinned: a pieced panel must scale the row count (and so the yardage) by how
+  // many fabric widths it takes to cover the panel, not just clamp perRow to 1
+  // and otherwise treat it like the panel fit. Before this fix, this exact case
+  // returned 8.25 yd — identical to a panel that fits in one width, silently
+  // ignoring the extra fabric piecing consumes.
+  test("a panel needing two fabric widths doubles the row count, not just clamps perRow", () => {
+    const r = estimateSkirtYardage({
+      construction: "full_circle",
+      waistInches: 30,
+      lengthInches: 60,
+      fabricWidthInches: 36,
+    });
+    expect(r.yards).toBe(16.25);
+    expect(r.steps.join(" ")).toMatch(/pieced|piecing/i);
+    expect(r.warning).toContain("2 fabric widths");
+  });
+
   test.each([
     ["waist", { waistInches: 0 }],
     ["length", { lengthInches: -5 }],
@@ -229,6 +255,12 @@ describe("helpers", () => {
     ["", null],
     [null, null],
     ["wide", null],
+    // "115cm" is a real width, just not in inches — reading its leading number
+    // as inches would be a 47% under-buy. No dress-fabric bolt runs this wide,
+    // so implausible widths are rejected rather than trusted.
+    ["115cm", null],
+    ["100", 100],
+    ["101", null],
   ])("parseWidthInches(%p) -> %p", (raw, expected) => {
     expect(parseWidthInches(raw as string | null)).toBe(expected);
   });

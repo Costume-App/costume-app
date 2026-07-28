@@ -88,6 +88,7 @@ export async function POST(_request: Request, { params }: Ctx) {
         fabricUnitCost: existing?.fabric_unit_cost ?? null,
         skirtConstruction: existing?.skirt_construction ?? null,
         skirtFullness: existing?.skirt_fullness ?? null,
+        skirtLengthIn: existing?.skirt_length_in ?? null,
         purchasePrice: existing?.purchase_price ?? null,
         made: existing?.made ?? false,
         makerId: existing?.maker_id ?? null,

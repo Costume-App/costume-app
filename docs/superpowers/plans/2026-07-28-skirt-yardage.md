@@ -17,7 +17,7 @@
 - **Precedence, highest first:** manual entry → skirt calculator → AI estimate → blank.
 - **Construction is never inferred from the design name.** It is always an explicit user choice. Design names are free text.
 - **The three worked anchors must hold exactly:** full circle 27"/32"/45" → **4.75 yd**; full circle 26"/20"/60" → **1.75 yd**; gathered 27"/32"/45" at 3× fullness → **2.25 yd**.
-- **Measurement keys:** waist is `waist`; skirt length is `outseam`, whose label is "Waist to ankle".
+- **Measurement keys:** waist is `waist`; skirt length is `outseam`, labeled "Outseam" with help text "Waist to ankle".
 - No new dependencies. No changes to the cost rollup, tailor's summary, or fabric purchase list — the value lands in `fabric_yardage` precisely so those keep working untouched.
 - **This is Next.js 16.** Per `AGENTS.md` check `node_modules/next/dist/docs/` before assuming older App Router patterns. Nothing here needs a routing change.
 - **Do not push and do not deploy.** Local commits only, on branch `feat/skirt-yardage`, until Chris gives an explicit green light. Migration `0031` is applied to Supabase by Chris by hand — do not attempt to run it.
@@ -987,7 +987,7 @@ Further down, the route calls `upsertPieceSource` with every existing field spre
         skirtFullness: existing?.skirt_fullness ?? null,
 ```
 
-Without this, an AI estimate on any *other* piece of the same production would write nulls over a construction the user had set.
+Without this, an AI estimate written onto *this same piece's own row* would null its own `skirt_fullness` (e.g. left over from before its construction was cleared). `upsertPieceSource` conflicts on `(costume_design_id, casting_id)`, so a write can only ever touch the piece being written — it can never reach a different piece's row. This is defense-in-depth for the piece's own data, not protection against a cross-piece write, which cannot happen.
 
 - [ ] **Step 3: Verify**
 
@@ -1013,7 +1013,9 @@ git commit -m "feat(fabric): AI estimator skips pieces the skirt calculator owns
 
 A piece with a construction set gets its yardage from arithmetic, so the AI
 should not estimate it. Also carries the two new fields through the estimator's
-write-back, which would otherwise null a construction set on another piece."
+write-back, which would otherwise null this piece's own skirt_fullness on its
+own AI write (defense-in-depth; upsertPieceSource keys on this piece alone, so
+it can never touch a sibling piece)."
 ```
 
 - [ ] **Step 7: Report the handoff items**
@@ -1021,7 +1023,7 @@ write-back, which would otherwise null a construction set on another piece."
 Do not push and do not deploy. Report to Chris:
 
 1. **Migration `0031_skirt_construction.sql` must be applied by hand** before the picker will save. Until then the PUT returns an error mentioning the missing column.
-2. **The 27"/32"/45" full circle case computes 4.75 yd** (4.14 raw + 10% + rounding). Nada's stated figure was 4 yards. Worth showing her that specific case before this reaches her users — it is the only number we can check against her experience.
+2. **The 27"/32"/45" full circle case computes 4.75 yd** (4.14 raw + 10% + rounding). This is a plausibility check, not a validation: Nada's 4-yard figure was a guesstimate for a different, undimensioned performer (6-foot, 190 lb, ~45" waist), not for these dimensions. Worth showing her that specific case before this reaches her users — it is the only real-world data point we can check it against, even loosely.
 3. **The gathered path has no real-world anchor.** Ask her for one remembered project so it can be validated the way the circle path was.
 
 ---
@@ -1030,7 +1032,7 @@ Do not push and do not deploy. Report to Chris:
 
 **Spec coverage.** Math module with all five constants, both formulas, `steps`, and `warning` → Task 1. Migration `0031` → Task 2. `upsertPieceSource`, the pieces route, and type threading → Task 2. Picker, fullness select, recompute, derivation display, missing-measurement message → Task 3. AI route filter → Task 4. Testing → Tasks 1 and 2, verified in Task 4. Risks and handoff → Task 4 Step 7. Every spec section maps to a task.
 
-**Additions beyond the spec, deliberate.** Two things the spec did not name but the code requires. `pieceRowIsEmpty` must count a construction as content (Task 2 Steps 2–5) or picking a construction with no measurements yet silently deletes the piece row — a data-loss bug, not a nicety. And the estimator's write-back must carry the new fields (Task 4 Step 2) or an AI run on a sibling piece nulls a construction the user set. Both are consequences of existing code the spec did not inspect.
+**Additions beyond the spec, deliberate.** Two things the spec did not name but the code requires. `pieceRowIsEmpty` must count a construction as content (Task 2 Steps 2–5) or picking a construction with no measurements yet silently deletes the piece row — a data-loss bug, not a nicety. And the estimator's write-back must carry the new fields (Task 4 Step 2) or an AI run on the piece's own row nulls its own skirt_fullness — defense-in-depth, since upsertPieceSource conflicts on (costume_design_id, casting_id) and can never touch a sibling piece. Both are consequences of existing code the spec did not inspect.
 
 **Placeholder scan.** No TBD, TODO, "handle edge cases", or "similar to Task N". Every code step carries complete, paste-ready content.
 

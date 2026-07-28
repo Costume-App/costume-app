@@ -54,6 +54,7 @@ const piece = (over: Partial<PieceRow> = {}): PieceRow => ({
   fabric_unit_cost: null,
   skirt_construction: null,
   skirt_fullness: null,
+  skirt_length_in: null,
   purchase_price: null,
   made: false,
   maker_id: null,
@@ -108,6 +109,7 @@ test("estimates only make-items missing a yardage and persists each via upsertPi
     fabricUnitCost: null,
     skirtConstruction: null,
     skirtFullness: null,
+    skirtLengthIn: null,
     purchasePrice: null,
     made: false,
     makerId: null,
@@ -159,6 +161,7 @@ test("preserves an existing piece's other fabric fields when filling its yardage
     fabricUnitCost: 12,
     skirtConstruction: null,
     skirtFullness: null,
+    skirtLengthIn: null,
     purchasePrice: null,
     made: true,
     makerId: "m1",
@@ -210,9 +213,28 @@ test("threads skirt fields through the write-back so an estimated piece's own sk
 
   await POST(req(), ctx("p1"));
 
-  expect(upsertPieceSource).toHaveBeenCalledWith(
-    expect.objectContaining({ skirtConstruction: null, skirtFullness: 3 }),
-  );
+  // Exact-object match, not objectContaining: this test's whole purpose is "the
+  // write-back doesn't drop a field", and objectContaining is the one matcher
+  // that can't detect a dropped field (it would still pass if skirtLengthIn, or
+  // any other key, were silently omitted from the call).
+  expect(upsertPieceSource).toHaveBeenCalledWith({
+    designId: "d1",
+    castingId: "c1",
+    source: "make",
+    sourceNote: null,
+    fabricType: null,
+    fabricColor: null,
+    fabricWidth: null,
+    fabricSupplier: null,
+    fabricYardage: 4,
+    fabricUnitCost: null,
+    skirtConstruction: null,
+    skirtFullness: 3,
+    skirtLengthIn: null,
+    purchasePrice: null,
+    made: false,
+    makerId: null,
+  });
 });
 
 test("does not persist keys the model omits", async () => {

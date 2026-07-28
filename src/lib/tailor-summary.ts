@@ -14,6 +14,7 @@ export interface PieceRow {
   fabric_unit_cost: number | null;
   skirt_construction: string | null;
   skirt_fullness: number | null;
+  skirt_length_in: number | null;
   purchase_price: number | null;
   made: boolean;
   maker_id: string | null;
@@ -29,6 +30,7 @@ export interface Fabric {
   unitCost: number | null;
   skirtConstruction: SkirtConstruction | null;
   skirtFullness: number | null;
+  skirtLengthIn: number | null;
 }
 
 export interface MakeItem {
@@ -99,6 +101,14 @@ export interface PurchasedItem {
   roleName: string;
   price: number | null;
   purchased: boolean;
+  // Carried through so a purchase-price edit (PurchasedList) can preserve a
+  // skirt construction the piece already carries (e.g. set while it was still
+  // a "make" piece, then switched to "purchase") instead of nulling it — the
+  // same preserve-what's-recorded contract as the PUT bodies in
+  // RoleCostumePanel and MakePieceRow.
+  skirtConstruction: string | null;
+  skirtFullness: number | null;
+  skirtLengthIn: number | null;
 }
 
 export interface PurchasedSummary {
@@ -157,7 +167,7 @@ export function buildMeasurementsByCasting(
 
 const EMPTY_FABRIC: Fabric = {
   type: null, color: null, width: null, supplier: null, yardage: null, unitCost: null,
-  skirtConstruction: null, skirtFullness: null,
+  skirtConstruction: null, skirtFullness: null, skirtLengthIn: null,
 };
 
 function fabricFromRow(row: PieceRow | undefined): Fabric {
@@ -171,6 +181,7 @@ function fabricFromRow(row: PieceRow | undefined): Fabric {
     unitCost: row.fabric_unit_cost,
     skirtConstruction: isSkirtConstruction(row.skirt_construction) ? row.skirt_construction : null,
     skirtFullness: row.skirt_fullness,
+    skirtLengthIn: row.skirt_length_in,
   };
 }
 
@@ -276,6 +287,9 @@ export function buildPurchaseWorklist(
           roleName: role.name,
           price,
           purchased: row.made,
+          skirtConstruction: row.skirt_construction,
+          skirtFullness: row.skirt_fullness,
+          skirtLengthIn: row.skirt_length_in,
         });
         totalCost += price ?? 0;
       }

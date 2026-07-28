@@ -6,9 +6,17 @@
 // cannot hallucinate. Pieces with no construction set stay on the AI path.
 //
 // The math is standard drafting geometry, not a formula supplied by Nada — hers
-// could not be found. It is validated against the one figure we have from her:
-// a full circle skirt at 27" waist / 32" length on 45" goods, which she puts at
-// 4 yards and this puts at 4.14 before allowance. See the design spec.
+// could not be found. It is NOT validated against a garment she priced. The only
+// real-world figure we have is a self-described guesstimate for a different,
+// undimensioned performer: "So anywhere from 2.5 to 4 yards. So you estimated 4
+// yards. That's good" and "a full circle skirt with gathering is going to be 4.
+// 4 Yards. I always guesstimate my yards." — for a 6-foot, 190 lb performer with
+// roughly a 45" waist, with no skirt length ever stated. The 27"/32" worked
+// example below (4.14 yd raw, from a separate, later call) is a plausibility
+// check against that guesstimated range, not confirmation of this geometry:
+// applying the same math to the performer she actually described (45" waist,
+// full length assumed) lands at roughly 5.75-6.5 yd, well above her 4-yard
+// guess. See the design spec.
 //
 // Pure: no I/O, no framework imports. All of this feature's real risk lives here,
 // which is why it is a separate module.
@@ -69,12 +77,19 @@ export function isSkirtConstruction(v: unknown): v is SkirtConstruction {
 
 // Fabric widths are stored as free text from the org's Fabric settings — `45"`,
 // `60`, `54 in`. Take the leading number; null when there isn't one.
+//
+// The leading-number parse has no unit awareness, so `"115cm"` reads as 115
+// inches — a real width in cm but a 47% under-buy if trusted as inches. No
+// bolt of dress fabric runs anywhere near that wide, so reject anything over
+// 100" as implausible rather than silently under-buying.
+const MAX_PLAUSIBLE_WIDTH_IN = 100;
+
 export function parseWidthInches(raw: string | null | undefined): number | null {
   if (!raw) return null;
   const m = raw.trim().match(/^\d+(\.\d+)?/);
   if (!m) return null;
   const n = Number(m[0]);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return Number.isFinite(n) && n > 0 && n <= MAX_PLAUSIBLE_WIDTH_IN ? n : null;
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -126,11 +141,20 @@ export function estimateSkirtYardage(input: SkirtYardageInput): SkirtYardageResu
     // decides how many rows of fabric the skirt costs: at 2 per row the whole
     // circle is one square (2R); at 1 per row all four stack (4R).
     let perRow = Math.floor(usableWidth / outerRadius);
+    // When even one panel doesn't fit the usable width, piecing isn't a layout
+    // footnote — it consumes real extra fabric, one whole additional width per
+    // widthsPerPanel beyond the first. Scaling the row count (rather than just
+    // clamping perRow to 1 and leaving rows alone) is what makes the returned
+    // yardage account for that extra fabric instead of quietly matching the
+    // fits-in-one-width case.
+    let widthsPerPanel = 1;
     if (perRow < 1) {
       perRow = 1;
-      warning = `A ${r2(outerRadius)}" panel is wider than the ${usableWidth}" of usable fabric — each panel will need piecing, and the estimate assumes one panel per row.`;
+      widthsPerPanel = Math.ceil(outerRadius / usableWidth);
+      warning = `A ${r2(outerRadius)}" panel is wider than the ${usableWidth}" of usable fabric — each panel will need piecing across ${widthsPerPanel} fabric widths, and the estimate scales the yardage to assume pieced panels.`;
     }
-    const rows = Math.ceil(panels / perRow);
+    const baseRows = Math.ceil(panels / perRow);
+    const rows = baseRows * widthsPerPanel;
     inches = rows * outerRadius;
 
     steps.push(
@@ -141,8 +165,13 @@ export function estimateSkirtYardage(input: SkirtYardageInput): SkirtYardageResu
       `+ length ${input.lengthInches}" + hem ${HEM_ALLOWANCE_IN}" = ${r2(outerRadius)}" outer radius`,
     );
     steps.push(
-      `${plural(panels, "panel")} of ${r2(outerRadius)}", ${perRow} per row = ${plural(rows, "row")}`,
+      `${plural(panels, "panel")} of ${r2(outerRadius)}", ${perRow} per row = ${plural(baseRows, "row")}`,
     );
+    if (widthsPerPanel > 1) {
+      steps.push(
+        `Each panel pieced from ${widthsPerPanel} fabric widths → ${baseRows} × ${widthsPerPanel} = ${plural(rows, "row")} of fabric (pieced-panel assumption)`,
+      );
+    }
     steps.push(`${rows} × ${r2(outerRadius)}" = ${r2(inches)}"`);
   }
 
