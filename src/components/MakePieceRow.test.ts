@@ -4,6 +4,8 @@ import {
   shouldOfferYardageUpdate,
   deriveCalculatedYardage,
   seedCalculatorYardage,
+  isManualOverride,
+  shouldOfferCalculatorValue,
 } from "@/components/MakePieceRow";
 import { estimateSkirtYardage } from "@/lib/fabric/skirt-yardage";
 
@@ -197,5 +199,75 @@ describe("outseam changes reach the estimate when no length override is stored",
       fabricWidthInches: 45,
     });
     expect(r.yards).not.toBe(4.75);
+  });
+});
+
+describe("isManualOverride", () => {
+  test("a value the calculator did not produce is an override", () => {
+    expect(isManualOverride("6", 4.75)).toBe(true);
+  });
+
+  test("a value matching the calculator is not an override", () => {
+    expect(isManualOverride("4.75", 4.75)).toBe(false);
+  });
+
+  test("a blank field is not an override — it is how a user hands the piece back", () => {
+    expect(isManualOverride("", 4.75)).toBe(false);
+    expect(isManualOverride("   ", 4.75)).toBe(false);
+  });
+
+  test("a value with no calculator history is the user's, so it is protected", () => {
+    expect(isManualOverride("6", null)).toBe(true);
+  });
+
+  test("non-numeric text is not treated as an override worth protecting", () => {
+    expect(isManualOverride("abc", 4.75)).toBe(false);
+  });
+});
+
+describe("shouldOfferCalculatorValue", () => {
+  test("offers the new figure when the field holds an override", () => {
+    expect(shouldOfferCalculatorValue("6", 5.25, 4.75)).toBe(true);
+  });
+
+  test("offers nothing when the field is calculator-controlled", () => {
+    // That is the other prompt's job.
+    expect(shouldOfferCalculatorValue("4.75", 5.25, 4.75)).toBe(false);
+  });
+
+  test("offers nothing when the override already equals the estimate", () => {
+    expect(shouldOfferCalculatorValue("5.25", 5.25, 4.75)).toBe(false);
+  });
+
+  test("offers nothing on a blank field", () => {
+    expect(shouldOfferCalculatorValue("", 5.25, 4.75)).toBe(false);
+  });
+
+  test("offers nothing when the calculator has never produced a value", () => {
+    expect(shouldOfferCalculatorValue("6", 5.25, null)).toBe(false);
+  });
+
+  test("offers nothing for non-numeric text", () => {
+    expect(shouldOfferCalculatorValue("abc", 5.25, 4.75)).toBe(false);
+  });
+});
+
+// The property that stops the UI rendering two contradictory prompts at once.
+// Checked exhaustively over a small matrix rather than by argument, because the
+// two predicates are maintained separately and could drift apart.
+describe("the two prompts are mutually exclusive", () => {
+  test("no combination makes both fire", () => {
+    const fields = ["", "  ", "abc", "4.75", "5.25", "6", "0"];
+    const calculated = [null, 4.75, 5.25, 6];
+    const estimates = [4.75, 5.25, 6];
+    for (const f of fields) {
+      for (const c of calculated) {
+        for (const e of estimates) {
+          const a = shouldOfferYardageUpdate(f, e, c);
+          const b = shouldOfferCalculatorValue(f, e, c);
+          expect(a && b, `both fired for field=${f} calculated=${c} estimate=${e}`).toBe(false);
+        }
+      }
+    }
   });
 });

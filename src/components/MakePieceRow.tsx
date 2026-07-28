@@ -599,6 +599,51 @@ export function shouldOfferYardageUpdate(
   return estimateYards !== lastCalculatedYardage;
 }
 
+// Whether the Yardage field currently holds a number the user typed rather than
+// one the calculator produced. This is what a recompute checks before replacing
+// the field: a value the user chose is theirs to keep, and silently swapping it
+// for a smaller computed one is the under-buy failure this whole feature exists
+// to prevent.
+//
+// A blank field is deliberately NOT an override — clearing the field is how a
+// user hands the piece back to the calculator, and it is the only way to do so.
+// Non-numeric text is not an override either: there is nothing to protect, and
+// treating it as one would freeze the field on a typo.
+export function isManualOverride(
+  yardageText: string,
+  calculatorYardage: number | null,
+): boolean {
+  if (yardageText.trim() === "") return false;
+  const current = Number(yardageText);
+  if (!Number.isFinite(current)) return false;
+  // No calculator history, but a real number in the field: it came from the user
+  // or the AI, either way not from this calculator, so protect it.
+  if (calculatorYardage == null) return true;
+  return current !== calculatorYardage;
+}
+
+// The override counterpart to `shouldOfferYardageUpdate`. That one fires when
+// the field still shows the calculator's own number and the estimate has moved
+// away from it. This one fires when the field shows the user's number instead —
+// offering the calculator's latest figure without ever imposing it.
+//
+// The two are mutually exclusive by construction: that predicate requires
+// `current === lastCalculatedYardage`, this one requires the opposite. A test
+// asserts it across a matrix, because they are maintained separately.
+export function shouldOfferCalculatorValue(
+  yardageText: string,
+  estimateYards: number,
+  lastCalculatedYardage: number | null,
+): boolean {
+  if (yardageText.trim() === "" || lastCalculatedYardage == null) return false;
+  const current = Number(yardageText);
+  if (!Number.isFinite(current)) return false;
+  // Calculator-controlled — the other prompt owns this case.
+  if (current === lastCalculatedYardage) return false;
+  // Nothing to offer if the calculator agrees with what they typed.
+  return estimateYards !== current;
+}
+
 // What `save` persists as `calculated_yardage` — extracted from the inline
 // body-builder so this ternary, the actual fix for the override-reverting
 // bug, is under direct test rather than only exercised incidentally through
