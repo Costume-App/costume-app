@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { formatHeight } from "@/lib/height";
@@ -9,6 +9,13 @@ import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
+import {
+  estimateSkirtYardage,
+  parseWidthInches,
+  SKIRT_CONSTRUCTIONS,
+  CONSTRUCTION_LABELS,
+  type SkirtConstruction,
+} from "@/lib/fabric/skirt-yardage";
 
 interface PiecePutBody {
   designId: string;
@@ -20,6 +27,8 @@ interface PiecePutBody {
   fabricSupplier: string | null;
   fabricYardage: number | null;
   fabricUnitCost: number | null;
+  skirtConstruction: string | null;
+  skirtFullness: number | null;
   makerId: string | null;
   made: boolean;
 }
@@ -65,6 +74,10 @@ export function MakePieceRow({
         ? String(defaultSupplier.pricePerYard)
         : "",
   );
+  const [construction, setConstruction] = useState<string>(item.fabric.skirtConstruction ?? "");
+  const [fullness, setFullness] = useState<string>(
+    item.fabric.skirtFullness != null ? String(item.fabric.skirtFullness) : "3",
+  );
   const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,14 +86,69 @@ export function MakePieceRow({
   // edit: each call captures its values now and runs after the previous finishes.
   const saveChain = useRef<Promise<void>>(Promise.resolve());
 
+  const waistIn = measurementInches(measurements, "waist");
+  const lengthIn = measurementInches(measurements, "outseam");
+  const widthIn = parseWidthInches(width);
+
+  // Recomputed for display; the value itself is saved on change, not on render.
+  const estimate = useMemo(() => {
+    if (!construction || waistIn == null || lengthIn == null || widthIn == null) return null;
+    try {
+      return estimateSkirtYardage({
+        construction: construction as SkirtConstruction,
+        waistInches: waistIn,
+        lengthInches: lengthIn,
+        fabricWidthInches: widthIn,
+        fullness: construction === "gathered" ? Number(fullness) : undefined,
+      });
+    } catch {
+      return null;
+    }
+  }, [construction, fullness, waistIn, lengthIn, widthIn]);
+
+  // What the user has to supply before a number is possible.
+  const missing = construction
+    ? [
+        waistIn == null ? "waist" : null,
+        lengthIn == null ? "waist to ankle" : null,
+        widthIn == null ? "fabric width" : null,
+      ].filter((x): x is string => x !== null)
+    : [];
+
+  function applyConstruction(nextConstruction: string, nextFullness: string) {
+    let nextYardage: string | undefined;
+    if (nextConstruction && waistIn != null && lengthIn != null && widthIn != null) {
+      try {
+        const r = estimateSkirtYardage({
+          construction: nextConstruction as SkirtConstruction,
+          waistInches: waistIn,
+          lengthInches: lengthIn,
+          fabricWidthInches: widthIn,
+          fullness: nextConstruction === "gathered" ? Number(nextFullness) : undefined,
+        });
+        nextYardage = String(r.yards);
+        setYardage(nextYardage);
+      } catch {
+        // Leave the yardage alone; `missing` or the thrown case is surfaced in the UI.
+      }
+    }
+    void save({ construction: nextConstruction, fullness: nextFullness, yardage: nextYardage });
+  }
+
   function save(opts?: {
     made?: boolean;
     makerId?: string | null;
     width?: string;
     supplier?: string;
     unitCost?: string;
+    construction?: string;
+    fullness?: string;
+    yardage?: string;
   }) {
     const uc = opts?.unitCost ?? unitCost;
+    const yd = opts?.yardage ?? yardage;
+    const con = opts?.construction ?? construction;
+    const ful = opts?.fullness ?? fullness;
     const body: PiecePutBody = {
       designId: item.designId,
       castingId: item.castingId,
@@ -89,8 +157,10 @@ export function MakePieceRow({
       fabricColor: color.trim() || null,
       fabricWidth: (opts?.width ?? width).trim() || null,
       fabricSupplier: (opts?.supplier ?? supplier).trim() || null,
-      fabricYardage: yardage.trim() === "" ? null : Number(yardage),
+      fabricYardage: yd.trim() === "" ? null : Number(yd),
       fabricUnitCost: uc.trim() === "" ? null : Number(uc),
+      skirtConstruction: con || null,
+      skirtFullness: con === "gathered" ? Number(ful) : null,
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -210,7 +280,68 @@ export function MakePieceRow({
             ) : (
               <Field label="Width" value={width} onChange={setWidth} onBlur={() => void save()} placeholder="Inches" />
             )}
-            <Field label="Yardage" value={yardage} onChange={setYardage} onBlur={() => void save()} inputMode="decimal" placeholder="Estimated # of yards" hint="Leave blank to have the system estimate yardage." />
+            <SelectField
+              label="Skirt type"
+              value={construction ? CONSTRUCTION_LABELS[construction as SkirtConstruction] : ""}
+              options={SKIRT_CONSTRUCTIONS.map((c) => CONSTRUCTION_LABELS[c])}
+              onChange={(labelValue) => {
+                const next =
+                  SKIRT_CONSTRUCTIONS.find((c) => CONSTRUCTION_LABELS[c] === labelValue) ?? "";
+                setConstruction(next);
+                applyConstruction(next, fullness);
+              }}
+            />
+            {construction === "gathered" && (
+              <SelectField
+                label="Fullness"
+                value={fullness}
+                options={["2", "2.5", "3"]}
+                onChange={(v) => {
+                  setFullness(v);
+                  applyConstruction(construction, v);
+                }}
+              />
+            )}
+            <Field
+              label="Yardage"
+              value={yardage}
+              onChange={setYardage}
+              onBlur={() => void save()}
+              inputMode="decimal"
+              placeholder="Estimated # of yards"
+              hint={
+                construction
+                  ? "Calculated from the measurements — type over it to override."
+                  : "Leave blank to have the system estimate yardage."
+              }
+            />
+            {construction && (
+              <div className="col-span-full rounded-md bg-[var(--bg)] px-2 py-1.5">
+                {missing.length > 0 ? (
+                  <p className="text-xs muted">
+                    Add {missing.join(" and ")} to calculate yardage.{" "}
+                    <Link
+                      href={`/productions/${productionId}/performers/${item.performerId}?from=summary`}
+                      className="link-red"
+                    >
+                      Measurements ↗
+                    </Link>
+                  </p>
+                ) : estimate ? (
+                  <>
+                    <span className="lbl block">How this was calculated</span>
+                    <ul className="mt-0.5 space-y-0.5 text-[11px] leading-tight muted">
+                      {estimate.steps.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                    {estimate.warning && (
+                      <p className="mt-1 text-xs text-[var(--red)]">{estimate.warning}</p>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            )}
             <Field label="$/yd" value={unitCost} onChange={setUnitCost} onBlur={() => void save()} inputMode="decimal" prefix="$" placeholder="Per yard" />
             {fabricSuppliers.length > 0 ? (
               <SelectField
@@ -254,6 +385,14 @@ export function MakePieceRow({
       )}
     </li>
   );
+}
+
+// Measurements arrive as display rows; the numeric ones carry a number in `value`.
+function measurementInches(rows: MeasurementView[], key: string): number | null {
+  const row = rows.find((m) => m.key === key);
+  if (!row) return null;
+  const n = Number(row.value);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 function Field({
