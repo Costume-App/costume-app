@@ -4,11 +4,13 @@ import { B, LegalShell, LI, P, Section, UL } from "@/components/legal/LegalPage"
 export const metadata = { title: "Privacy Policy" };
 
 // Static legal page, publicly reachable (listed in src/lib/public-routes.ts).
+// Copy is guarded by src/app/legal-pages.test.ts — the statutory commitments in
+// here are the product of a compliance review, not free-form marketing copy.
 export default function PrivacyPage() {
   return (
     <LegalShell
       title="Privacy Policy"
-      updated="July 15, 2026"
+      updated="July 27, 2026"
       intro="What Measure My Costume collects, why, and how it is handled."
     >
       <nav className="surface p-4 text-sm">
@@ -17,9 +19,8 @@ export default function PrivacyPage() {
           <li><a href="#collect" className="link-muted">What we collect</a></li>
           <li><a href="#performers" className="link-muted">Performers &amp; minors</a></li>
           <li><a href="#use" className="link-muted">How we use information</a></li>
-          <li><a href="#providers" className="link-muted">Service providers</a></li>
           <li><a href="#sharing" className="link-muted">Sharing</a></li>
-          <li><a href="#security" className="link-muted">Security</a></li>
+          <li><a href="#safeguards" className="link-muted">Safeguards</a></li>
           <li><a href="#retention" className="link-muted">Retention &amp; deletion</a></li>
           <li><a href="#rights" className="link-muted">Your rights</a></li>
           <li><a href="#cookies" className="link-muted">Cookies</a></li>
@@ -28,76 +29,52 @@ export default function PrivacyPage() {
       </nav>
 
       <Section id="collect" title="What we collect">
+        <P>We collect only what is necessary to facilitate your use of the app.</P>
         <UL>
           <LI>
-            <B>Account information</B> — your name and email address, handled by our sign-in
-            provider.
+            <B>Account information</B> — what is needed to create and verify your account and to
+            bill you.
           </LI>
           <LI>
-            <B>Organization content</B> — what your team enters to plan productions: shows,
-            roles, performer names, measurements, costume designs, photos, notes, and fabric and
-            cost details.
-          </LI>
-          <LI>
-            <B>Billing information</B> — payments are handled by Stripe. We never see or store
-            full card numbers.
-          </LI>
-          <LI>
-            <B>Feedback</B> — anything you send us through the in-app feedback form or by email.
+            <B>Organization content</B> — the production and costume information your team enters
+            to plan a show.
           </LI>
           <LI>
             <B>Technical basics</B> — sign-in session cookies and standard server logs that keep
-            the service working and secure.
+            the service working.
+          </LI>
+          <LI>
+            <B>What you send us</B> — anything you submit through the in-app feedback form or by
+            email.
           </LI>
         </UL>
       </Section>
 
       <Section id="performers" title="Performers and minors">
         <P>
-          Performer information — names, measurements, and photos — is entered by your
-          organization, and your organization is responsible for having consent to store it,
-          including from a parent or guardian for performers under 18. We process that
-          information only to run the service for your organization. It is never used for
-          advertising.
-        </P>
-        <P>
-          Accounts are for adults. We do not knowingly let children under 13 create accounts,
-          and we will delete any we discover.
+          Performer information is entered by your organization, and your organization is
+          responsible for having consent to store it, including consent from a parent or guardian
+          for any performer under 18 years of age. We process that information only to run the
+          service for your organization. It is never used for advertising.
         </P>
       </Section>
 
       <Section id="use" title="How we use information">
-        <UL>
-          <LI>To provide and operate the service for your organization.</LI>
-          <LI>
-            To calculate fabric estimates — descriptions of costume pieces are sent to our AI
-            provider to produce the estimate.
-          </LI>
-          <LI>
-            To send service email, such as invitations, requests to join an organization, and
-            feedback replies.
-          </LI>
-          <LI>To respond to support requests and keep the service secure.</LI>
-        </UL>
+        <P>
+          We use the information we collect to operate the service for your organization, to
+          verify accounts and process billing, to send service-related email such as invitations
+          and support replies, and to respond to your requests.
+        </P>
         <P>We do not sell personal information, and we show no advertising.</P>
       </Section>
 
-      <Section id="providers" title="Service providers">
-        <P>These companies process data for us, each receiving only what it needs:</P>
-        <UL>
-          <LI><B>Clerk</B> — sign-in and account management.</LI>
-          <LI><B>Supabase</B> — database and photo storage.</LI>
-          <LI><B>Stripe</B> — payments and billing.</LI>
-          <LI><B>Anthropic</B> — AI fabric estimates.</LI>
-          <LI><B>Resend</B> — email delivery.</LI>
-          <LI><B>Vercel</B> — hosting.</LI>
-        </UL>
-      </Section>
-
       <Section id="sharing" title="Sharing">
+        <P>We do not sell or rent your information.</P>
         <P>
-          We do not sell or rent your information. Beyond the providers above, we share data only
-          if the law requires it.
+          We use third-party service providers to operate the service — for hosting, account
+          sign-in, payment processing, email delivery, and automated fabric estimates. Each
+          receives only the information it needs to perform its function on our behalf. Beyond
+          that, we share information only where the law requires it.
         </P>
         <P>
           If your organization shares a production with another organization using a share link,
@@ -106,34 +83,58 @@ export default function PrivacyPage() {
         </P>
       </Section>
 
-      <Section id="security" title="Security">
-        <UL>
-          <LI>All traffic is encrypted in transit (HTTPS).</LI>
-          <LI>Your data is only visible to members of your organization.</LI>
-          <LI>Photo links are time-limited signed URLs, not public addresses.</LI>
-          <LI>Payment details go directly to Stripe and never touch our servers.</LI>
-        </UL>
+      <Section id="safeguards" title="Safeguards">
+        <P>
+          We use commercially reasonable administrative, technical, and physical safeguards to
+          protect the information we hold. Payment card details are handled by our payment
+          processor and are never stored on our systems.
+        </P>
       </Section>
 
       <Section id="retention" title="Retention and deletion">
+        <P>We keep your organization&rsquo;s data while the organization is active.</P>
         <P>
-          We keep your organization&rsquo;s data while the organization is active. To delete your
-          organization and its data, email{" "}
-          <a href="mailto:hello@measuremycostume.com" className="link-red">
-            hello@measuremycostume.com
-          </a>{" "}
-          and we will remove it within a reasonable period.
+          We retain information, including payment and billing records, for as long as necessary
+          to provide the service and to comply with applicable state and federal record-retention
+          laws, including those that apply to financial records. Some records must be kept after
+          an account closes for that reason.
+        </P>
+        <P>
+          To delete your organization and its data, email{" "}
+          <a href="mailto:privacy@measuremycostume.com" className="link-red">
+            privacy@measuremycostume.com
+          </a>
+          . We will remove it within 30 days of a verified request, except for records we are
+          required by law to retain.
         </P>
       </Section>
 
       <Section id="rights" title="Your rights">
+        <P>You can view and update most information directly in the app.</P>
         <P>
-          You can view and update most information directly in the app. For access, correction,
-          export, or deletion requests, email{" "}
-          <a href="mailto:hello@measuremycostume.com" className="link-red">
-            hello@measuremycostume.com
+          Where a request concerns content your organization entered, your organization decides
+          how it is handled — send the request to your organization first, and we will assist it
+          in responding.
+        </P>
+        <P>
+          If you are a California resident, the California Consumer Privacy Act (CCPA) gives you
+          the right to know what personal information we collect and how it is used, to request a
+          copy of it, to request its deletion, and not to be treated differently for exercising
+          those rights. We do not sell personal information.
+        </P>
+        <P>
+          If you are in the European Economic Area or the United Kingdom, the General Data
+          Protection Regulation (GDPR) gives you the right to access, correct, export, restrict,
+          or delete your personal information, and to object to certain processing. For the
+          content your team enters, your organization is the data controller and we act as its
+          processor.
+        </P>
+        <P>
+          To exercise any of these rights, email{" "}
+          <a href="mailto:privacy@measuremycostume.com" className="link-red">
+            privacy@measuremycostume.com
           </a>
-          .
+          . We will respond within 30 days.
         </P>
       </Section>
 

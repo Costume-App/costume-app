@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { CLERK_LOCALIZATION } from "@/lib/clerk-localization";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider localization={CLERK_LOCALIZATION}>
       <html lang="en" className={`${fraunces.variable} ${hanken.variable}`}>
         <body>{children}</body>
       </html>
