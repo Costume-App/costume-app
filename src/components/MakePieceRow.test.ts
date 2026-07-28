@@ -64,6 +64,25 @@ describe("shouldOfferYardageUpdate", () => {
   test("does not fire on non-numeric yardage text", () => {
     expect(shouldOfferYardageUpdate("abc", 5, 4.75)).toBe(false);
   });
+
+  test("no update is offered when the yardage never came from the calculator", () => {
+    // A hand-typed or AI-written value has no calculated_yardage, so there is no
+    // claim that measurements moved — prompting here would offer to overwrite the
+    // user's own number with the calculator's minimum.
+    expect(shouldOfferYardageUpdate("5.5", 4.75, null)).toBe(false);
+  });
+
+  test("no update is offered when the field holds a deliberate override", () => {
+    expect(shouldOfferYardageUpdate("5.5", 5.25, 4.75)).toBe(false);
+  });
+
+  test("an update is offered when the field still holds the calculator's own number", () => {
+    expect(shouldOfferYardageUpdate("4.75", 5.25, 4.75)).toBe(true);
+  });
+
+  test("no update is offered when the estimate has not moved", () => {
+    expect(shouldOfferYardageUpdate("4.75", 4.75, 4.75)).toBe(false);
+  });
 });
 
 // End-to-end regression check: with no stored length, a change in the

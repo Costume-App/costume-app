@@ -30,6 +30,7 @@ interface PiecePutBody {
   skirtConstruction: string | null;
   skirtFullness: number | null;
   skirtLengthIn: number | null;
+  calculatedYardage: number | null;
   makerId: string | null;
   made: boolean;
 }
@@ -102,8 +103,11 @@ export function MakePieceRow({
   // (the field still shows this value, but the live estimate has moved on)
   // apart from a deliberate manual override (the field shows something else
   // entirely, which is the user's choice, not a claim about measurements).
+  // Persisted as `calculated_yardage`, not merely tracked in memory — so a
+  // hand-typed or AI-written value (which never sets this column) is never
+  // mistaken for a stale calculator output after a reload.
   const [calculatorYardage, setCalculatorYardage] = useState<number | null>(
-    item.fabric.yardage ?? null,
+    item.fabric.calculatedYardage ?? null,
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -262,6 +266,11 @@ export function MakePieceRow({
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
       skirtLengthIn: con ? resolveLengthOverride(len, outseamIn) : null,
+      // When a recompute supplied a yardage, that value IS the calculator's
+      // output. Otherwise — a manual edit, a maker change, a made toggle —
+      // carry the tracked value through unchanged, which is what makes an
+      // override diverge and permanently silence the prompt for this piece.
+      calculatedYardage: opts?.yardage !== undefined ? Number(opts.yardage) : calculatorYardage,
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
