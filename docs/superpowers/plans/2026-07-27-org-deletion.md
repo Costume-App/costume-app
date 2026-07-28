@@ -19,6 +19,15 @@
 - **Feedback is anonymized, never deleted:** `user_email`, `user_id`, `org_id` → NULL; `message` retained.
 - **`anonymizeOrgFeedback` must run before `deleteOrgRows`** — it matches on `org_id`, which nothing else nulls.
 - **The four tables the cascade misses** are `fabric_widths`, `fabric_suppliers`, `feedback`, `production_shares`. Three are deleted; `feedback` is anonymized.
+
+  > **Superseded 2026-07-28:** "three are deleted" is no longer quite right for
+  > `production_shares`. The whole-branch review ruled that rows where the
+  > deleted org is the *recipient* of another org's share must be released
+  > (unlinked), not deleted, to avoid destroying that other org's own record —
+  > see the shipped `deleteOrgRows` in `scripts/lib/org-deletion.mjs` and the
+  > matching note in the design spec. Only the *source*-side rows and the two
+  > genuinely unconstrained tables (`fabric_widths`, `fabric_suppliers`) are
+  > deleted outright. Left as-is above for history.
 - **No new runtime dependencies.** `scripts/lib/org-deletion.mjs` imports nothing but what it is given.
 - **This is Next.js 16.** Per `AGENTS.md`, check `node_modules/next/dist/docs/` before assuming older App Router patterns. Nothing here needs a routing change.
 - **Do not push and do not deploy.** Local commits only, on branch `feat/org-deletion`, until Chris gives an explicit green light. Migration `0030` is applied to Supabase by Chris by hand — do not attempt to run it.
@@ -794,6 +803,17 @@ export async function writeDeletionLog(sb, entry) {
 }
 ```
 
+> **Superseded 2026-07-28:** the `countIn` and `deleteOrgRows` code above (this
+> was the original plan for Task 3, before review) matches `production_shares`
+> on a single column / a single `.or(...)` delete across both columns. The
+> whole-branch review changed this: the shipped `countIn` counts `.or(source_org_id.eq...,accepted_by_org_id.eq...)`
+> for the dry-run/verify summary, and the shipped `deleteOrgRows` performs two
+> separate operations — delete where this org is the source, release
+> (`accepted_by_org_id` → null) where it's the recipient of another org's
+> share, so that org's own record of the share survives. See the real
+> `scripts/lib/org-deletion.mjs` for what actually shipped; this code block is
+> left as-is for history.
+
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run scripts/lib/org-deletion.test.mjs`
@@ -1094,6 +1114,23 @@ exists and its dates are right:
 
 That row is the evidence the 30-day commitment was met.
 ```
+
+> **Superseded 2026-07-28:** the embedded runbook draft above (this was the
+> original Task 5 plan) still claims "each step is idempotent" for the
+> re-run guidance under step 5, and still has the Clerk deletion (step 6)
+> happen *after* the `--confirm` run (step 5). The whole-branch review found
+> both wrong:
+> - Stripe cancellation's re-run safety was never established either way — the
+>   shipped runbook (`docs/runbooks/delete-organization.md`) calls this out
+>   explicitly instead of claiming blanket idempotency.
+> - Deleting the Clerk org *after* the script leaves a window where a member's
+>   in-flight request re-creates the `organizations` row via `ensureOrgRow` /
+>   `ensureOrganization`, invalidating `--verify`. The shipped runbook moves the
+>   Clerk deletion earlier (its step 5, before the `--confirm` run) specifically
+>   to close that window.
+>
+> The shipped runbook is correct; this embedded draft is left as-is for
+> history.
 
 - [ ] **Step 2: Run the full verification**
 

@@ -229,6 +229,18 @@ CLI.
 | `deleteOrgRows` | `(sb, orgId) => Promise<Record<string, number>>` | Deletes `fabric_widths`, `fabric_suppliers`, `production_shares` (both org columns), then `organizations`. Returns per-table counts. |
 | `writeDeletionLog` | `(sb, entry) => Promise<void>` | Inserts the `deletion_log` row. |
 
+> **Superseded 2026-07-28:** the `deleteOrgRows` row above (and the whole-branch
+> review found the same drift in the plan at ~line 704/770) describes
+> `production_shares` as a single delete matched on "both org columns." The
+> shipped code does two different things to that table instead: rows where
+> this org is the *source* are deleted; rows where it's the *recipient* of
+> another org's share are only released (`accepted_by_org_id` set to null),
+> because deleting them would destroy that other org's own record of the
+> share. This was a deliberate ruling made during review, not a bug — see
+> `deleteOrgRows` and the `production_shares_released` handling in
+> `scripts/lib/org-deletion.mjs` for the shipped behavior. This doc is left
+> as-is above for history; do not treat it as current.
+
 `Summary` shape: `{ orgName, tables: Record<string, number>, storageFiles: number }`.
 
 Note that `anonymizeOrgFeedback` must run **before** `deleteOrgRows`, since it
@@ -311,6 +323,12 @@ Cases that matter:
 - `anonymizeOrgFeedback` nulls all three columns and leaves `message` intact
 - The CLI performs no mutation without `--confirm` — asserted by running the
   dry-run path against a fake client and checking no write method was called
+
+> **Superseded 2026-07-28:** the `deleteOrgRows` bullet above describes a
+> single delete matched on either column. The shipped test suite
+> (`scripts/lib/org-deletion.test.mjs`) instead asserts the split
+> delete-vs-release behavior described in the note near line 229 above. Left
+> as-is for history.
 
 `src/lib/data/storage-paths.test.ts` follows the repo's existing
 `src/lib/data/*.test.ts` mock patterns.

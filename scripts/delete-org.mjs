@@ -67,7 +67,11 @@ if (has("verify")) {
     console.error("\n  ✗ NOT clean — the rows above are still present.");
     process.exit(1);
   }
-  console.log("\n  ✓ Supabase is clean for this org.");
+  console.log("\n  ✓ Supabase database rows are clean for this org.");
+  console.log("    Storage is INFERRED from those rows (zero productions and zero inventory");
+  console.log("    items means collectOrgStoragePaths has nothing left to walk), not inspected");
+  console.log("    directly — it does not re-list the bucket. See the storage-removal count");
+  console.log("    printed during --confirm for the closest thing to direct evidence.");
   console.log("    This does NOT verify Clerk — check the dashboard by hand.");
   process.exit(0);
 }
@@ -92,6 +96,38 @@ if (!requestedAt) {
   console.error("\n  --requested-at <ISO date> is required with --confirm.");
   console.error("  The deletion log is worthless without the date the 30-day clock started.");
   process.exit(2);
+}
+if (Number.isNaN(Date.parse(requestedAt))) {
+  console.error(`\n  --requested-at "${requestedAt}" does not parse as a date.`);
+  console.error("  A typo — or --confirm/another flag swallowing this value — would otherwise");
+  console.error("  only be caught by Postgres at the very last, post-irreversible step.");
+  console.error("  Pass an ISO date, e.g. 2026-08-01.");
+  process.exit(2);
+}
+
+// Migration 0030 pre-flight. The dry run above touches neither deletion_log nor
+// the now-nullable feedback columns, so it passes fine on an un-migrated
+// database — this is the only thing standing between that and --confirm
+// deleting storage irreversibly before failing on a missing table/constraint.
+const migrationCheck = await sb.from("deletion_log").select("*", { count: "exact", head: true });
+if (migrationCheck.error) {
+  console.error("\n  ✗ Migration 0030 does not appear to be applied to this database.");
+  console.error(`    deletion_log check failed: ${migrationCheck.error.code ?? "unknown"} ${migrationCheck.error.message}`);
+  console.error("  Apply supabase/migrations/0030_org_deletion.sql to this database, then re-run.");
+  process.exit(1);
+}
+
+// Without a Stripe key, an org WITH a subscription would be deleted while
+// Stripe keeps billing a customer that no longer maps to anything, and the
+// webhook 500s forever on the missing organizations FK. An org with no
+// subscription has nothing to cancel, so it's safe to proceed without the key.
+if (!env.STRIPE_SECRET_KEY && summary.tables.org_subscriptions > 0) {
+  console.error("\n  ✗ STRIPE_SECRET_KEY is not set, and this organization has a subscription row.");
+  console.error("    Deleting the org now would leave Stripe billing a deleted customer and send");
+  console.error("    its webhook into an infinite retry loop against the missing organizations FK.");
+  console.error("    Set STRIPE_SECRET_KEY in .env.local (or cancel the subscription by hand in");
+  console.error("    Stripe first), then re-run.");
+  process.exit(1);
 }
 
 console.log("\nDeleting — do not interrupt.\n");
@@ -131,11 +167,23 @@ try {
 
   // 2. Storage before the cascade — afterwards the paths are unreachable.
   const paths = await collectOrgStoragePaths(sb, orgId);
+  let removedCount = 0;
   if (paths.length > 0) {
-    const { error } = await sb.storage.from("role-images").remove(paths);
+    const { data, error } = await sb.storage.from("role-images").remove(paths);
     if (error) throw new Error(`storage removal failed: ${error.message}`);
+    // `data` is what Supabase confirms actually left the bucket — `paths.length`
+    // is only what we asked it to remove. Report the real number, not the claim.
+    removedCount = (data ?? []).length;
   }
-  console.log(`  ✓ ${paths.length} storage objects removed`);
+  if (removedCount === paths.length) {
+    console.log(`  ✓ ${removedCount} of ${paths.length} storage objects removed`);
+  } else {
+    console.log(`  ⚠ ${removedCount} of ${paths.length} storage objects removed — MISMATCH.`);
+    console.log("    Not necessarily a bug: a row can reference a file that was never actually");
+    console.log("    created if an earlier copy failed partway (see production-copy.ts:45-49,");
+    console.log("    which swallows that case). Spot-check the role-images bucket by hand if this");
+    console.log("    gap looks larger than that would explain.");
+  }
   completed.push(STEP_NAMES.storage);
 
   // 3. Feedback before the org row — this matches on org_id.
@@ -197,8 +245,9 @@ try {
   process.exit(1);
 }
 
-console.log("\n  ⚠ MANUAL STEP REMAINING");
-console.log("    Delete the Clerk organization by hand:");
-console.log(`    dashboard.clerk.com → Organizations → ${orgId} → Delete`);
-console.log("    Use the PRODUCTION instance, not development.\n");
+console.log("\n  ✓ Deletion complete.");
+console.log("    Per the runbook, the Clerk organization should already be deleted (that step");
+console.log("    now happens BEFORE --confirm, so its member sessions can't re-create rows this");
+console.log("    script just removed). If it wasn't, do it now: dashboard.clerk.com →");
+console.log(`    Organizations → ${orgId} → Delete, on the PRODUCTION instance.\n`);
 console.log(`    Then: node scripts/delete-org.mjs --org ${orgId} --verify\n`);
