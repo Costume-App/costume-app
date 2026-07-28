@@ -43,6 +43,11 @@ export async function POST(_request: Request, { params }: Ctx) {
       for (const garment of role.garments) {
         for (const item of garment.items) {
           if (item.fabric.yardage != null) continue;
+          // Skirts with a construction set are owned by the deterministic
+          // calculator (src/lib/fabric/skirt-yardage.ts) — the AI must not
+          // second-guess arithmetic, and would overwrite a blank yardage the
+          // user will fill by picking a construction.
+          if (pieceByKey.get(pieceKey(item.castingId, item.designId))?.skirt_construction) continue;
           toEstimate.push({
             key: pieceKey(item.castingId, item.designId),
             garment: garment.designName,
@@ -81,6 +86,9 @@ export async function POST(_request: Request, { params }: Ctx) {
         fabricSupplier: existing?.fabric_supplier ?? null,
         fabricYardage: yardage,
         fabricUnitCost: existing?.fabric_unit_cost ?? null,
+        skirtConstruction: existing?.skirt_construction ?? null,
+        skirtFullness: existing?.skirt_fullness ?? null,
+        skirtLengthIn: existing?.skirt_length_in ?? null,
         purchasePrice: existing?.purchase_price ?? null,
         made: existing?.made ?? false,
         makerId: existing?.maker_id ?? null,

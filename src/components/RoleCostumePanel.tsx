@@ -12,6 +12,7 @@ import { AddFromInventory } from "@/components/AddFromInventory";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { COSTUME_SOURCES, defaultSourceFor } from "@/lib/costume-sources";
 import { resolvePieceSources, pieceKey } from "@/lib/costume-merge";
+import { buildSetSourceBody, buildSetPieceFieldBody } from "@/lib/piece-put-body";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 import type { Role, Performer, Casting, Cast } from "@/components/ProductionWorkspace";
@@ -167,9 +168,11 @@ export function RoleCostumePanel({
   async function setSource(designId: string, castingId: string, source: string, sharedWithCastingId: string | null) {
     setBusy(true);
     setError(null);
-    // Preserve any fabric details + made flag already recorded for this piece
-    // (e.g. from the Tailor's summary page) — changing only the source must not
-    // wipe them. The empty-make-row delete still applies when nothing else is set.
+    // Preserve any fabric/skirt details + made flag already recorded for this
+    // piece (e.g. from the Tailor's summary page) — changing only the source
+    // must not wipe them. The empty-make-row delete still applies when nothing
+    // else is set. Body construction lives in a pure, tested helper because
+    // this component has no automated test coverage of its own.
     const existing = pieces.find(
       (p) => p.costume_design_id === designId && p.casting_id === castingId,
     );
@@ -177,21 +180,7 @@ export function RoleCostumePanel({
       method: "PUT",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({
-        designId,
-        castingId,
-        source,
-        sharedWithCastingId,
-        fabricType: existing?.fabric_type ?? null,
-        fabricColor: existing?.fabric_color ?? null,
-        fabricWidth: existing?.fabric_width ?? null,
-        fabricSupplier: existing?.fabric_supplier ?? null,
-        fabricYardage: existing?.fabric_yardage ?? null,
-        fabricUnitCost: existing?.fabric_unit_cost ?? null,
-        purchasePrice: existing?.purchase_price ?? null,
-        made: existing?.made ?? false,
-        makerId: existing?.maker_id ?? null,
-      }),
+      body: JSON.stringify(buildSetSourceBody(designId, castingId, source, sharedWithCastingId, existing)),
     });
     if (res.ok) {
       const { piece } = (await res.json()) as { piece: CostumePiece | null };
@@ -221,22 +210,7 @@ export function RoleCostumePanel({
       method: "PUT",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({
-        designId,
-        castingId,
-        source: existing?.source ?? "make", // preserve source (e.g. "purchase") when toggling made/maker
-        sharedWithCastingId: null,
-        fabricType: existing?.fabric_type ?? null,
-        fabricColor: existing?.fabric_color ?? null,
-        fabricWidth: existing?.fabric_width ?? null,
-        fabricSupplier: existing?.fabric_supplier ?? null,
-        fabricYardage: existing?.fabric_yardage ?? null,
-        fabricUnitCost: existing?.fabric_unit_cost ?? null,
-        purchasePrice:
-          patch.purchasePrice !== undefined ? patch.purchasePrice : existing?.purchase_price ?? null,
-        made: patch.made !== undefined ? patch.made : existing?.made ?? false,
-        makerId: patch.makerId !== undefined ? patch.makerId : existing?.maker_id ?? null,
-      }),
+      body: JSON.stringify(buildSetPieceFieldBody(designId, castingId, existing, patch)),
     });
     if (res.ok) {
       const { piece } = (await res.json()) as { piece: CostumePiece | null };

@@ -43,6 +43,16 @@ function PriceRow({
           sharedWithCastingId: null,
           made: item.purchased,
           purchasePrice: next,
+          // A "purchase" piece isn't necessarily construction-free: it can carry
+          // a skirt construction left over from before it was switched from
+          // "make" (RoleCostumePanel now preserves those fields on that switch).
+          // Omitting them here would null them on this save, which would only
+          // surface later if the piece is switched back to "make" — but the
+          // PUT contract is "preserve everything already recorded" everywhere
+          // else, so this save shouldn't be the one exception.
+          skirtConstruction: item.skirtConstruction,
+          skirtFullness: item.skirtFullness,
+          skirtLengthIn: item.skirtLengthIn,
         }),
       });
       if (!res.ok) {

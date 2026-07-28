@@ -7,6 +7,7 @@ import { listCostumePieces, upsertPieceSource } from "@/lib/data/costume-pieces"
 import { isCostumeSource } from "@/lib/costume-sources";
 import { ValidationError, PlanLimitError } from "@/lib/errors";
 import { canAssignMakerToProduction } from "@/lib/data/billing";
+import { isSkirtConstruction } from "@/lib/fabric/skirt-yardage";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -40,6 +41,9 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricSupplier?: string | null;
       fabricYardage?: number | null;
       fabricUnitCost?: number | null;
+      skirtConstruction?: string | null;
+      skirtFullness?: number | null;
+      skirtLengthIn?: number | null;
       purchasePrice?: number | null;
       made?: boolean;
       makerId?: string | null;
@@ -56,9 +60,29 @@ export async function PUT(request: Request, { params }: Ctx) {
         throw new ValidationError(`${field} must be a number ≥ 0`);
       }
     };
+    // Fullness and skirt length are geometry inputs, not costs — 0 or negative
+    // has no meaning (a 0-fullness gather or 0" length) and would pass the ≥ 0
+    // check above and hit no DB constraint before this fix.
+    const checkPositive = (n: number | null | undefined, field: string) => {
+      if (n === undefined || n === null) return;
+      if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+        throw new ValidationError(`${field} must be a number greater than 0`);
+      }
+    };
     checkNum(body.fabricYardage, "Yardage");
     checkNum(body.fabricUnitCost, "Unit cost");
     checkNum(body.purchasePrice, "Purchase price");
+    // Reject an unknown construction rather than letting the DB check constraint
+    // surface as a 500.
+    if (
+      body.skirtConstruction != null &&
+      body.skirtConstruction !== "" &&
+      !isSkirtConstruction(body.skirtConstruction)
+    ) {
+      throw new ValidationError("Unknown skirt construction");
+    }
+    checkPositive(body.skirtFullness, "Fullness");
+    checkPositive(body.skirtLengthIn, "Skirt length");
     if (body.made !== undefined && typeof body.made !== "boolean") {
       throw new ValidationError("made must be a boolean");
     }
@@ -91,6 +115,9 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricSupplier: body.fabricSupplier ?? null,
       fabricYardage: body.fabricYardage ?? null,
       fabricUnitCost: body.fabricUnitCost ?? null,
+      skirtConstruction: body.skirtConstruction || null,
+      skirtFullness: body.skirtFullness ?? null,
+      skirtLengthIn: body.skirtLengthIn ?? null,
       purchasePrice: body.purchasePrice ?? null,
       made: body.made ?? false,
       makerId: body.makerId ?? null,

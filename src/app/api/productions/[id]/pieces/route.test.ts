@@ -140,6 +140,54 @@ test("PUT 400 on negative purchasePrice", async () => {
   expect(upsertPieceSource).not.toHaveBeenCalled();
 });
 
+test("PUT forwards skirtLengthIn", async () => {
+  upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make" });
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", skirtLengthIn: 22 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(200);
+  expect(upsertPieceSource).toHaveBeenCalledWith(
+    expect.objectContaining({ skirtConstruction: "full_circle", skirtLengthIn: 22 }),
+  );
+});
+
+test("PUT 400 on skirtFullness of 0 (not just negative)", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "gathered", skirtFullness: 0 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT 400 on negative skirtFullness", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "gathered", skirtFullness: -2 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT 400 on skirtLengthIn of 0", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", skirtLengthIn: 0 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
+test("PUT 400 on negative skirtLengthIn", async () => {
+  const res = await PUT(
+    put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", skirtLengthIn: -5 }),
+    ctx("p1"),
+  );
+  expect(res.status).toBe(400);
+  expect(upsertPieceSource).not.toHaveBeenCalled();
+});
+
 test("PUT blocks assigning a maker beyond the cap with 402 needs_seat", async () => {
   canAssignMakerToProduction.mockResolvedValue({ allowed: false, reason: "needs_seat" });
   const res = await PUT(
