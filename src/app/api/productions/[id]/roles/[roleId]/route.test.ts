@@ -20,12 +20,24 @@ vi.mock("@/lib/data/roles", () => ({
   updateRole: (...a: unknown[]) => updateRole(...a),
 }));
 
+const listRoleImagePaths = vi.fn();
+vi.mock("@/lib/data/storage-paths", () => ({
+  listRoleImagePaths: (...a: unknown[]) => listRoleImagePaths(...a),
+}));
+
+const removeImages = vi.fn();
+vi.mock("@/lib/storage", () => ({
+  removeImages: (...a: unknown[]) => removeImages(...a),
+}));
+
 import { DELETE, PATCH } from "@/app/api/productions/[id]/roles/[roleId]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole, listRoleImagePaths, removeImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  listRoleImagePaths.mockResolvedValue([]);
+  removeImages.mockResolvedValue(undefined);
 });
 
 const ctx = (id: string, roleId: string) => ({ params: Promise.resolve({ id, roleId }) });
@@ -40,6 +52,8 @@ test("DELETE removes a role (200)", async () => {
   deleteRole.mockResolvedValue(undefined);
   const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
   expect(res.status).toBe(200);
+  expect(listRoleImagePaths).toHaveBeenCalledWith("r1");
+  expect(removeImages).toHaveBeenCalled();
   expect(deleteRole).toHaveBeenCalledWith("p1", "r1");
 });
 

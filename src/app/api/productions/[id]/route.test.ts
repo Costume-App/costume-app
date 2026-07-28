@@ -24,12 +24,24 @@ vi.mock("@/lib/data/productions", () => ({
   setCostumesDue: (...a: unknown[]) => setCostumesDue(...a),
 }));
 
+const listProductionImagePaths = vi.fn();
+vi.mock("@/lib/data/storage-paths", () => ({
+  listProductionImagePaths: (...a: unknown[]) => listProductionImagePaths(...a),
+}));
+
+const removeImages = vi.fn();
+vi.mock("@/lib/storage", () => ({
+  removeImages: (...a: unknown[]) => removeImages(...a),
+}));
+
 import { DELETE, PATCH } from "@/app/api/productions/[id]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction, setProductionActive, setProductionNotes, setCostumesDue].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, deleteProduction, updateProduction, setProductionActive, setProductionNotes, setCostumesDue, listProductionImagePaths, removeImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  listProductionImagePaths.mockResolvedValue([]);
+  removeImages.mockResolvedValue(undefined);
 });
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -41,6 +53,8 @@ test("DELETE removes the production, scoped to the caller's org (200)", async ()
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ ok: true });
   expect(assertProductionInOrg).toHaveBeenCalledWith("org_1", "p1");
+  expect(listProductionImagePaths).toHaveBeenCalledWith("p1");
+  expect(removeImages).toHaveBeenCalled();
   expect(deleteProduction).toHaveBeenCalledWith("org_1", "p1");
 });
 
