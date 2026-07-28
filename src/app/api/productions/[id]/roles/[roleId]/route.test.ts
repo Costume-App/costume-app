@@ -7,8 +7,10 @@ vi.mock("@/lib/auth-context", async () => {
 });
 
 const assertProductionInOrg = vi.fn();
+const assertRoleInProduction = vi.fn();
 vi.mock("@/lib/data/production-access", () => ({
   assertProductionInOrg: (...a: unknown[]) => assertProductionInOrg(...a),
+  assertRoleInProduction: (...a: unknown[]) => assertRoleInProduction(...a),
 }));
 
 const deleteRole = vi.fn();
@@ -20,12 +22,25 @@ vi.mock("@/lib/data/roles", () => ({
   updateRole: (...a: unknown[]) => updateRole(...a),
 }));
 
+const listRoleImagePaths = vi.fn();
+vi.mock("@/lib/data/storage-paths", () => ({
+  listRoleImagePaths: (...a: unknown[]) => listRoleImagePaths(...a),
+}));
+
+const removeImages = vi.fn();
+vi.mock("@/lib/storage", () => ({
+  removeImages: (...a: unknown[]) => removeImages(...a),
+}));
+
 import { DELETE, PATCH } from "@/app/api/productions/[id]/roles/[roleId]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, assertRoleInProduction, deleteRole, setRoleNotes, updateRole, listRoleImagePaths, removeImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertRoleInProduction.mockResolvedValue(undefined);
+  listRoleImagePaths.mockResolvedValue(["p1/r1/a.jpg"]);
+  removeImages.mockResolvedValue(undefined);
 });
 
 const ctx = (id: string, roleId: string) => ({ params: Promise.resolve({ id, roleId }) });
@@ -40,7 +55,26 @@ test("DELETE removes a role (200)", async () => {
   deleteRole.mockResolvedValue(undefined);
   const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
   expect(res.status).toBe(200);
+  expect(assertRoleInProduction).toHaveBeenCalledWith("p1", "r1");
+  expect(listRoleImagePaths).toHaveBeenCalledWith("r1");
+  expect(removeImages).toHaveBeenCalledWith(["p1/r1/a.jpg"]);
   expect(deleteRole).toHaveBeenCalledWith("p1", "r1");
+});
+
+test("DELETE removes storage objects before deleting the role row", async () => {
+  deleteRole.mockResolvedValue(undefined);
+  await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
+  expect(removeImages.mock.invocationCallOrder[0]).toBeLessThan(deleteRole.mock.invocationCallOrder[0]);
+});
+
+test("DELETE 404 when the role is not in that production (cross-production/cross-org) — storage untouched", async () => {
+  const { NotFoundError } = await import("@/lib/errors");
+  assertRoleInProduction.mockRejectedValue(new NotFoundError("Role not found in this production"));
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
+  expect(res.status).toBe(404);
+  expect(listRoleImagePaths).not.toHaveBeenCalled();
+  expect(removeImages).not.toHaveBeenCalled();
+  expect(deleteRole).not.toHaveBeenCalled();
 });
 
 test("PATCH with a name renames the role via updateRole (200)", async () => {
