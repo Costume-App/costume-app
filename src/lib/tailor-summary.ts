@@ -1,5 +1,6 @@
 import { pieceKey } from "@/lib/costume-merge";
 import { defaultSourceFor, type CostumeSource } from "@/lib/costume-sources";
+import { isSkirtConstruction, type SkirtConstruction } from "@/lib/fabric/skirt-yardage";
 
 export interface PieceRow {
   costume_design_id: string;
@@ -11,6 +12,8 @@ export interface PieceRow {
   fabric_supplier: string | null;
   fabric_yardage: number | null;
   fabric_unit_cost: number | null;
+  skirt_construction: string | null;
+  skirt_fullness: number | null;
   purchase_price: number | null;
   made: boolean;
   maker_id: string | null;
@@ -24,6 +27,8 @@ export interface Fabric {
   supplier: string | null;
   yardage: number | null;
   unitCost: number | null;
+  skirtConstruction: SkirtConstruction | null;
+  skirtFullness: number | null;
 }
 
 export interface MakeItem {
@@ -152,6 +157,7 @@ export function buildMeasurementsByCasting(
 
 const EMPTY_FABRIC: Fabric = {
   type: null, color: null, width: null, supplier: null, yardage: null, unitCost: null,
+  skirtConstruction: null, skirtFullness: null,
 };
 
 function fabricFromRow(row: PieceRow | undefined): Fabric {
@@ -163,6 +169,8 @@ function fabricFromRow(row: PieceRow | undefined): Fabric {
     supplier: row.fabric_supplier,
     yardage: row.fabric_yardage,
     unitCost: row.fabric_unit_cost,
+    skirtConstruction: isSkirtConstruction(row.skirt_construction) ? row.skirt_construction : null,
+    skirtFullness: row.skirt_fullness,
   };
 }
 

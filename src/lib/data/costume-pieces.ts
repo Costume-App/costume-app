@@ -16,6 +16,8 @@ export interface CostumePiece {
   fabric_supplier: string | null;
   fabric_yardage: number | null;
   fabric_unit_cost: number | null;
+  skirt_construction: string | null;
+  skirt_fullness: number | null;
   purchase_price: number | null;
   made: boolean;
   made_at: string | null;
@@ -75,6 +77,8 @@ export async function upsertPieceSource(input: {
   fabricSupplier?: string | null;
   fabricYardage?: number | null;
   fabricUnitCost?: number | null;
+  skirtConstruction?: string | null;
+  skirtFullness?: number | null;
   purchasePrice?: number | null;
   made?: boolean;
   makerId?: string | null;
@@ -90,6 +94,8 @@ export async function upsertPieceSource(input: {
   const fabricSupplier = clean(input.fabricSupplier);
   const fabricYardage = num(input.fabricYardage);
   const fabricUnitCost = num(input.fabricUnitCost);
+  const skirtConstruction = clean(input.skirtConstruction);
+  const skirtFullness = num(input.skirtFullness);
   const purchasePrice = num(input.purchasePrice);
   const made = input.made ?? false;
   const makerId = input.makerId !== undefined ? input.makerId : null;
@@ -106,6 +112,7 @@ export async function upsertPieceSource(input: {
       fabricUnitCost,
       made,
       makerId,
+      skirtConstruction,
     })
   ) {
     const { error } = await supabaseAdmin
@@ -141,6 +148,8 @@ export async function upsertPieceSource(input: {
         fabric_supplier: fabricSupplier,
         fabric_yardage: fabricYardage,
         fabric_unit_cost: fabricUnitCost,
+        skirt_construction: skirtConstruction,
+        skirt_fullness: skirtFullness,
         purchase_price: purchasePrice,
         made,
         maker_id: makerId,

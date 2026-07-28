@@ -7,6 +7,7 @@ import { listCostumePieces, upsertPieceSource } from "@/lib/data/costume-pieces"
 import { isCostumeSource } from "@/lib/costume-sources";
 import { ValidationError, PlanLimitError } from "@/lib/errors";
 import { canAssignMakerToProduction } from "@/lib/data/billing";
+import { isSkirtConstruction } from "@/lib/fabric/skirt-yardage";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -40,6 +41,8 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricSupplier?: string | null;
       fabricYardage?: number | null;
       fabricUnitCost?: number | null;
+      skirtConstruction?: string | null;
+      skirtFullness?: number | null;
       purchasePrice?: number | null;
       made?: boolean;
       makerId?: string | null;
@@ -59,6 +62,16 @@ export async function PUT(request: Request, { params }: Ctx) {
     checkNum(body.fabricYardage, "Yardage");
     checkNum(body.fabricUnitCost, "Unit cost");
     checkNum(body.purchasePrice, "Purchase price");
+    // Reject an unknown construction rather than letting the DB check constraint
+    // surface as a 500.
+    if (
+      body.skirtConstruction != null &&
+      body.skirtConstruction !== "" &&
+      !isSkirtConstruction(body.skirtConstruction)
+    ) {
+      throw new ValidationError("Unknown skirt construction");
+    }
+    checkNum(body.skirtFullness, "Fullness");
     if (body.made !== undefined && typeof body.made !== "boolean") {
       throw new ValidationError("made must be a boolean");
     }
@@ -91,6 +104,8 @@ export async function PUT(request: Request, { params }: Ctx) {
       fabricSupplier: body.fabricSupplier ?? null,
       fabricYardage: body.fabricYardage ?? null,
       fabricUnitCost: body.fabricUnitCost ?? null,
+      skirtConstruction: body.skirtConstruction || null,
+      skirtFullness: body.skirtFullness ?? null,
       purchasePrice: body.purchasePrice ?? null,
       made: body.made ?? false,
       makerId: body.makerId ?? null,

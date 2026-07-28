@@ -32,6 +32,7 @@ const emptyInput = {
   fabricUnitCost: null,
   made: false,
   makerId: null,
+  skirtConstruction: null,
 };
 
 test("pieceRowIsEmpty: bare make row with nothing set is empty", () => {
@@ -70,6 +71,7 @@ test("pieceRowIsEmpty: a make row with a maker assigned is NOT empty", () => {
       fabricUnitCost: null,
       made: false,
       makerId: "m1",
+      skirtConstruction: null,
     }),
   ).toBe(false);
 });
@@ -87,6 +89,43 @@ test("pieceRowIsEmpty: a bare make row with no maker is still empty", () => {
       fabricUnitCost: null,
       made: false,
       makerId: null,
+      skirtConstruction: null,
+    }),
+  ).toBe(true);
+});
+
+test("a piece with only a skirt construction is not empty", () => {
+  expect(
+    pieceRowIsEmpty({
+      source: "make",
+      sourceNote: null,
+      fabricType: null,
+      fabricColor: null,
+      fabricWidth: null,
+      fabricSupplier: null,
+      fabricYardage: null,
+      fabricUnitCost: null,
+      made: false,
+      makerId: null,
+      skirtConstruction: "full_circle",
+    }),
+  ).toBe(false);
+});
+
+test("a piece with no construction and nothing else is still empty", () => {
+  expect(
+    pieceRowIsEmpty({
+      source: "make",
+      sourceNote: null,
+      fabricType: null,
+      fabricColor: null,
+      fabricWidth: null,
+      fabricSupplier: null,
+      fabricYardage: null,
+      fabricUnitCost: null,
+      made: false,
+      makerId: null,
+      skirtConstruction: null,
     }),
   ).toBe(true);
 });

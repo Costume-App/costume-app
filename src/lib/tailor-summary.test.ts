@@ -64,6 +64,8 @@ function row(overrides: Partial<PieceRow> & Pick<PieceRow, "costume_design_id" |
     fabric_supplier: null,
     fabric_yardage: null,
     fabric_unit_cost: null,
+    skirt_construction: null,
+    skirt_fullness: null,
     purchase_price: null,
     made: false,
     maker_id: null,
@@ -139,7 +141,8 @@ test("buildMakeWorklist surfaces added_inventory_item_id as item.addedInventoryI
   const pieces = [{
     costume_design_id: "d1", casting_id: "c1", source: "make" as const,
     fabric_type: null, fabric_color: null, fabric_width: null, fabric_supplier: null,
-    fabric_yardage: null, fabric_unit_cost: null, purchase_price: null, made: false, maker_id: null,
+    fabric_yardage: null, fabric_unit_cost: null, skirt_construction: null, skirt_fullness: null,
+    purchase_price: null, made: false, maker_id: null,
     added_inventory_item_id: "item1",
   }];
   const wl = buildMakeWorklist(roles, designs, castings, performers, casts, pieces);
@@ -197,7 +200,7 @@ test("buildFabricPurchaseList falls back to the supplier's price when a piece ha
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
     assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
-    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: null },
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: null, skirtConstruction: null, skirtFullness: null },
   };
   const list = buildFabricPurchaseList([item], { Mood: 4 });
   expect(list.totalCost).toBe(8); // 2 yd * $4 (from the supplier map)
@@ -208,7 +211,7 @@ test("buildFabricPurchaseList treats unknown/absent supplier price as 0", async 
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
     assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
-    fabric: { type: "Wool", color: "Black", width: null, supplier: "Unknown", yardage: 2, unitCost: null },
+    fabric: { type: "Wool", color: "Black", width: null, supplier: "Unknown", yardage: 2, unitCost: null, skirtConstruction: null, skirtFullness: null },
   };
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(0);
   expect(buildFabricPurchaseList([item]).totalCost).toBe(0); // no map → today's behavior
@@ -219,7 +222,7 @@ test("buildFabricPurchaseList still prefers a typed unit cost over the supplier 
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
     assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
-    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10, skirtConstruction: null, skirtFullness: null },
   };
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(20); // typed $10 wins
 });
@@ -229,7 +232,7 @@ test("buildFabricPurchaseList: a typed unitCost of 0 wins over the supplier pric
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
     assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
-    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 0 },
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 0, skirtConstruction: null, skirtFullness: null },
   };
   expect(buildFabricPurchaseList([item], { Mood: 4 }).totalCost).toBe(0); // ?? keeps a real 0, never falls to $4
 });
@@ -280,7 +283,7 @@ test("buildFabricPurchaseList sets supplierUrl from the name→url map (case-ins
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
     assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
-    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10, skirtConstruction: null, skirtFullness: null },
   };
   const pl = buildFabricPurchaseList([item], {}, { mood: "https://moodfabrics.com" });
   expect(pl.groups[0].lines[0].supplierUrl).toBe("https://moodfabrics.com");
@@ -291,7 +294,7 @@ test("buildFabricPurchaseList sets supplierUrl null when the supplier has no url
   const item = {
     designId: "d1", castingId: "c1", performerId: "pf1", performerName: "Ana", castName: "A",
     assignment: "primary" as const, made: false, makerId: null, addedInventoryItemId: null,
-    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10 },
+    fabric: { type: "Wool", color: "Black", width: '60"', supplier: "Mood", yardage: 2, unitCost: 10, skirtConstruction: null, skirtFullness: null },
   };
   expect(buildFabricPurchaseList([item], {}, {}).groups[0].lines[0].supplierUrl).toBeNull();
   expect(buildFabricPurchaseList([item]).groups[0].lines[0].supplierUrl).toBeNull(); // no map arg

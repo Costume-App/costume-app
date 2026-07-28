@@ -52,6 +52,8 @@ const piece = (over: Partial<PieceRow> = {}): PieceRow => ({
   fabric_supplier: null,
   fabric_yardage: null,
   fabric_unit_cost: null,
+  skirt_construction: null,
+  skirt_fullness: null,
   purchase_price: null,
   made: false,
   maker_id: null,
