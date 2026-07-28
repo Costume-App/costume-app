@@ -13,10 +13,19 @@ import { expect, test } from "vitest";
 // below was required by the 2026-07-27 compliance review — removing one is a
 // policy change, not a wording tweak. See
 // docs/superpowers/specs/2026-07-27-compliance-legal-revisions-design.md
+//
+// Two known false-positive paths, both acceptable because they fail loudly
+// rather than silently:
+// - This normalizes the *whole* file, including `import` statements, so a
+//   future `@clerk/nextjs` (or similar) import added to one of these pages
+//   would trip the vendor-name assertions below for a name no user ever sees.
+// - The `/HTTPS/i` assertion in "privacy policy makes no specific security
+//   claims" would trip on any absolute `https://` URL added anywhere on the
+//   page, not just a claim about transport security.
 function copyOf(relPath: string): string {
   const src = readFileSync(path.join(process.cwd(), relPath), "utf8");
-  // Hoist title props first — tag stripping would otherwise eat them.
-  const titles = [...src.matchAll(/title="([^"]*)"/g)].map((m) => m[1]).join(" ");
+  // Hoist title and updated-date props first — tag stripping would otherwise eat them.
+  const titles = [...src.matchAll(/(?:title|updated)="([^"]*)"/g)].map((m) => m[1]).join(" ");
   const prose = src
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, " ")
     .replace(/^\s*\/\/.*$/gm, " ")
@@ -88,4 +97,30 @@ test("terms keep parent or guardian consent explicit for performers", () => {
 test("both pages promise the same deletion window", () => {
   expect(TERMS).toContain("within 30 days");
   expect(PRIVACY).toContain("within 30 days");
+});
+
+test("both pages show the same last-updated date", () => {
+  expect(PRIVACY).toContain("July 27, 2026");
+  expect(TERMS).toContain("July 27, 2026");
+});
+
+test("privacy page nav anchors all resolve to a real section", () => {
+  // Raw source, not the normalized prose above — anchor and id attributes are
+  // stripped out of `copyOf`'s output, so this needs the actual JSX.
+  const raw = readFileSync(path.join(process.cwd(), "src/app/privacy/page.tsx"), "utf8");
+  const hrefs = [...raw.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+  const ids = [...raw.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+
+  expect(hrefs).toHaveLength(9);
+  for (const href of hrefs) {
+    expect(ids, `nav links to #${href}, but no section has that id`).toContain(href);
+  }
+  expect(hrefs).not.toContain("providers");
+  expect(hrefs).not.toContain("security");
+});
+
+test("Clerk provider is wired to CLERK_LOCALIZATION", () => {
+  const layout = readFileSync(path.join(process.cwd(), "src/app/layout.tsx"), "utf8");
+  expect(layout).toContain('import { CLERK_LOCALIZATION } from "@/lib/clerk-localization"');
+  expect(layout).toContain("localization={CLERK_LOCALIZATION}");
 });

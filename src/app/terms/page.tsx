@@ -23,7 +23,7 @@ export default function TermsPage() {
         <P>
           You must be old enough to enter into a binding contract where you live. If you create an
           account on behalf of an organization, you confirm that you have authority to bind that
-          organization to these terms. You confirm both when you create your account.
+          organization to these terms. By creating an account you confirm both.
         </P>
       </Section>
 

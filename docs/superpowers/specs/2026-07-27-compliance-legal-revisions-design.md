@@ -362,10 +362,23 @@ does not, the sign-up edit went too far.
 
 Neither is a code task; both must be done before this reaches production users.
 
-1. **Create `billing@` and `privacy@`** on `measuremycostume.com`. The policies
+1. **Create `billing@`, `privacy@`, and `support@`** on `measuremycostume.com`,
+   alongside the existing `hello@` — four addresses in total. The policies
    promise a 30-day response at `privacy@` — an address that bounces is a
-   self-inflicted policy violation.
+   self-inflicted policy violation. `support@` is not merely a contact-page
+   nicety: the in-app feedback form (`src/app/api/feedback/route.ts`) already
+   sends its notification there, and a send failure is swallowed silently (the
+   feedback itself is still saved, but nobody is told a submission arrived) —
+   so a missing mailbox loses feedback with no error surfaced anywhere. Also
+   verify `feedback@measuremycostume.com` as a Resend sending domain address
+   (`src/lib/email.ts`), since that is the `from` address those notifications
+   are sent from.
 2. **Enable Clerk legal consent** in the development and production instances.
+   When verifying, don't stop at "a checkbox appears" — confirm the rendered
+   label text matches `CLERK_LOCALIZATION`. A partial Dashboard configuration
+   (only a Terms URL, or only a Privacy URL, set) renders one of Clerk's own
+   stock labels instead, which would silently drop the affirmation while still
+   looking like a working checkbox.
 
 ## Risks and open items
 

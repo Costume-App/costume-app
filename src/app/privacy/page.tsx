@@ -43,6 +43,10 @@ export default function PrivacyPage() {
             <B>Technical basics</B> — sign-in session cookies and standard server logs that keep
             the service working.
           </LI>
+          <LI>
+            <B>What you send us</B> — anything you submit through the in-app feedback form or by
+            email.
+          </LI>
         </UL>
       </Section>
 
@@ -108,6 +112,11 @@ export default function PrivacyPage() {
       <Section id="rights" title="Your rights">
         <P>You can view and update most information directly in the app.</P>
         <P>
+          Where a request concerns content your organization entered, your organization decides
+          how it is handled — send the request to your organization first, and we will assist it
+          in responding.
+        </P>
+        <P>
           If you are a California resident, the California Consumer Privacy Act (CCPA) gives you
           the right to know what personal information we collect and how it is used, to request a
           copy of it, to request its deletion, and not to be treated differently for exercising
@@ -118,8 +127,7 @@ export default function PrivacyPage() {
           Protection Regulation (GDPR) gives you the right to access, correct, export, restrict,
           or delete your personal information, and to object to certain processing. For the
           content your team enters, your organization is the data controller and we act as its
-          processor — direct those requests to your organization first, and we will assist it in
-          responding.
+          processor.
         </P>
         <P>
           To exercise any of these rights, email{" "}
