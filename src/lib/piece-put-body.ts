@@ -2,7 +2,9 @@
 // RoleCostumePanel wherever an action changes only *one* attribute of a piece
 // (source, maker, made, purchase price) and must not disturb anything else
 // already recorded for it — most importantly the skirt construction/fullness/
-// length set on the Tailor's Summary page, which lives in the same row.
+// length set on the Tailor's Summary page, and the calculated_yardage tracked
+// alongside them (what the skirt calculator itself last produced, distinct
+// from a hand-typed override), all of which live in the same row.
 //
 // This exists as a standalone, pure module (rather than inline object literals
 // in the component) so the "preserve everything recorded" contract is directly

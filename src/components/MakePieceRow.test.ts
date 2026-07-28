@@ -3,6 +3,7 @@ import {
   resolveLengthOverride,
   shouldOfferYardageUpdate,
   deriveCalculatedYardage,
+  seedCalculatorYardage,
 } from "@/components/MakePieceRow";
 import { estimateSkirtYardage } from "@/lib/fabric/skirt-yardage";
 
@@ -111,6 +112,21 @@ describe("deriveCalculatedYardage", () => {
   // must leave it null, not manufacture a calculated value out of nothing.
   test("a manual edit on a never-calculated piece stays never-calculated", () => {
     expect(deriveCalculatedYardage(undefined, null)).toBeNull();
+  });
+});
+
+describe("seedCalculatorYardage", () => {
+  // The fix, isolated: the seed must come from `calculatedYardage`, not
+  // `yardage` — the two fields differ here on purpose, so reading the wrong
+  // one fails this assertion (not just a type check).
+  test("seeds from calculatedYardage, not yardage, when they differ", () => {
+    expect(seedCalculatorYardage({ yardage: 5.5, calculatedYardage: 4.75 })).toBe(4.75);
+  });
+
+  // A hand-typed or AI-written yardage has no calculated_yardage — the seed
+  // must stay null, not fall back to the displayed yardage.
+  test("a piece with no calculated_yardage seeds null, even though yardage is set", () => {
+    expect(seedCalculatorYardage({ yardage: 5.5, calculatedYardage: null })).toBeNull();
   });
 });
 

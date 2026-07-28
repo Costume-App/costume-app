@@ -82,7 +82,14 @@ export async function upsertPieceSource(input: {
   skirtConstruction?: string | null;
   skirtFullness?: number | null;
   skirtLengthIn?: number | null;
-  calculatedYardage?: number | null;
+  // Required, unlike its siblings above: `num()` silently turns an absent
+  // field into null, and the upsert below writes this column unconditionally
+  // on every call — so an optional field here would let a future caller
+  // compile clean while nulling `calculated_yardage` for every row it
+  // touches, which is the exact bug class this branch exists to prevent.
+  // Both current callers (the PUT route and the AI-estimate route) already
+  // pass it explicitly.
+  calculatedYardage: number | null;
   purchasePrice?: number | null;
   made?: boolean;
   makerId?: string | null;

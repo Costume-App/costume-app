@@ -60,13 +60,13 @@ test("listCostumePieces returns [] for no designs without querying", async () =>
 
 test("make with no note deletes the row", async () => {
   delResolve.mockResolvedValue({ error: null });
-  expect(await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make" })).toBeNull();
+  expect(await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", calculatedYardage: null })).toBeNull();
   expect(del).toHaveBeenCalled();
 });
 
 test("on_hand upserts a row", async () => {
   upsertSingle.mockResolvedValue({ data: { id: "p1", source: "on_hand" }, error: null });
-  const row = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "on_hand", sourceNote: "closet" });
+  const row = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "on_hand", sourceNote: "closet", calculatedYardage: null });
   expect(row).toEqual({ id: "p1", source: "on_hand" });
   expect(upsert).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -84,16 +84,16 @@ test("on_hand upserts a row", async () => {
 });
 
 test("shared requires a target and rejects self", async () => {
-  await expect(upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared" }))
+  await expect(upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", calculatedYardage: null }))
     .rejects.toBeInstanceOf(ValidationError);
-  await expect(upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c1" }))
+  await expect(upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c1", calculatedYardage: null }))
     .rejects.toBeInstanceOf(ValidationError);
 });
 
 test("shared links to an existing make target", async () => {
   lookupMaybe.mockResolvedValue({ data: { id: "pT", source: "make" }, error: null });
   upsertSingle.mockResolvedValue({ data: { id: "p1", source: "shared" }, error: null });
-  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c2" });
+  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c2", calculatedYardage: null });
   expect(upsert).toHaveBeenCalledWith(
     expect.objectContaining({ source: "shared", shared_with_piece_id: "pT" }),
     { onConflict: "costume_design_id,casting_id" },
@@ -102,7 +102,7 @@ test("shared links to an existing make target", async () => {
 
 test("shared rejects a target that is itself shared (no chains)", async () => {
   lookupMaybe.mockResolvedValue({ data: { id: "pT", source: "shared" }, error: null });
-  await expect(upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c2" }))
+  await expect(upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c2", calculatedYardage: null }))
     .rejects.toBeInstanceOf(ValidationError);
 });
 
@@ -110,14 +110,14 @@ test("shared creates the target row as make when missing", async () => {
   lookupMaybe.mockResolvedValue({ data: null, error: null });
   insertIdSingle.mockResolvedValue({ data: { id: "pNew" }, error: null });
   upsertSingle.mockResolvedValue({ data: { id: "p1", source: "shared" }, error: null });
-  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c2" });
+  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "shared", sharedWithCastingId: "c2", calculatedYardage: null });
   expect(insert).toHaveBeenCalledWith({ costume_design_id: "d1", casting_id: "c2", source: "make" });
   expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ shared_with_piece_id: "pNew" }), expect.anything());
 });
 
 test("upsertPieceSource threads makerId → maker_id in the upserted row", async () => {
   upsertSingle.mockResolvedValue({ data: { id: "p1", source: "make", maker_id: "m1" }, error: null });
-  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", sourceNote: "custom", makerId: "m1" });
+  await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", sourceNote: "custom", makerId: "m1", calculatedYardage: null });
   expect(upsert).toHaveBeenCalledWith(
     expect.objectContaining({ maker_id: "m1" }),
     { onConflict: "costume_design_id,casting_id" },
@@ -126,7 +126,7 @@ test("upsertPieceSource threads makerId → maker_id in the upserted row", async
 
 test("make row with makerId assigned is NOT deleted", async () => {
   upsertSingle.mockResolvedValue({ data: { id: "p1", source: "make", maker_id: "m1" }, error: null });
-  const result = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", makerId: "m1" });
+  const result = await upsertPieceSource({ designId: "d1", castingId: "c1", source: "make", makerId: "m1", calculatedYardage: null });
   expect(del).not.toHaveBeenCalled();
   expect(result).toEqual({ id: "p1", source: "make", maker_id: "m1" });
 });

@@ -8,7 +8,7 @@ import { MakeAssignment } from "@/components/MakeAssignment";
 import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { PhotoStrip } from "@/components/PhotoStrip";
-import type { MakeItem, PieceRow, MeasurementView } from "@/lib/tailor-summary";
+import type { MakeItem, PieceRow, MeasurementView, Fabric } from "@/lib/tailor-summary";
 import {
   estimateSkirtYardage,
   parseWidthInches,
@@ -107,15 +107,13 @@ export function MakePieceRow({
   // hand-typed or AI-written value (which never sets this column) is never
   // mistaken for a stale calculator output after a reload.
   //
-  // NOT directly unit-tested: this line seeds from `item.fabric.calculatedYardage`
-  // rather than `item.fabric.yardage`, and both are typed `number | null`, so a
-  // regression here (e.g. reverting to the wrong field) would still typecheck
-  // and wouldn't be caught by a pure-function test — rendering this component
-  // to assert on it would need a DOM test environment, which this suite
-  // intentionally doesn't carry. Verify by reading this line against
-  // `item.fabric.calculatedYardage`'s definition in `@/lib/tailor-summary`.
+  // Seeded via `seedCalculatorYardage`, pulled out for the same reason
+  // `deriveCalculatedYardage` below was: `item.fabric.yardage` and
+  // `item.fabric.calculatedYardage` are both typed `number | null`, so a
+  // field swap here would typecheck clean and stay green — the extracted
+  // function is what puts that swap under direct test.
   const [calculatorYardage, setCalculatorYardage] = useState<number | null>(
-    item.fabric.calculatedYardage ?? null,
+    seedCalculatorYardage(item.fabric),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -620,6 +618,22 @@ export function deriveCalculatedYardage(
   trackedCalculatorYardage: number | null,
 ): number | null {
   return optsYardage !== undefined ? Number(optsYardage) : trackedCalculatorYardage;
+}
+
+// What seeds `calculatorYardage` on mount/reload — extracted from the inline
+// `item.fabric.calculatedYardage ?? null` for the same reason as
+// `deriveCalculatedYardage` above: `yardage` and `calculatedYardage` are both
+// typed `number | null`, so a field swap here (reading `yardage` instead of
+// `calculatedYardage`) would typecheck clean and pass every existing test —
+// which is exactly the failure this branch exists to prevent, since it would
+// make every hand-typed override look calculator-derived again. `yardage` is
+// included in the parameter type on purpose, even though it's unused: it's
+// what makes a field swap fail this function's own assertion instead of only
+// failing to compile.
+export function seedCalculatorYardage(
+  fabric: Pick<Fabric, "yardage" | "calculatedYardage">,
+): number | null {
+  return fabric.calculatedYardage ?? null;
 }
 
 // "waist", "waist and outseam", "waist, outseam, and fabric width" — a comma

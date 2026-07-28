@@ -44,12 +44,19 @@ function PriceRow({
           made: item.purchased,
           purchasePrice: next,
           // A "purchase" piece isn't necessarily construction-free: it can carry
-          // a skirt construction left over from before it was switched from
-          // "make" (RoleCostumePanel now preserves those fields on that switch).
+          // a skirt construction (and the calculated_yardage tracked alongside
+          // it) left over from before it was switched from "make"
+          // (RoleCostumePanel now preserves those fields on that switch).
           // Omitting them here would null them on this save, which would only
-          // surface later if the piece is switched back to "make" — but the
-          // PUT contract is "preserve everything already recorded" everywhere
-          // else, so this save shouldn't be the one exception.
+          // surface later if the piece is switched back to "make" — so this
+          // save preserves the four skirt/yardage fields the same way the PUT
+          // bodies elsewhere do. It does NOT preserve fabricYardage,
+          // fabricType, fabricColor, fabricWidth, fabricSupplier,
+          // fabricUnitCost, or makerId — `PurchasedItem` carries none of those,
+          // so this save nulls them same as it always has. That's pre-existing
+          // and fails safe (a purchased piece has no maker or fabric-shopping
+          // fields to lose), not a gap introduced here; widening `PurchasedItem`
+          // to carry them is out of scope.
           skirtConstruction: item.skirtConstruction,
           skirtFullness: item.skirtFullness,
           skirtLengthIn: item.skirtLengthIn,
