@@ -199,20 +199,27 @@ export function MakePieceRow({
     }
   }
 
-  // Applies a freshly computed yardage to both the visible field and the
-  // tracked "last calculator output" (see `calculatorYardage`) — one place so
-  // a recompute path can't update the field and forget to keep the tracker in
-  // sync with it.
+  // Applies a freshly computed yardage. The tracker always takes the new value —
+  // it records what the calculator produced, regardless of what is displayed.
+  // The visible field is only replaced when it is NOT a manual override: a
+  // number the user typed is theirs, and a recompute offers rather than imposes
+  // (see `shouldOfferCalculatorValue` and the prompt it drives).
   function applyComputedYardage(nextYardage: string | undefined) {
     if (nextYardage == null) return;
-    setYardage(nextYardage);
+    if (!isManualOverride(yardage, calculatorYardage)) setYardage(nextYardage);
     setCalculatorYardage(Number(nextYardage));
   }
 
   function applyConstruction(nextConstruction: string, nextFullness: string) {
     const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn, effectiveLengthIn);
+    const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
-    void save({ construction: nextConstruction, fullness: nextFullness, yardage: nextYardage });
+    void save({
+      construction: nextConstruction,
+      fullness: nextFullness,
+      yardage: override ? undefined : nextYardage,
+      calculatedYardage: nextYardage,
+    });
   }
 
   // Width can change the estimate too (it's part of the same geometry), so it
@@ -225,8 +232,13 @@ export function MakePieceRow({
       return;
     }
     const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth), effectiveLengthIn);
+    const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
-    void save({ width: nextWidth, yardage: nextYardage });
+    void save({
+      width: nextWidth,
+      yardage: override ? undefined : nextYardage,
+      calculatedYardage: nextYardage,
+    });
   }
 
   // Length has the identical not-yet-flushed-state hazard as width: compute
@@ -239,8 +251,13 @@ export function MakePieceRow({
     }
     const nextEffectiveLength = resolveLengthOverride(nextLength, outseamIn) ?? outseamIn;
     const nextYardage = computeYardage(construction, fullness, widthIn, nextEffectiveLength);
+    const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
-    void save({ length: nextLength, yardage: nextYardage });
+    void save({
+      length: nextLength,
+      yardage: override ? undefined : nextYardage,
+      calculatedYardage: nextYardage,
+    });
   }
 
   function save(opts?: {
@@ -253,6 +270,7 @@ export function MakePieceRow({
     construction?: string;
     fullness?: string;
     yardage?: string;
+    calculatedYardage?: string;
   }) {
     const uc = opts?.unitCost ?? unitCost;
     const yd = opts?.yardage ?? yardage;
@@ -272,7 +290,14 @@ export function MakePieceRow({
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
       skirtLengthIn: con ? resolveLengthOverride(len, outseamIn) : null,
-      calculatedYardage: deriveCalculatedYardage(opts?.yardage, calculatorYardage),
+      // On a recompute that left an override in place, `yardage` is omitted so
+      // fabric_yardage keeps the user's number, while `calculatedYardage` still
+      // carries the figure the calculator just produced. Reading opts rather
+      // than state matters: setCalculatorYardage has not flushed yet.
+      calculatedYardage: deriveCalculatedYardage(
+        opts?.calculatedYardage ?? opts?.yardage,
+        calculatorYardage,
+      ),
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -444,7 +469,7 @@ export function MakePieceRow({
               placeholder="Estimated # of yards"
               hint={
                 estimate
-                  ? "Calculated from the measurements — type over it to override."
+                  ? "Calculated from the measurements — type over it to override, or clear it to hand it back."
                   : construction
                     ? "Enter yardage manually until the measurements below are filled in."
                     : "Leave blank to have the system estimate yardage."
@@ -489,6 +514,20 @@ export function MakePieceRow({
                         }}
                       >
                         Measurements changed — update to {estimate.yards} yd
+                      </button>
+                    )}
+                    {shouldOfferCalculatorValue(yardage, estimate.yards, calculatorYardage) && (
+                      <button
+                        type="button"
+                        className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
+                        onClick={() => {
+                          const next = String(estimate.yards);
+                          setYardage(next);
+                          setCalculatorYardage(estimate.yards);
+                          void save({ yardage: next, calculatedYardage: next });
+                        }}
+                      >
+                        Calculator says {estimate.yards} yd — use it
                       </button>
                     )}
                   </>
