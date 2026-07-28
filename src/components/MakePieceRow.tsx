@@ -106,6 +106,14 @@ export function MakePieceRow({
   // Persisted as `calculated_yardage`, not merely tracked in memory — so a
   // hand-typed or AI-written value (which never sets this column) is never
   // mistaken for a stale calculator output after a reload.
+  //
+  // NOT directly unit-tested: this line seeds from `item.fabric.calculatedYardage`
+  // rather than `item.fabric.yardage`, and both are typed `number | null`, so a
+  // regression here (e.g. reverting to the wrong field) would still typecheck
+  // and wouldn't be caught by a pure-function test — rendering this component
+  // to assert on it would need a DOM test environment, which this suite
+  // intentionally doesn't carry. Verify by reading this line against
+  // `item.fabric.calculatedYardage`'s definition in `@/lib/tailor-summary`.
   const [calculatorYardage, setCalculatorYardage] = useState<number | null>(
     item.fabric.calculatedYardage ?? null,
   );
@@ -266,11 +274,7 @@ export function MakePieceRow({
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
       skirtLengthIn: con ? resolveLengthOverride(len, outseamIn) : null,
-      // When a recompute supplied a yardage, that value IS the calculator's
-      // output. Otherwise — a manual edit, a maker change, a made toggle —
-      // carry the tracked value through unchanged, which is what makes an
-      // override diverge and permanently silence the prompt for this piece.
-      calculatedYardage: opts?.yardage !== undefined ? Number(opts.yardage) : calculatorYardage,
+      calculatedYardage: deriveCalculatedYardage(opts?.yardage, calculatorYardage),
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -595,6 +599,27 @@ export function shouldOfferYardageUpdate(
   const current = Number(yardageText);
   if (!Number.isFinite(current) || current !== lastCalculatedYardage) return false;
   return estimateYards !== lastCalculatedYardage;
+}
+
+// What `save` persists as `calculated_yardage` — extracted from the inline
+// body-builder so this ternary, the actual fix for the override-reverting
+// bug, is under direct test rather than only exercised incidentally through
+// `save()`.
+//
+// `optsYardage` is `save`'s own `opts.yardage` — present only on a recompute
+// (a construction/width/length change, or the "Measurements changed" button),
+// where it holds the exact string `computeYardage` just produced. When
+// present, that value IS the calculator's output, full stop. When absent —
+// a manual edit, a maker change, a made toggle — there was no recompute, so
+// the previously tracked value carries through unchanged; this is what lets
+// a deliberate override permanently diverge from the live estimate and
+// silence the "Measurements changed" prompt for this piece instead of having
+// every unrelated save quietly re-stamp it as calculator-derived.
+export function deriveCalculatedYardage(
+  optsYardage: string | undefined,
+  trackedCalculatorYardage: number | null,
+): number | null {
+  return optsYardage !== undefined ? Number(optsYardage) : trackedCalculatorYardage;
 }
 
 // "waist", "waist and outseam", "waist, outseam, and fabric width" — a comma

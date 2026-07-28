@@ -1,5 +1,9 @@
 import { expect, test, describe } from "vitest";
-import { resolveLengthOverride, shouldOfferYardageUpdate } from "@/components/MakePieceRow";
+import {
+  resolveLengthOverride,
+  shouldOfferYardageUpdate,
+  deriveCalculatedYardage,
+} from "@/components/MakePieceRow";
 import { estimateSkirtYardage } from "@/lib/fabric/skirt-yardage";
 
 describe("resolveLengthOverride", () => {
@@ -82,6 +86,31 @@ describe("shouldOfferYardageUpdate", () => {
 
   test("no update is offered when the estimate has not moved", () => {
     expect(shouldOfferYardageUpdate("4.75", 4.75, 4.75)).toBe(false);
+  });
+});
+
+describe("deriveCalculatedYardage", () => {
+  // The actual fix, isolated: a recompute's own output must win outright, not
+  // fall back to whatever was tracked before it. This is the assertion that
+  // catches an inverted ternary (`optsYardage !== undefined ? tracked : Number(optsYardage)`),
+  // which would otherwise silently drop every recompute's own number.
+  test("a recompute's yardage becomes the calculated value, not the tracked one", () => {
+    expect(deriveCalculatedYardage("5.5", 4.75)).toBe(5.5);
+  });
+
+  // A manual edit, a maker change, or a made toggle calls `save()` with no
+  // `yardage` in `opts` — no recompute happened, so the previously tracked
+  // calculator output must carry through unchanged. This is what lets a
+  // deliberate override diverge from the live estimate and stay diverged.
+  test("no recompute carries the tracked value through unchanged", () => {
+    expect(deriveCalculatedYardage(undefined, 4.75)).toBe(4.75);
+  });
+
+  // A piece that has never gone through the calculator (hand-typed or
+  // AI-written yardage) has a null tracked value. A save with no recompute
+  // must leave it null, not manufacture a calculated value out of nothing.
+  test("a manual edit on a never-calculated piece stays never-calculated", () => {
+    expect(deriveCalculatedYardage(undefined, null)).toBeNull();
   });
 });
 
