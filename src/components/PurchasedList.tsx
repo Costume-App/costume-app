@@ -44,23 +44,25 @@ function PriceRow({
           made: item.purchased,
           purchasePrice: next,
           // A "purchase" piece isn't necessarily construction-free: it can carry
-          // a skirt construction (and the calculated_yardage tracked alongside
-          // it) left over from before it was switched from "make"
-          // (RoleCostumePanel now preserves those fields on that switch).
-          // Omitting them here would null them on this save, which would only
-          // surface later if the piece is switched back to "make" — so this
-          // save preserves the four skirt/yardage fields the same way the PUT
-          // bodies elsewhere do. It does NOT preserve fabricYardage,
-          // fabricType, fabricColor, fabricWidth, fabricSupplier,
-          // fabricUnitCost, or makerId — `PurchasedItem` carries none of those,
-          // so this save nulls them same as it always has. That's pre-existing
-          // and fails safe (a purchased piece has no maker or fabric-shopping
-          // fields to lose), not a gap introduced here; widening `PurchasedItem`
-          // to carry them is out of scope.
+          // a skirt construction, its calculated_yardage, and a fabric_yardage
+          // (hand-typed or calculator-derived) left over from before it was
+          // switched from "make" (RoleCostumePanel now preserves those fields
+          // on that switch). Omitting any of them here would null them on this
+          // save — for fabricYardage that's not a "fails safe" gap, it's the
+          // exact under-buy shape this whole feature is calibrated against —
+          // so this save preserves all five the same way the PUT bodies
+          // elsewhere do. It does NOT preserve fabricType, fabricColor,
+          // fabricWidth, fabricSupplier, fabricUnitCost, or makerId —
+          // `PurchasedItem` carries none of those, so this save nulls them
+          // same as it always has. That IS pre-existing and fails safe (a
+          // purchased piece has no maker or fabric-shopping fields to lose,
+          // only a quantity), not a gap introduced here; widening
+          // `PurchasedItem` to carry them too is out of scope.
           skirtConstruction: item.skirtConstruction,
           skirtFullness: item.skirtFullness,
           skirtLengthIn: item.skirtLengthIn,
           calculatedYardage: item.calculatedYardage,
+          fabricYardage: item.fabricYardage,
         }),
       });
       if (!res.ok) {

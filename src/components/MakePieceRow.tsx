@@ -136,6 +136,16 @@ export function MakePieceRow({
   // instead of silently substituting the outseam and leaving the rejected
   // text sitting there unexplained.
   const lengthInvalid = length.trim() !== "" && parsePositiveNumber(length) == null;
+  // True only when the Yardage field holds non-blank text that doesn't parse
+  // as a real number ("6 1/2", "6 yards") — as opposed to being blank, or a
+  // valid (even negative) number, which the server itself rejects visibly.
+  // Unlike Length, there is no fallback value to substitute (no outseam
+  // equivalent for yardage), so an unnoticed invalid value would silently
+  // become `null` on save via `JSON.stringify(NaN) === "null"` — the same
+  // silent-loss shape this whole feature is calibrated against. Drives
+  // visible feedback instead of leaving the rejected text sitting there
+  // unexplained until a reload reveals the column went null.
+  const yardageInvalid = isYardageTextInvalid(yardage);
 
   // Recomputed for display; the value itself is saved on change, not on render.
   const estimate = useMemo(() => {
@@ -199,20 +209,31 @@ export function MakePieceRow({
     }
   }
 
-  // Applies a freshly computed yardage to both the visible field and the
-  // tracked "last calculator output" (see `calculatorYardage`) — one place so
-  // a recompute path can't update the field and forget to keep the tracker in
-  // sync with it.
+  // Applies a freshly computed yardage. The tracker always takes the new value —
+  // it records what the calculator produced, regardless of what is displayed.
+  // The visible field is only replaced when it is NOT a manual override: a
+  // number the user typed is theirs, and a recompute offers rather than imposes
+  // (see `shouldOfferCalculatorValue` and the prompt it drives).
   function applyComputedYardage(nextYardage: string | undefined) {
     if (nextYardage == null) return;
-    setYardage(nextYardage);
+    if (!isManualOverride(yardage, calculatorYardage)) setYardage(nextYardage);
     setCalculatorYardage(Number(nextYardage));
   }
 
   function applyConstruction(nextConstruction: string, nextFullness: string) {
     const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn, effectiveLengthIn);
+    // Captured before `applyComputedYardage` runs below, though reordering
+    // wouldn't actually change today's result — React doesn't retroactively
+    // mutate this bound `const` when a setter fires mid-handler. The ordering
+    // is deliberate future-proofing, not a fix for a live hazard.
+    const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
-    void save({ construction: nextConstruction, fullness: nextFullness, yardage: nextYardage });
+    void save({
+      construction: nextConstruction,
+      fullness: nextFullness,
+      yardage: override ? undefined : nextYardage,
+      calculatedYardage: nextYardage,
+    });
   }
 
   // Width can change the estimate too (it's part of the same geometry), so it
@@ -225,8 +246,14 @@ export function MakePieceRow({
       return;
     }
     const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth), effectiveLengthIn);
+    // Captured before `applyComputedYardage` — see the comment in `applyConstruction`.
+    const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
-    void save({ width: nextWidth, yardage: nextYardage });
+    void save({
+      width: nextWidth,
+      yardage: override ? undefined : nextYardage,
+      calculatedYardage: nextYardage,
+    });
   }
 
   // Length has the identical not-yet-flushed-state hazard as width: compute
@@ -239,8 +266,14 @@ export function MakePieceRow({
     }
     const nextEffectiveLength = resolveLengthOverride(nextLength, outseamIn) ?? outseamIn;
     const nextYardage = computeYardage(construction, fullness, widthIn, nextEffectiveLength);
+    // Captured before `applyComputedYardage` — see the comment in `applyConstruction`.
+    const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
-    void save({ length: nextLength, yardage: nextYardage });
+    void save({
+      length: nextLength,
+      yardage: override ? undefined : nextYardage,
+      calculatedYardage: nextYardage,
+    });
   }
 
   function save(opts?: {
@@ -253,6 +286,7 @@ export function MakePieceRow({
     construction?: string;
     fullness?: string;
     yardage?: string;
+    calculatedYardage?: string;
   }) {
     const uc = opts?.unitCost ?? unitCost;
     const yd = opts?.yardage ?? yardage;
@@ -272,7 +306,14 @@ export function MakePieceRow({
       skirtConstruction: con || null,
       skirtFullness: con === "gathered" ? Number(ful) : null,
       skirtLengthIn: con ? resolveLengthOverride(len, outseamIn) : null,
-      calculatedYardage: deriveCalculatedYardage(opts?.yardage, calculatorYardage),
+      // On a recompute that left an override in place, `yardage` is omitted so
+      // fabric_yardage keeps the user's number, while `calculatedYardage` still
+      // carries the figure the calculator just produced. Reading opts rather
+      // than state matters: setCalculatorYardage has not flushed yet.
+      calculatedYardage: deriveCalculatedYardage(
+        opts?.calculatedYardage ?? opts?.yardage,
+        calculatorYardage,
+      ),
       makerId: opts?.makerId !== undefined ? opts.makerId : makerId,
       made: opts?.made !== undefined ? opts.made : made,
     };
@@ -442,12 +483,17 @@ export function MakePieceRow({
               onBlur={() => void save()}
               inputMode="decimal"
               placeholder="Estimated # of yards"
+              warn={yardageInvalid}
               hint={
-                estimate
-                  ? "Calculated from the measurements — type over it to override."
-                  : construction
-                    ? "Enter yardage manually until the measurements below are filled in."
-                    : "Leave blank to have the system estimate yardage."
+                yardageInvalid
+                  ? `"${yardage.trim()}" isn't a number of yards — saving now would clear it. Enter a number, e.g. 4.5.`
+                  : estimate
+                    ? isManualOverride(yardage, calculatorYardage)
+                      ? "Your own number, not the calculator's — clear it, then re-pick the skirt type or change the width or length, to hand it back."
+                      : "Calculated from the skirt type, width, and length — type over it to override."
+                    : construction
+                      ? "Enter yardage manually until the measurements below are filled in."
+                      : "Leave blank to have the system estimate yardage."
               }
             />
             {construction && (
@@ -483,12 +529,47 @@ export function MakePieceRow({
                         type="button"
                         className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
                         onClick={() => {
+                          // `applyComputedYardage` may now decline to touch the field (when
+                          // it holds a manual override), while `save({ yardage: next })`
+                          // right below it writes `next` unconditionally. That divergence
+                          // is unreachable today ONLY because this button is gated on
+                          // `shouldOfferYardageUpdate`, which requires the field to still
+                          // equal `calculatorYardage` — the exact negation of
+                          // `isManualOverride`, the condition `applyComputedYardage` checks.
+                          // If that gating predicate ever widens to also fire on an
+                          // override, this handler would persist the calculator's number
+                          // to `fabric_yardage` while the field kept showing the user's —
+                          // a worse, equally silent version of the bug this button exists
+                          // to avoid. Don't loosen `shouldOfferYardageUpdate` without also
+                          // revisiting this `save` call.
                           const next = String(estimate.yards);
                           applyComputedYardage(next);
                           void save({ yardage: next });
                         }}
                       >
                         Measurements changed — update to {estimate.yards} yd
+                      </button>
+                    )}
+                    {shouldOfferCalculatorValue(yardage, estimate.yards, calculatorYardage) && (
+                      <button
+                        type="button"
+                        className="mt-1 text-xs font-medium text-[var(--red)] hover:underline"
+                        onClick={() => {
+                          // Deliberately bypasses `applyComputedYardage`, unlike the
+                          // "Measurements changed" button just above: that function
+                          // now refuses to touch the field when it holds a manual
+                          // override — which is exactly the state this button only
+                          // ever renders in. Setting state directly here is how the
+                          // user hands the piece back to the calculator on purpose.
+                          // Do not "unify" these two buttons' handlers — doing so
+                          // would silently reintroduce the override-overwrite bug.
+                          const next = String(estimate.yards);
+                          setYardage(next);
+                          setCalculatorYardage(estimate.yards);
+                          void save({ yardage: next, calculatedYardage: next });
+                        }}
+                      >
+                        Calculator says {estimate.yards} yd — use it
                       </button>
                     )}
                   </>
@@ -561,6 +642,20 @@ function parsePositiveNumber(s: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+// Whether the Yardage field's raw text would silently become `null` on save.
+// A blank field is a deliberate clear, not invalid. A valid number — including
+// 0 or negative — is left alone here: the server's own `checkNum` rejects a
+// negative value with a visible error, so only text that fails to parse as a
+// number at all ("6 1/2", "6 yards") reaches this check. That's the case
+// `Number()` turns into `NaN`, which `JSON.stringify` then serializes as
+// `null` — indistinguishable, once it reaches the server, from a deliberate
+// clear.
+export function isYardageTextInvalid(yardageText: string): boolean {
+  const trimmed = yardageText.trim();
+  if (trimmed === "") return false;
+  return !Number.isFinite(Number(trimmed));
+}
+
 // Whether the Length field holds a genuine override of the performer's
 // outseam — used identically by the compute path (what number to estimate
 // against) and the save path (what to persist as `skirt_length_in`).
@@ -597,6 +692,51 @@ export function shouldOfferYardageUpdate(
   const current = Number(yardageText);
   if (!Number.isFinite(current) || current !== lastCalculatedYardage) return false;
   return estimateYards !== lastCalculatedYardage;
+}
+
+// Whether the Yardage field currently holds a number the user typed rather than
+// one the calculator produced. This is what a recompute checks before replacing
+// the field: a value the user chose is theirs to keep, and silently swapping it
+// for a smaller computed one is the under-buy failure this whole feature exists
+// to prevent.
+//
+// A blank field is deliberately NOT an override — clearing the field is how a
+// user hands the piece back to the calculator, and it is the only way to do so.
+// Non-numeric text is not an override either: there is nothing to protect, and
+// treating it as one would freeze the field on a typo.
+export function isManualOverride(
+  yardageText: string,
+  calculatorYardage: number | null,
+): boolean {
+  if (yardageText.trim() === "") return false;
+  const current = Number(yardageText);
+  if (!Number.isFinite(current)) return false;
+  // No calculator history, but a real number in the field: it came from the user
+  // or the AI, either way not from this calculator, so protect it.
+  if (calculatorYardage == null) return true;
+  return current !== calculatorYardage;
+}
+
+// The override counterpart to `shouldOfferYardageUpdate`. That one fires when
+// the field still shows the calculator's own number and the estimate has moved
+// away from it. This one fires when the field shows the user's number instead —
+// offering the calculator's latest figure without ever imposing it.
+//
+// The two are mutually exclusive by construction: that predicate requires
+// `current === lastCalculatedYardage`, this one requires the opposite. A test
+// asserts it across a matrix, because they are maintained separately.
+export function shouldOfferCalculatorValue(
+  yardageText: string,
+  estimateYards: number,
+  lastCalculatedYardage: number | null,
+): boolean {
+  if (yardageText.trim() === "" || lastCalculatedYardage == null) return false;
+  const current = Number(yardageText);
+  if (!Number.isFinite(current)) return false;
+  // Calculator-controlled — the other prompt owns this case.
+  if (current === lastCalculatedYardage) return false;
+  // Nothing to offer if the calculator agrees with what they typed.
+  return estimateYards !== current;
 }
 
 // What `save` persists as `calculated_yardage` — extracted from the inline

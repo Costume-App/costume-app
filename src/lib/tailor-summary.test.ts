@@ -357,6 +357,25 @@ test("buildPurchaseWorklist: carries a piece's skirt fields so a price edit can 
   expect(cloak.skirtLengthIn).toBe(30);
 });
 
+// A purchase-source piece can also carry a yardage left over from before it
+// was switched from "make" (or hand-typed after). PurchasedItem must carry it
+// too, for the same preserve-what's-recorded reason as the skirt fields above
+// — otherwise a purchase-price edit nulls it (see PurchasedList.tsx).
+test("buildPurchaseWorklist: carries a piece's fabric yardage so a price edit can preserve it", () => {
+  const pieces = [
+    row({
+      costume_design_id: "d1",
+      casting_id: "c1",
+      source: "purchase",
+      purchase_price: 45,
+      fabric_yardage: 4.5,
+    }),
+  ];
+  const pl = buildPurchaseWorklist(roles, designs, castings, performers, casts, pieces);
+  const cloak = pl.items.find((i) => i.designName === "Cloak")!;
+  expect(cloak.fabricYardage).toBe(4.5);
+});
+
 test("buildMeasurementsByCasting uses value_text when present", () => {
   const defs = [{ key: "shirt_size", label: "Shirt size", display_order: 0 }];
   const meas = [
