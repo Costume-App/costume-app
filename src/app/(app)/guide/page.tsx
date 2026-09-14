@@ -74,7 +74,9 @@ export default function GuidePage() {
           </P>
           <UL>
             <LI><B>Roles</B> — add them by hand, or, for a recognised show, let the app
-              <I> suggest the standard roles with AI</I> and add them in one click. Rename roles anytime.</LI>
+              <I> suggest the standard roles with AI</I> and add them in one click. Rename roles anytime.
+              Use <B>Sort</B> above the list to order it by the order added, character name, or the
+              selected cast&rsquo;s performer name.</LI>
             <LI><B>Casts</B> — when different performers play the same role on different nights, use a
               separate <I>cast</I> (e.g. &ldquo;Cast A&rdquo; / &ldquo;Cast B&rdquo;). Understudies are tracked
               separately from casts.</LI>

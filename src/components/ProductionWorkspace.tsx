@@ -11,6 +11,7 @@ import {
 import { RoleCard } from "@/components/RoleCard";
 import { RoleIconLegend } from "@/components/RoleIconLegend";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import { sortRoles, ROLE_SORT_OPTIONS, type RoleSortMode } from "@/lib/role-sort";
 import { RoleSuggestionBanner, type RoleSuggestion } from "@/components/RoleSuggestionBanner";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
@@ -80,6 +81,11 @@ export function ProductionWorkspace({
     `nada:prod:${productionId}:roleSuggestDismissed`,
     false,
   );
+  const [sortMode, setSortMode] = usePersistentState<RoleSortMode>(
+    `nada:prod:${productionId}:roleSort`,
+    "order",
+  );
+  const sortedRoles = sortRoles(roles, sortMode, { castings, performers, selectedCastId });
 
   async function addRole(e: React.FormEvent) {
     e.preventDefault();
@@ -292,10 +298,26 @@ export function ProductionWorkspace({
         </>
       ) : (
         <ul className="space-y-3">
-          <li>
-            <RoleIconLegend />
+          <li className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <RoleIconLegend />
+            </div>
+            <label className="flex shrink-0 items-center gap-1.5 text-sm muted">
+              Sort
+              <select
+                className="field !p-1.5 text-sm"
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as RoleSortMode)}
+              >
+                {ROLE_SORT_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </li>
-          {roles.map((r) => (
+          {sortedRoles.map((r) => (
             <RoleCard
               key={r.id}
               role={r}
