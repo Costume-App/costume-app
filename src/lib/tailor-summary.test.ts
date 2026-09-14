@@ -337,3 +337,16 @@ test("buildMeasurementsByCasting uses value_text when present", () => {
   const map = buildMeasurementsByCasting(defs, meas, castings);
   expect(map["c1"]).toEqual([{ key: "shirt_size", label: "Shirt size", value: "L", unit: "" }]);
 });
+
+test("buildMakeWorklist includes ensemble castings as make items", () => {
+  const ensembleCastings = [
+    { id: "e1", cast_id: "castA", role_id: "r2", performer_id: "p1", assignment: "ensemble" as const },
+    { id: "e2", cast_id: "castA", role_id: "r2", performer_id: "p2", assignment: "ensemble" as const },
+  ];
+  const wl = buildMakeWorklist(roles, designs, ensembleCastings, performers, casts, []);
+  const page = wl.roles.find((r) => r.roleName === "Page")!;
+  expect(page.garments[0].items.map((i) => [i.performerName, i.assignment])).toEqual([
+    ["Ada", "ensemble"],
+    ["Bea", "ensemble"],
+  ]);
+});

@@ -15,6 +15,7 @@ import { sortRoles, ROLE_SORT_OPTIONS, type RoleSortMode } from "@/lib/role-sort
 import { RoleSuggestionBanner, type RoleSuggestion } from "@/components/RoleSuggestionBanner";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
+import type { Assignment } from "@/lib/casting-assignment";
 
 export type MeasureStatus = "none" | "partial" | "complete";
 export interface Cast { id: string; name: string; color: string }
@@ -25,7 +26,7 @@ export interface Casting {
   castId: string;
   roleId: string;
   performerId: string;
-  assignment: "primary" | "understudy";
+  assignment: Assignment;
 }
 
 export function ProductionWorkspace({
