@@ -14,9 +14,14 @@ alter table castings add constraint castings_assignment_check
 create or replace function set_role_ensemble(p_role_id uuid, p_is_ensemble boolean)
 returns void
 language plpgsql
+set search_path = public
 as $$
 begin
-  update roles set is_ensemble = p_is_ensemble where id = p_role_id;
+  update roles set is_ensemble = p_is_ensemble
+  where id = p_role_id and is_ensemble is distinct from p_is_ensemble;
+  if not found then
+    return;
+  end if;
   if p_is_ensemble then
     update castings set assignment = 'ensemble' where role_id = p_role_id;
   else
@@ -36,3 +41,4 @@ $$;
 
 -- Only the service role (supabaseAdmin) may call it.
 revoke execute on function set_role_ensemble(uuid, boolean) from public, anon, authenticated;
+grant execute on function set_role_ensemble(uuid, boolean) to service_role;

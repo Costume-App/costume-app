@@ -101,6 +101,7 @@ export async function setRoleEnsemble(productionId: string, id: string, isEnsemb
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!role) throw new NotFoundError("Role not found");
+  if ((role as Role).is_ensemble === isEnsemble) return role as Role;
   const { error: rpcError } = await supabaseAdmin.rpc("set_role_ensemble", {
     p_role_id: id,
     p_is_ensemble: isEnsemble,

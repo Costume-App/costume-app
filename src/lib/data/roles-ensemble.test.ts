@@ -44,3 +44,10 @@ test("setRoleEnsemble surfaces an RPC error", async () => {
   rpc.mockResolvedValue({ error: { message: "boom" } });
   await expect(setRoleEnsemble("p1", "r1", false)).rejects.toThrow("boom");
 });
+
+test("setRoleEnsemble is a no-op when the role is already in the requested state", async () => {
+  maybeSingle.mockResolvedValue({ data: { id: "r1", name: "Villagers", is_ensemble: true }, error: null });
+  const role = await setRoleEnsemble("p1", "r1", true);
+  expect(rpc).not.toHaveBeenCalled();
+  expect(role).toEqual({ id: "r1", name: "Villagers", is_ensemble: true });
+});
