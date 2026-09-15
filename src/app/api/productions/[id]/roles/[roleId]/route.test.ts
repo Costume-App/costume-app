@@ -14,16 +14,18 @@ vi.mock("@/lib/data/production-access", () => ({
 const deleteRole = vi.fn();
 const setRoleNotes = vi.fn();
 const updateRole = vi.fn();
+const setRoleEnsemble = vi.fn();
 vi.mock("@/lib/data/roles", () => ({
   deleteRole: (...a: unknown[]) => deleteRole(...a),
   setRoleNotes: (...a: unknown[]) => setRoleNotes(...a),
   updateRole: (...a: unknown[]) => updateRole(...a),
+  setRoleEnsemble: (...a: unknown[]) => setRoleEnsemble(...a),
 }));
 
 import { DELETE, PATCH } from "@/app/api/productions/[id]/roles/[roleId]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole].forEach((m) => m.mockReset());
+  [getAuthContext, assertProductionInOrg, deleteRole, setRoleNotes, updateRole, setRoleEnsemble].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockResolvedValue({ id: "p1" });
 });
@@ -58,6 +60,16 @@ test("PATCH saves role notes (200)", async () => {
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ role: { id: "r1", notes: "blue dress" } });
   expect(setRoleNotes).toHaveBeenCalledWith("p1", "r1", "blue dress");
+});
+
+test("PATCH with isEnsemble flips the role via setRoleEnsemble (200)", async () => {
+  setRoleEnsemble.mockResolvedValue({ id: "r1", name: "Villagers", is_ensemble: true });
+  const res = await PATCH(patchReq({ isEnsemble: true }), ctx("p1", "r1"));
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ role: { id: "r1", name: "Villagers", is_ensemble: true } });
+  expect(setRoleEnsemble).toHaveBeenCalledWith("p1", "r1", true);
+  expect(updateRole).not.toHaveBeenCalled();
+  expect(setRoleNotes).not.toHaveBeenCalled();
 });
 
 test("PATCH 404 when production not in org", async () => {

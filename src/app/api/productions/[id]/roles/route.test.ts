@@ -58,7 +58,16 @@ test("POST creates a role (201)", async () => {
   createRole.mockResolvedValue({ id: "r2", name: "Mary Poppins" });
   const res = await POST(postReq({ name: "Mary Poppins" }), ctx("p1"));
   expect(res.status).toBe(201);
-  expect(createRole).toHaveBeenCalledWith({ productionId: "p1", name: "Mary Poppins" });
+  expect(createRole).toHaveBeenCalledWith({ productionId: "p1", name: "Mary Poppins", isEnsemble: false });
+});
+
+test("POST passes isEnsemble to createRole", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  createRole.mockResolvedValue({ id: "r9", name: "Villagers", is_ensemble: true });
+  const res = await POST(postReq({ name: "Villagers", isEnsemble: true }), ctx("p1"));
+  expect(res.status).toBe(201);
+  expect(createRole).toHaveBeenCalledWith({ productionId: "p1", name: "Villagers", isEnsemble: true });
 });
 
 test("POST 400 on empty name", async () => {
