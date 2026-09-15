@@ -21,7 +21,7 @@ vi.mock("@/lib/data/cast-import", () => ({
 }));
 
 import { POST } from "@/app/api/productions/[id]/cast-import/apply/route";
-import { ConflictError } from "@/lib/errors";
+import { ConflictError, NotFoundError } from "@/lib/errors";
 
 const CAST = "11111111-1111-4111-8111-111111111111";
 const ROLE = "22222222-2222-4222-8222-222222222222";
@@ -62,6 +62,12 @@ test("applies a valid import and returns counts plus the fresh workspace", async
   expect(await res.json()).toEqual({ counts: { casts: 0, roles: 0, performers: 1, castings: 1 }, workspace });
   expect(applyCastImport).toHaveBeenCalledWith("p1", body("understudy"), existing);
   expect(loadWorkspaceSnapshot).toHaveBeenCalledWith("p1");
+});
+
+test("404 when the production isn't in the org", async () => {
+  assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
+  expect((await POST(req(body("understudy")), ctx("p1"))).status).toBe(404);
+  expect(applyCastImport).not.toHaveBeenCalled();
 });
 
 test("400 with the first conflict's message when fresh data conflicts", async () => {
