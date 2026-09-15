@@ -8,6 +8,8 @@ import type { Draft, ExistingData, ImportCounts, WorkspaceSnapshot } from "@/lib
 
 const READ_FAILED = "Couldn't read the cast list right now — try again.";
 const IMPORT_FAILED = "Couldn't import the cast list — try again.";
+const IMPORT_MAYBE_DONE = "The import may have finished — reload the page to check before trying again.";
+const UNSUPPORTED_TYPE = "Upload a PDF, Word (.docx), Excel (.xlsx), CSV, text, PNG or JPG file.";
 
 // Import a cast list: paste or upload → AI reads it → review → one-transaction import.
 export function CastImportPanel({
@@ -29,9 +31,19 @@ export function CastImportPanel({
   function chooseFile(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0] ?? null;
     e.target.value = "";
-    if (picked && picked.size > MAX_FILE_BYTES) {
-      setError("Files must be 4 MB or smaller.");
-      return;
+    if (picked) {
+      const dot = picked.name.lastIndexOf(".");
+      const ext = dot === -1 ? "" : picked.name.slice(dot).toLowerCase();
+      if (!(ACCEPTED_EXTENSIONS as readonly string[]).includes(ext)) {
+        setError(UNSUPPORTED_TYPE);
+        setFile(null);
+        return;
+      }
+      if (picked.size > MAX_FILE_BYTES) {
+        setError("Files must be 4 MB or smaller.");
+        setFile(null);
+        return;
+      }
     }
     setError(null);
     setFile(picked);
@@ -82,9 +94,12 @@ export function CastImportPanel({
         onImported(data.workspace, data.counts); // the parent closes this panel
         return;
       }
-      setError(data.error ?? IMPORT_FAILED);
+      // A 5xx may mean the transaction committed before the response failed — don't invite a
+      // duplicating retry. 4xx is a clean rejection (validation/conflict/not-found): safe to retry.
+      setError(res.status >= 500 ? IMPORT_MAYBE_DONE : data.error ?? IMPORT_FAILED);
     } catch {
-      setError(IMPORT_FAILED);
+      // Same reasoning: a network error after the request went out doesn't mean it didn't apply.
+      setError(IMPORT_MAYBE_DONE);
     }
     setBusy(false);
   }
@@ -116,7 +131,10 @@ export function CastImportPanel({
           <textarea
             className="field min-h-40 w-full"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError(null);
+            }}
             disabled={busy || file !== null}
             aria-label="Cast list text"
             placeholder="Paste the cast list — copied from a spreadsheet, document or email"
@@ -138,7 +156,10 @@ export function CastImportPanel({
                 <button
                   type="button"
                   aria-label="Remove file"
-                  onClick={() => setFile(null)}
+                  onClick={() => {
+                    setFile(null);
+                    setError(null);
+                  }}
                   disabled={busy}
                   className="link-muted"
                 >
