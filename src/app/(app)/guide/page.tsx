@@ -81,7 +81,12 @@ export default function GuidePage() {
               separate <I>cast</I> (e.g. &ldquo;Cast A&rdquo; / &ldquo;Cast B&rdquo;). Understudies are tracked
               separately from casts.</LI>
             <LI><B>Performers &amp; measurements</B> — assign a performer to each role, as primary or
-              understudy, and record their measurements. Height is entered and shown in feet and inches.</LI>
+              understudy, and record their measurements. Height is entered and shown in feet and inches.
+              When adding someone, pick an <I>existing performer</I> from the list to cast them in another
+              role — their measurements carry over, so you only take them once.</LI>
+            <LI><B>Ensemble roles</B> — tick <B>Ensemble</B> when adding a role (or on its Cast &amp; Measure
+              tab) for groups like &ldquo;Villagers&rdquo;: no primary or understudies, just a list of
+              performers who each need a costume.</LI>
           </UL>
         </Section>
 

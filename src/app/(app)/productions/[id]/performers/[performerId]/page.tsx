@@ -32,9 +32,17 @@ export default async function MeasurementPage({
   ]);
 
   const performer = performers.find((p) => p.id === performerId);
-  const casting = castings.find((c) => c.performer_id === performerId);
-  const role = casting ? roles.find((r) => r.id === casting.role_id) : undefined;
-  const cast = casting ? casts.find((c) => c.id === casting.cast_id) : undefined;
+  // One performer can be cast in several roles/casts; they share this one set of measurements.
+  const roleName = new Map(roles.map((r) => [r.id, r.name]));
+  const castName = new Map(casts.map((c) => [c.id, c.name]));
+  const appearances = castings
+    .filter((c) => c.performer_id === performerId)
+    .map((c) => ({
+      id: c.id,
+      role: roleName.get(c.role_id) ?? "Role",
+      cast: casts.length > 1 ? castName.get(c.cast_id) ?? null : null,
+      tag: c.assignment === "understudy" ? "Understudy" : c.assignment === "ensemble" ? "Ensemble" : null,
+    }));
 
   const initial: Record<string, number | string> = {};
   for (const m of measurements) initial[m.measurement_key] = m.value_text ?? m.value_numeric ?? "";
@@ -48,17 +56,21 @@ export default async function MeasurementPage({
         ← {backToSummary ? "Back" : "Cast"}
       </Link>
       <div className="mt-2 mb-6">
-        <p className="text-sm muted">
-          {production.title}
-          {cast ? ` · ${cast.name}` : ""}
-        </p>
-        <h1 className="font-display text-3xl font-semibold">{role?.name ?? "Measurements"}</h1>
-        <p className="text-xl font-medium">
-          {performer?.label ?? "Performer"}
-          {casting?.assignment === "understudy" ? (
-            <span className="muted text-base"> · Understudy</span>
-          ) : null}
-        </p>
+        <p className="text-sm muted">{production.title}</p>
+        <h1 className="font-display text-3xl font-semibold">{performer?.label ?? "Measurements"}</h1>
+        {appearances.length > 0 && (
+          <ul className="mt-1 space-y-0.5 text-base">
+            {appearances.map((a) => (
+              <li key={a.id}>
+                <span className="font-medium">{a.role}</span>
+                <span className="muted">
+                  {a.cast ? ` · ${a.cast}` : ""}
+                  {a.tag ? ` · ${a.tag}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
     </main>
