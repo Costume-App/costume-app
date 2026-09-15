@@ -9,7 +9,7 @@ test("cleanName trims and collapses whitespace but keeps casing", () => {
 test("matchKey ignores case, spacing and light punctuation", () => {
   expect(matchKey("Mrs. Bumbrake")).toBe(matchKey("mrs  bumbrake"));
   expect(matchKey("O'Neil")).toBe(matchKey("ONeil"));
-  expect(matchKey("O'Neil")).toBe(matchKey("oneil"));
+  expect(matchKey("O’Neil")).toBe(matchKey("oneil"));
 });
 
 test("matchKey is full-name exact — a shared surname never matches", () => {

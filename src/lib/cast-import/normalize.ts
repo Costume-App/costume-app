@@ -6,5 +6,5 @@ export function cleanName(s: string): string {
 // Match key: exact full-name comparison that ignores case, spacing and light punctuation.
 // Never fuzzy — two people who share a surname stay different people.
 export function matchKey(s: string): string {
-  return cleanName(s.toLowerCase().replace(/[.,''"]/g, ""));
+  return cleanName(s.toLowerCase().replace(/[.,''"’]/g, ""));
 }
