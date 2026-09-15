@@ -42,8 +42,8 @@ export async function addCastMember(input: {
   if (input.roleIsEnsemble !== (input.assignment === "ensemble")) {
     throw new ValidationError(
       input.roleIsEnsemble
-        ? "Ensemble roles don't have a primary or understudies."
-        : "Only ensemble roles take ensemble members.",
+        ? "Ensemble roles don't have a primary or understudies. Reload to see the latest."
+        : "Only ensemble roles take ensemble members. Reload to see the latest.",
     );
   }
 

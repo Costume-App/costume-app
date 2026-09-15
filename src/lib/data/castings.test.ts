@@ -1,5 +1,5 @@
 import { expect, test, vi, beforeEach } from "vitest";
-import { ValidationError } from "@/lib/errors";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 
 const order = vi.fn();
 const listEq = vi.fn(() => ({ order }));
@@ -144,5 +144,25 @@ test("addCastMember maps a duplicate performer-in-role to a specific message and
   await expect(
     addCastMember({ productionId: "p1", castId: "ct1", roleId: "r1", roleIsEnsemble: false, performerId: "pf1", assignment: "understudy" }),
   ).rejects.toThrow("That performer is already in this role for this cast.");
+  expect(deletePerformer).not.toHaveBeenCalled();
+});
+
+test("addCastMember with a performerId that doesn't resolve rejects NotFoundError and never inserts", async () => {
+  getPerformer.mockResolvedValue(null);
+  await expect(
+    addCastMember({ productionId: "p1", castId: "ct1", roleId: "r1", roleIsEnsemble: false, performerId: "pfMissing", assignment: "primary" }),
+  ).rejects.toBeInstanceOf(NotFoundError);
+  expect(insert).not.toHaveBeenCalled();
+});
+
+test("addCastMember maps a duplicate primary (reused performer) to the primary message and does not delete the reused performer", async () => {
+  getPerformer.mockResolvedValue({ id: "pf1", production_id: "p1", label: "Amy" });
+  insertSingle.mockResolvedValue({
+    data: null,
+    error: { code: "23505", message: 'duplicate key value violates unique constraint "castings_one_primary_per_cast_role"' },
+  });
+  await expect(
+    addCastMember({ productionId: "p1", castId: "ct1", roleId: "r1", roleIsEnsemble: false, performerId: "pf1", assignment: "primary" }),
+  ).rejects.toThrow("This role already has a primary for this cast.");
   expect(deletePerformer).not.toHaveBeenCalled();
 });
