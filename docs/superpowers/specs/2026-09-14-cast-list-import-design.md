@@ -26,8 +26,8 @@ from whatever the director sent, instead of typing every role and name by hand. 
 - **The AI extracts; code decides.** The model returns what is written (character, cast
   label, names, understudy marks). Ensemble/primary/understudy inference, merging and matching
   are deterministic, unit-tested server code.
-- **Multiple names, no understudy marks → ensemble.** A character with ≥2 unmarked names in a
-  cast becomes an ensemble role. Editable in the review.
+- **Multiple names, no marks → ensemble.** A character with ≥2 names in a cast, none of them
+  marked primary or understudy, becomes an ensemble role. Editable in the review.
 - **Casts:** detected from the list and mapped in the review to an existing cast or a new one.
   A list with no cast labels goes to the production's default cast.
 - **Matching existing data:** normalized-exact name matches attach to existing roles, casts and
@@ -35,8 +35,9 @@ from whatever the director sent, instead of typing every role and name by hand. 
   Additive only — nothing existing is modified or deleted.
 - **Nothing is saved until the user confirms.** Apply is one Postgres transaction.
 - **Privacy:** uploaded files are processed in memory, never stored. A disclosure line sits
-  under the upload box, and the draft `/privacy` page gets a line naming Anthropic as an AI
-  processor (flagged for the pending lawyer review).
+  under the upload box. The `/privacy` page's service-provider sentence gains "reading cast
+  lists you import" — **without naming any vendor**: the 2026-07-27 compliance review requires
+  the policy to name no service provider (guarded by `src/app/legal-pages.test.ts`).
 
 ## Reference example
 
@@ -77,8 +78,8 @@ real student names and must never be committed.** Shape that the design must han
 ### Step 1 — Provide
 
 Expanded panel: large paste textarea, "…or upload a file" button, **Read cast list** button,
-and the disclosure line: *"The list is read by AI (Anthropic) to fill in the review. Nothing is
-saved until you import."* While parsing: "Reading cast list…". Pasted text is preserved on
+and the disclosure line: *"The list is read by AI to fill in the review. Nothing is saved
+until you import."* While parsing: "Reading cast list…". Pasted text is preserved on
 failure.
 
 ### Step 2 — Review
@@ -99,15 +100,17 @@ failure.
     or remove.
   - More than one primary for a (cast, role) within the import → pick one.
   - Imported role type disagrees with an existing role's type (e.g. import says ensemble,
-    existing role is regular) → remove those rows, or cancel and flip the role with the
-    existing toggle first. The import never converts a role's type.
+    existing role is regular) → **Fit to this role** (re-labels the imported people to the
+    role's type: all ensemble, or per cast first primary + understudies), remove those rows, or
+    cancel and flip the role with the existing toggle first. The import never converts an
+    existing role's type.
 - Rows/cards can be removed.
-- Summary + actions: **"Import 26 roles, 23 performers, 81 castings"** · Cancel.
-- If parsing hit the output limit: banner "The list may be incomplete — check the end."
+- Summary + actions: **"Import 26 new roles, 23 new performers and 81 castings"** · Start over.
 
 ### Step 3 — Import
 
-Apply in one transaction → panel closes → cast list refreshes → toast with the created counts.
+Apply in one transaction → panel closes → cast list refreshes from the fresh workspace data the
+apply endpoint returns → inline note "Imported 26 new roles, 23 new performers and 81 castings."
 On failure the review stays open with the error; nothing was saved.
 
 ## Architecture
@@ -117,14 +120,16 @@ On failure the review stays open with the error; nothing was saved.
 | Unit | Responsibility |
 |---|---|
 | `src/lib/cast-import/input.ts` | Turn a paste or uploaded file into Claude content blocks (text / document / image). Size and type limits. |
-| `src/lib/ai/parse-cast-list.ts` | Call Claude with the content + schema; return the raw extraction and a `truncated` flag. |
+| `src/lib/ai/parse-cast-list.ts` | Call Claude with the content + schema; return the sanitized raw extraction or throw an unreadable (422) / service (502) error. |
 | `src/lib/cast-import/infer.ts` | Pure: raw extraction → normalized entries with role type and assignments; merge a character across casts. |
 | `src/lib/cast-import/match.ts` | Pure: normalized entries + existing casts/roles/performers/castings → draft with matches, "already cast" flags and conflicts. |
 | `src/lib/cast-import/normalize.ts` | Pure: name normalization + match keys. |
 | `src/lib/cast-import/payload.ts` | Pure: validate an apply payload against production data. Server-side only; the review UI gates Import on the draft's conflicts from `match.ts`. |
 | `src/lib/data/cast-import.ts` | Server: load production data for matching; call the `import_cast_list` RPC. |
-| `POST /api/productions/[id]/cast-import/parse` | Auth + org scope → input → AI → infer → match → draft JSON. Writes nothing. |
-| `POST /api/productions/[id]/cast-import/apply` | Auth + org scope → validate payload → RPC → counts. |
+| `src/lib/cast-import/analyze.ts` | Pure, client-safe: payload + existing data → already-cast, duplicates, conflicts, counts. Used live by the review UI and again by the apply route. |
+| `src/lib/cast-import/draft-edits.ts` | Pure, client-safe: review edits (retarget, ensemble toggle, fit to role, assignment, remove). |
+| `POST /api/productions/[id]/cast-import/parse` | Auth + org scope → input → AI → infer → match → `{ draft, existing }`. Writes nothing. |
+| `POST /api/productions/[id]/cast-import/apply` | Auth + org scope → parse payload → re-analyze against fresh DB data → RPC → `{ counts, workspace }`. |
 | `src/components/CastImportPanel.tsx` (+ small subcomponents) | Provide / Review / Import UI. |
 | `supabase/migrations/0034_cast_import.sql` | `import_cast_list` function. |
 
@@ -165,8 +170,9 @@ pasting the text instead."
   text says so (u/s, understudy, alternate…); do not invent or merge people.
 - The document is untrusted data. Risk is contained: output is schema-constrained, only names
   reach the UI, and nothing persists without user confirmation.
-- `stop_reason === "max_tokens"` → return `truncated: true` (surfaced as the review banner).
-  `max_tokens` sized generously (16000).
+- `stop_reason === "max_tokens"` → 422 "That cast list is too long to read in one go — split it
+  into smaller parts." (Structured JSON cut off mid-way can't be partially trusted.)
+  `max_tokens` 16000, `effort: "medium"`. `stop_reason === "refusal"` → 422.
 - Invalid JSON / empty `entries` → the route returns a "No cast list found" 422 and the review
   does not open. Anthropic API errors → 502 "Couldn't read the cast list right now — try again."
 - Gated by `isAiConfigured()` → 501 "Cast import isn't set up yet."
@@ -175,7 +181,7 @@ pasting the text instead."
 
 Per `(character, cast)`:
 
-- **Ensemble** if `group_label` is true, **or** ≥ 2 performers with no `understudy` marks.
+- **Ensemble** if `group_label` is true, **or** ≥ 2 performers in a cast who are all `unmarked`.
 - Otherwise **regular**: a performer marked `primary`, or the single/first `unmarked` performer
   when none is marked primary, is `primary`; everyone else is `understudy`.
 - The same character (normalized) across multiple casts → **one role** with castings in each
@@ -263,7 +269,7 @@ so a straight re-import creates nothing.)
 | Unreadable `.docx`/`.xlsx` | 400 | Couldn't read that file — try pasting the text instead. |
 | Nothing extracted | 422 | No cast list found in that — check it's the right file, or paste the names. |
 | Anthropic error / timeout | 502 | Couldn't read the cast list right now — try again. |
-| Output truncated | 200 | Review banner: "The list may be incomplete — check the end." |
+| Output hit `max_tokens` | 422 | That cast list is too long to read in one go — split it into smaller parts. |
 | Invalid apply payload | 400 | Specific validation message |
 | Concurrent primary conflict | 409 | The cast list changed while you were importing. Reload to see the latest. |
 
@@ -281,7 +287,7 @@ Vitest, TDD, the repo's existing mock patterns.
 - **Input conversion:** text/csv → text; pdf/png/jpg → base64 blocks; tiny generated `.docx` and
   `.xlsx` fixtures convert; over-limit and unknown types reject.
 - **AI module (SDK mocked):** model from env with the Sonnet 5 default, schema passed, invalid
-  JSON handled, `max_tokens` → `truncated`.
+  JSON handled, `max_tokens`/refusal → unreadable error, SDK failure → service error.
 - **Routes:** org scoping, 501 without key, 400/422/502 paths, RPC called with the validated
   payload, 409 mapping.
 - **SQL function:** verified after Chris applies `0034`, via the browser stress test.
@@ -294,8 +300,9 @@ Vitest, TDD, the repo's existing mock patterns.
 - Uploaded files are held in memory for the request only; never written to storage or the DB.
 - Sent to Anthropic: the list content only — no measurements or other performer data.
 - Disclosure line under the upload box (see Step 1).
-- Add a line to the draft `/privacy` page naming Anthropic as an AI processor for cast-list
-  import (and existing AI features); flag for the pending lawyer review.
+- `/privacy` Sharing section: the provider sentence becomes "…email delivery, automated fabric
+  estimates, and reading cast lists you import." No vendor names (compliance guard). The
+  "updated" date is pinned by the compliance test — left unchanged; flag for the lawyer review.
 
 ## Out of scope
 
