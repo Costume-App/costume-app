@@ -26,3 +26,8 @@ test("getPerformer returns null when missing", async () => {
   maybeSingle.mockResolvedValue({ data: null, error: null });
   expect(await getPerformer("nope")).toBeNull();
 });
+
+test("getPerformer treats a malformed id (Postgres 22P02) as not found", async () => {
+  maybeSingle.mockResolvedValue({ data: null, error: { code: "22P02", message: 'invalid input syntax for type uuid: "abc"' } });
+  expect(await getPerformer("abc")).toBeNull();
+});

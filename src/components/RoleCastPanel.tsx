@@ -332,10 +332,10 @@ function CastLink({
   }
 
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex max-w-full items-center gap-1">
       {order != null && <span className="muted text-sm">{order}.</span>}
       {status && <MeasurementDot status={status} />}
-      <Link href={`/productions/${productionId}/performers/${performerId}`} className="font-medium hover:underline">
+      <Link href={`/productions/${productionId}/performers/${performerId}`} className="min-w-0 font-medium [overflow-wrap:anywhere] hover:underline">
         {name}
       </Link>
       <button

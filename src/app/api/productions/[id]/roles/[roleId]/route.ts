@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { ValidationError } from "@/lib/errors";
 import { assertProductionInOrg, assertRoleInProduction } from "@/lib/data/production-access";
 import { deleteRole, setRoleNotes, updateRole, setRoleEnsemble } from "@/lib/data/roles";
 import { listRoleImagePaths } from "@/lib/data/storage-paths";
@@ -36,8 +37,12 @@ export async function PATCH(request: Request, { params }: Ctx) {
       const role = await updateRole(id, roleId, body.name);
       return NextResponse.json({ role });
     }
-    const role = await setRoleNotes(id, roleId, typeof body.notes === "string" ? body.notes : "");
-    return NextResponse.json({ role });
+    if (typeof body.notes === "string") {
+      const role = await setRoleNotes(id, roleId, body.notes);
+      return NextResponse.json({ role });
+    }
+    // Never fall through to clearing notes on a malformed body (e.g. isEnsemble: "yes").
+    throw new ValidationError("Nothing to update");
   } catch (err) {
     return errorResponse(err);
   }

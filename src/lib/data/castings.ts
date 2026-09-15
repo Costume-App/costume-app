@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { NotFoundError, ValidationError, PG_INVALID_TEXT_REPRESENTATION } from "@/lib/errors";
 import { createPerformer, deletePerformer, getPerformer, type Performer } from "@/lib/data/performers";
 import { isAssignment, type Assignment } from "@/lib/casting-assignment";
 
@@ -97,11 +97,17 @@ export async function removeCasting(
     .eq("id", castingId)
     .eq("production_id", productionId)
     .maybeSingle();
-  if (findError) throw new Error(findError.message);
+  if (findError && findError.code !== PG_INVALID_TEXT_REPRESENTATION) throw new Error(findError.message);
   if (!casting) throw new NotFoundError("Casting not found");
 
-  const { error: deleteError } = await supabaseAdmin.from("castings").delete().eq("id", castingId);
+  const { data: deleted, error: deleteError } = await supabaseAdmin
+    .from("castings")
+    .delete()
+    .eq("id", castingId)
+    .select("id");
   if (deleteError) throw new Error(deleteError.message);
+  // A concurrent request already removed it — report not found rather than a second success.
+  if (!deleted || deleted.length === 0) throw new NotFoundError("Casting not found");
 
   const performerId = (casting as { performer_id: string }).performer_id;
   const { data: remaining, error: remainingError } = await supabaseAdmin

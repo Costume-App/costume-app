@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ValidationError, NotFoundError } from "@/lib/errors";
+import { ValidationError, NotFoundError, PG_INVALID_TEXT_REPRESENTATION } from "@/lib/errors";
 
 export interface Performer {
   id: string;
@@ -19,6 +19,8 @@ export interface PerformerMeasurement {
   updated_at: string;
 }
 
+export const MAX_PERFORMER_NAME = 100;
+
 export async function listPerformers(productionId: string): Promise<Performer[]> {
   const { data, error } = await supabaseAdmin
     .from("performers")
@@ -35,6 +37,9 @@ export async function createPerformer(input: {
 }): Promise<Performer> {
   const label = input.label.trim();
   if (!label) throw new ValidationError("Performer name is required");
+  if (label.length > MAX_PERFORMER_NAME) {
+    throw new ValidationError(`Performer name must be ${MAX_PERFORMER_NAME} characters or fewer`);
+  }
   const { data, error } = await supabaseAdmin
     .from("performers")
     .insert({ production_id: input.productionId, label })
@@ -47,6 +52,9 @@ export async function createPerformer(input: {
 export async function updatePerformer(id: string, label: string): Promise<Performer> {
   const trimmed = label.trim();
   if (!trimmed) throw new ValidationError("Name is required");
+  if (trimmed.length > MAX_PERFORMER_NAME) {
+    throw new ValidationError(`Name must be ${MAX_PERFORMER_NAME} characters or fewer`);
+  }
   const { data, error } = await supabaseAdmin
     .from("performers")
     .update({ label: trimmed })
@@ -65,7 +73,10 @@ export async function deletePerformer(id: string): Promise<void> {
 
 export async function getPerformer(id: string): Promise<Performer | null> {
   const { data, error } = await supabaseAdmin.from("performers").select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === PG_INVALID_TEXT_REPRESENTATION) return null;
+    throw new Error(error.message);
+  }
   return (data as Performer | null) ?? null;
 }
 

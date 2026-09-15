@@ -113,3 +113,16 @@ test("PATCH 404 when production not in org", async () => {
   expect(res.status).toBe(404);
   expect(setRoleNotes).not.toHaveBeenCalled();
 });
+
+test("PATCH with a non-boolean isEnsemble is a 400 and never clears notes", async () => {
+  const res = await PATCH(patchReq({ isEnsemble: "yes" }), ctx("p1", "r1"));
+  expect(res.status).toBe(400);
+  expect(setRoleNotes).not.toHaveBeenCalled();
+  expect(setRoleEnsemble).not.toHaveBeenCalled();
+});
+
+test("PATCH with no recognised field is a 400 and never clears notes", async () => {
+  const res = await PATCH(patchReq({}), ctx("p1", "r1"));
+  expect(res.status).toBe(400);
+  expect(setRoleNotes).not.toHaveBeenCalled();
+});
