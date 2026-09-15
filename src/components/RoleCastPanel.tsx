@@ -69,48 +69,61 @@ export function RoleCastPanel({
     if ("name" in who && !who.name.trim()) return;
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/productions/${productionId}/castings`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ castId: selectedCastId, roleId: role.id, assignment, ...who }),
-    });
-    if (res.ok) {
-      const { performer, casting } = (await res.json()) as {
-        performer: { id: string; label: string };
-        casting: CastingRow;
-      };
-      // A reused performer is already in state — only append genuinely new ones.
-      setPerformers((prev) =>
-        prev.some((p) => p.id === performer.id) ? prev : [...prev, { id: performer.id, name: performer.label }],
-      );
-      setCastings((prev) => [...prev, toCasting(casting)]);
-    } else {
-      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast member");
+    try {
+      const res = await fetch(`/api/productions/${productionId}/castings`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ castId: selectedCastId, roleId: role.id, assignment, ...who }),
+      });
+      if (res.ok) {
+        const { performer, casting } = (await res.json()) as {
+          performer: { id: string; label: string };
+          casting: CastingRow;
+        };
+        // A reused performer is already in state — only append genuinely new ones.
+        setPerformers((prev) =>
+          prev.some((p) => p.id === performer.id) ? prev : [...prev, { id: performer.id, name: performer.label }],
+        );
+        setCastings((prev) => [...prev, toCasting(casting)]);
+      } else {
+        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast member");
+      }
+    } catch {
+      setError("Couldn't add cast member");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function removeCasting(casting: Casting) {
     const who = nameOf(casting.performerId) || "this cast member";
+    const castName = casts.find((c) => c.id === casting.castId)?.name;
     const message = isLastCasting(casting.performerId, casting.id, castings)
       ? `Remove ${who}? This is their only role, so their measurements will be deleted too.`
-      : `Remove ${who} from ${role.name}?`;
+      : casts.length > 1
+        ? `Remove ${who} from ${role.name} (${castName})?`
+        : `Remove ${who} from ${role.name}?`;
     if (!confirm(message)) return;
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/productions/${productionId}/castings/${casting.id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    if (res.ok) {
-      const { performerDeleted } = (await res.json()) as { performerDeleted: boolean };
-      setCastings((prev) => prev.filter((c) => c.id !== casting.id));
-      if (performerDeleted) setPerformers((prev) => prev.filter((p) => p.id !== casting.performerId));
-    } else {
+    try {
+      const res = await fetch(`/api/productions/${productionId}/castings/${casting.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const { performerDeleted } = (await res.json()) as { performerDeleted: boolean };
+        setCastings((prev) => prev.filter((c) => c.id !== casting.id));
+        if (performerDeleted) setPerformers((prev) => prev.filter((p) => p.id !== casting.performerId));
+      } else {
+        setError("Couldn't remove cast member");
+      }
+    } catch {
       setError("Couldn't remove cast member");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function toggleEnsemble(next: boolean) {
@@ -124,27 +137,39 @@ export function RoleCastPanel({
     }
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/productions/${productionId}/roles/${role.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ isEnsemble: next }),
-    });
-    if (!res.ok) {
-      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't update role");
+    try {
+      let res: Response;
+      try {
+        res = await fetch(`/api/productions/${productionId}/roles/${role.id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ isEnsemble: next }),
+        });
+      } catch {
+        setError("Couldn't update role");
+        return;
+      }
+      if (!res.ok) {
+        setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't update role");
+        return;
+      }
+      setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...r, isEnsemble: next } : r)));
+      // Assignments were converted server-side — pull the fresh castings.
+      try {
+        const list = await fetch(`/api/productions/${productionId}/castings`, { credentials: "include" });
+        if (list.ok) {
+          const { castings: rows } = (await list.json()) as { castings: CastingRow[] };
+          setCastings(rows.map(toCasting));
+        } else {
+          setError("Role updated — reload the page to see the new cast layout.");
+        }
+      } catch {
+        setError("Role updated — reload the page to see the new cast layout.");
+      }
+    } finally {
       setBusy(false);
-      return;
     }
-    setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...r, isEnsemble: next } : r)));
-    // Assignments were converted server-side — pull the fresh castings.
-    const list = await fetch(`/api/productions/${productionId}/castings`, { credentials: "include" });
-    if (list.ok) {
-      const { castings: rows } = (await list.json()) as { castings: CastingRow[] };
-      setCastings(rows.map(toCasting));
-    } else {
-      setError("Role updated — reload the page to see the new cast layout.");
-    }
-    setBusy(false);
   }
 
   async function renamePerformer(performerId: string, label: string) {
