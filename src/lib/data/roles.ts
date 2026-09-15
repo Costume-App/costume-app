@@ -7,6 +7,7 @@ export interface Role {
   name: string;
   display_order: number;
   notes: string | null;
+  is_ensemble: boolean;
   created_at: string;
 }
 
@@ -21,12 +22,16 @@ export async function listRoles(productionId: string): Promise<Role[]> {
   return (data ?? []) as Role[];
 }
 
-export async function createRole(input: { productionId: string; name: string }): Promise<Role> {
+export async function createRole(input: {
+  productionId: string;
+  name: string;
+  isEnsemble?: boolean;
+}): Promise<Role> {
   const name = input.name.trim();
   if (!name) throw new ValidationError("Role name is required");
   const { data, error } = await supabaseAdmin
     .from("roles")
-    .insert({ production_id: input.productionId, name })
+    .insert({ production_id: input.productionId, name, is_ensemble: input.isEnsemble === true })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -85,6 +90,26 @@ export async function setRoleNotes(productionId: string, id: string, notes: stri
   return data as Role;
 }
 
+// Flip a role between regular and ensemble. The set_role_ensemble SQL function converts the
+// role's castings in the same transaction (see migration 0033).
+export async function setRoleEnsemble(productionId: string, id: string, isEnsemble: boolean): Promise<Role> {
+  const { data: role, error } = await supabaseAdmin
+    .from("roles")
+    .select("*")
+    .eq("id", id)
+    .eq("production_id", productionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!role) throw new NotFoundError("Role not found");
+  if ((role as Role).is_ensemble === isEnsemble) return role as Role;
+  const { error: rpcError } = await supabaseAdmin.rpc("set_role_ensemble", {
+    p_role_id: id,
+    p_is_ensemble: isEnsemble,
+  });
+  if (rpcError) throw new Error(rpcError.message);
+  return { ...(role as Role), is_ensemble: isEnsemble };
+}
+
 export async function deleteRole(productionId: string, id: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from("roles")
@@ -94,16 +119,23 @@ export async function deleteRole(productionId: string, id: string): Promise<void
   if (error) throw new Error(error.message);
 }
 
-// Insert a role preserving name/notes/display_order (used by the share copy engine).
+// Insert a role preserving name/notes/display_order/is_ensemble (used by the share copy engine).
 export async function insertRoleCopy(input: {
   productionId: string;
   name: string;
   notes: string | null;
   displayOrder: number;
+  isEnsemble: boolean;
 }): Promise<Role> {
   const { data, error } = await supabaseAdmin
     .from("roles")
-    .insert({ production_id: input.productionId, name: input.name, notes: input.notes, display_order: input.displayOrder })
+    .insert({
+      production_id: input.productionId,
+      name: input.name,
+      notes: input.notes,
+      display_order: input.displayOrder,
+      is_ensemble: input.isEnsemble,
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);

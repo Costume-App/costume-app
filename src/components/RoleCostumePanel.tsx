@@ -233,7 +233,11 @@ export function RoleCostumePanel({
   const roleDesigns = designs.filter((d) => d.role_id === role.id);
   const forRole = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
   const primary = forRole.find((c) => c.assignment === "primary");
-  const ordered = [...(primary ? [primary] : []), ...forRole.filter((c) => c.assignment === "understudy")];
+  const ordered = [
+    ...(primary ? [primary] : []),
+    ...forRole.filter((c) => c.assignment === "understudy"),
+    ...forRole.filter((c) => c.assignment === "ensemble"),
+  ];
 
   return (
     <div className="space-y-2">

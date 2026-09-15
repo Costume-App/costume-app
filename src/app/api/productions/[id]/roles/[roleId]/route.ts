@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
 import { assertProductionInOrg, assertRoleInProduction } from "@/lib/data/production-access";
-import { deleteRole, setRoleNotes, updateRole } from "@/lib/data/roles";
+import { deleteRole, setRoleNotes, updateRole, setRoleEnsemble } from "@/lib/data/roles";
 import { listRoleImagePaths } from "@/lib/data/storage-paths";
 import { removeImages } from "@/lib/storage";
 
@@ -27,7 +27,11 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id, roleId } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { name?: string; notes?: string };
+    const body = (await request.json()) as { name?: string; notes?: string; isEnsemble?: boolean };
+    if (typeof body.isEnsemble === "boolean") {
+      const role = await setRoleEnsemble(id, roleId, body.isEnsemble);
+      return NextResponse.json({ role });
+    }
     if (typeof body.name === "string") {
       const role = await updateRole(id, roleId, body.name);
       return NextResponse.json({ role });

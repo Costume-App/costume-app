@@ -41,11 +41,17 @@ test("listRoles filters by production, ordered by display_order then created_at"
   expect(rows).toEqual([{ id: "r1", name: "Bert" }]);
 });
 
-test("createRole inserts a trimmed name", async () => {
+test("createRole inserts a trimmed name, regular by default", async () => {
   insertSingle.mockResolvedValue({ data: { id: "r2", name: "Mary Poppins" }, error: null });
   const row = await createRole({ productionId: "p1", name: "  Mary Poppins  " });
-  expect(insert).toHaveBeenCalledWith({ production_id: "p1", name: "Mary Poppins" });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", name: "Mary Poppins", is_ensemble: false });
   expect(row).toEqual({ id: "r2", name: "Mary Poppins" });
+});
+
+test("createRole can create an ensemble role", async () => {
+  insertSingle.mockResolvedValue({ data: { id: "r3", name: "Villagers", is_ensemble: true }, error: null });
+  await createRole({ productionId: "p1", name: "Villagers", isEnsemble: true });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", name: "Villagers", is_ensemble: true });
 });
 
 test("createRole rejects an empty name", async () => {

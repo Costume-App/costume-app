@@ -33,6 +33,7 @@ export async function copyDesignLayer(input: {
       name: role.name,
       notes: role.notes,
       displayOrder: role.display_order,
+      isEnsemble: role.is_ensemble,
     });
     roleIdMap.set(role.id, copy.id);
   }

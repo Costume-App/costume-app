@@ -1,6 +1,7 @@
 import { pieceKey } from "@/lib/costume-merge";
 import { defaultSourceFor, type CostumeSource } from "@/lib/costume-sources";
 import { isSkirtConstruction, type SkirtConstruction } from "@/lib/fabric/skirt-yardage";
+import type { Assignment } from "@/lib/casting-assignment";
 
 export interface PieceRow {
   costume_design_id: string;
@@ -41,7 +42,7 @@ export interface MakeItem {
   performerId: string;
   performerName: string;
   castName: string;
-  assignment: "primary" | "understudy";
+  assignment: Assignment;
   made: boolean;
   makerId: string | null;
   addedInventoryItemId: string | null;
@@ -125,7 +126,7 @@ export interface PurchasedSummary {
 
 interface RoleLike { id: string; name: string; notes: string | null }
 interface DesignLike { id: string; role_id: string; name: string; display_order: number; inventory_item_id: string | null }
-interface CastingLike { id: string; cast_id: string; role_id: string; performer_id: string; assignment: "primary" | "understudy" }
+interface CastingLike { id: string; cast_id: string; role_id: string; performer_id: string; assignment: Assignment }
 interface PerformerLike { id: string; name: string }
 interface CastLike { id: string; name: string }
 

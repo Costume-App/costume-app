@@ -14,10 +14,11 @@ import {
 } from "@/lib/tailor-summary";
 import type { RolePhoto } from "@/components/RolePhotoStrip";
 import { CostumesDueSummary } from "@/components/CostumesDueSummary";
+import type { Assignment } from "@/lib/casting-assignment";
 
 interface Role { id: string; name: string; notes: string | null }
 interface Design { id: string; role_id: string; name: string; display_order: number; inventory_item_id: string | null }
-interface Casting { id: string; cast_id: string; role_id: string; performer_id: string; assignment: "primary" | "understudy" }
+interface Casting { id: string; cast_id: string; role_id: string; performer_id: string; assignment: Assignment }
 interface Performer { id: string; name: string }
 interface Cast { id: string; name: string }
 

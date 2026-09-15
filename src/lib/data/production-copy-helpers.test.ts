@@ -29,10 +29,16 @@ test("getProductionByIdUnscoped fetches by id with no org filter", async () => {
   expect(row).toEqual({ id: "p1", title: "Cats" });
 });
 
-test("insertRoleCopy inserts name, notes, and display_order", async () => {
-  setResult({ id: "r2", production_id: "p2", name: "Wizard", notes: "flowing", display_order: 3 });
-  await insertRoleCopy({ productionId: "p2", name: "Wizard", notes: "flowing", displayOrder: 3 });
-  expect(chain.insert).toHaveBeenCalledWith({ production_id: "p2", name: "Wizard", notes: "flowing", display_order: 3 });
+test("insertRoleCopy inserts name, notes, display_order, and is_ensemble", async () => {
+  setResult({ id: "r2", production_id: "p2", name: "Wizard", notes: "flowing", display_order: 3, is_ensemble: false });
+  await insertRoleCopy({ productionId: "p2", name: "Wizard", notes: "flowing", displayOrder: 3, isEnsemble: false });
+  expect(chain.insert).toHaveBeenCalledWith({
+    production_id: "p2",
+    name: "Wizard",
+    notes: "flowing",
+    display_order: 3,
+    is_ensemble: false,
+  });
 });
 
 test("insertCostumeDesignCopy inserts role, name, notes, and display_order", async () => {

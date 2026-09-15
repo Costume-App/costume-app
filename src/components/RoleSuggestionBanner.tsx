@@ -64,8 +64,10 @@ export function RoleSuggestionBanner({
       body: JSON.stringify({ names }),
     });
     if (res.ok) {
-      const { roles } = (await res.json()) as { roles: { id: string; name: string; notes: string | null }[] };
-      onRolesCreated(roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes })));
+      const { roles } = (await res.json()) as {
+        roles: { id: string; name: string; notes: string | null; is_ensemble?: boolean }[];
+      };
+      onRolesCreated(roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes, isEnsemble: r.is_ensemble ?? false })));
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add roles");
       setLoading(false);

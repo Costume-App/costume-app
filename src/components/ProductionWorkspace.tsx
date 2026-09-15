@@ -11,20 +11,22 @@ import {
 import { RoleCard } from "@/components/RoleCard";
 import { RoleIconLegend } from "@/components/RoleIconLegend";
 import { usePersistentState } from "@/lib/use-persistent-state";
+import { sortRoles, ROLE_SORT_OPTIONS, type RoleSortMode } from "@/lib/role-sort";
 import { RoleSuggestionBanner, type RoleSuggestion } from "@/components/RoleSuggestionBanner";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
+import type { Assignment } from "@/lib/casting-assignment";
 
 export type MeasureStatus = "none" | "partial" | "complete";
 export interface Cast { id: string; name: string; color: string }
-export interface Role { id: string; name: string; notes: string | null }
+export interface Role { id: string; name: string; notes: string | null; isEnsemble: boolean }
 export interface Performer { id: string; name: string }
 export interface Casting {
   id: string;
   castId: string;
   roleId: string;
   performerId: string;
-  assignment: "primary" | "understudy";
+  assignment: Assignment;
 }
 
 export function ProductionWorkspace({
@@ -68,6 +70,7 @@ export function ProductionWorkspace({
   const [designs, setDesigns] = useState<CostumeDesign[]>(initialDesigns);
   const [pieces, setPieces] = useState<CostumePiece[]>(initialPieces);
   const [newRole, setNewRole] = useState("");
+  const [newRoleEnsemble, setNewRoleEnsemble] = useState(false);
   const [newCast, setNewCast] = useState("");
   const [newCastColor, setNewCastColor] = useState(DEFAULT_CAST_COLOR);
   const [showAddCast, setShowAddCast] = useState(false);
@@ -80,6 +83,11 @@ export function ProductionWorkspace({
     `nada:prod:${productionId}:roleSuggestDismissed`,
     false,
   );
+  const [sortMode, setSortMode] = usePersistentState<RoleSortMode>(
+    `nada:prod:${productionId}:roleSort`,
+    "order",
+  );
+  const sortedRoles = sortRoles(roles, sortMode, { castings, performers, selectedCastId });
 
   async function addRole(e: React.FormEvent) {
     e.preventDefault();
@@ -90,12 +98,18 @@ export function ProductionWorkspace({
       method: "POST",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ name: newRole }),
+      body: JSON.stringify({ name: newRole, isEnsemble: newRoleEnsemble }),
     });
     if (res.ok) {
-      const { role } = (await res.json()) as { role: { id: string; name: string; notes: string | null } };
-      setRoles((prev) => [...prev, { id: role.id, name: role.name, notes: role.notes }]);
+      const { role } = (await res.json()) as {
+        role: { id: string; name: string; notes: string | null; is_ensemble: boolean };
+      };
+      setRoles((prev) => [
+        ...prev,
+        { id: role.id, name: role.name, notes: role.notes, isEnsemble: role.is_ensemble },
+      ]);
       setNewRole("");
+      setNewRoleEnsemble(false);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add role");
     }
@@ -292,10 +306,26 @@ export function ProductionWorkspace({
         </>
       ) : (
         <ul className="space-y-3">
-          <li>
-            <RoleIconLegend />
+          <li className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <RoleIconLegend />
+            </div>
+            <label className="flex shrink-0 items-center gap-1.5 text-sm muted">
+              Sort
+              <select
+                className="field !p-1.5 text-sm"
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as RoleSortMode)}
+              >
+                {ROLE_SORT_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </li>
-          {roles.map((r) => (
+          {sortedRoles.map((r) => (
             <RoleCard
               key={r.id}
               role={r}
@@ -303,6 +333,7 @@ export function ProductionWorkspace({
               selectedCastId={selectedCastId}
               tint={tint}
               edge={edge}
+              roles={roles}
               setRoles={setRoles}
               performers={performers}
               setPerformers={setPerformers}
@@ -321,13 +352,21 @@ export function ProductionWorkspace({
         </ul>
       )}
 
-      <form onSubmit={addRole} className="flex gap-2">
+      <form onSubmit={addRole} className="flex flex-wrap items-center gap-2">
         <input
-          className="field flex-1"
+          className="field min-w-0 flex-1"
           value={newRole}
           onChange={(e) => setNewRole(e.target.value)}
           placeholder="Add a role (character)"
         />
+        <label className="inline-flex items-center gap-1.5 text-sm">
+          <input
+            type="checkbox"
+            checked={newRoleEnsemble}
+            onChange={(e) => setNewRoleEnsemble(e.target.checked)}
+          />
+          Ensemble
+        </label>
         <button type="submit" disabled={busy} className="btn-primary shrink-0">
           Add role
         </button>

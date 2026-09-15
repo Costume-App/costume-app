@@ -23,12 +23,16 @@ export async function POST(request: Request, { params }: Ctx) {
     const { orgId } = await getAuthContext();
     const { id } = await params;
     await assertProductionInOrg(orgId, id);
-    const body = (await request.json()) as { name?: string; names?: string[] };
+    const body = (await request.json()) as { name?: string; names?: string[]; isEnsemble?: boolean };
     if (Array.isArray(body.names)) {
       const roles = await createRoles({ productionId: id, names: body.names });
       return NextResponse.json({ roles }, { status: 201 });
     }
-    const role = await createRole({ productionId: id, name: typeof body.name === "string" ? body.name : "" });
+    const role = await createRole({
+      productionId: id,
+      name: typeof body.name === "string" ? body.name : "",
+      isEnsemble: body.isEnsemble === true,
+    });
     return NextResponse.json({ role }, { status: 201 });
   } catch (err) {
     return errorResponse(err);

@@ -8,6 +8,7 @@ import { MakeAssignment } from "@/components/MakeAssignment";
 import { PlanLimitNotice } from "@/components/PlanLimitNotice";
 import { AddToInventoryControl } from "@/components/AddToInventoryControl";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { assignmentShortTag } from "@/lib/casting-assignment";
 import type { MakeItem, PieceRow, MeasurementView, Fabric } from "@/lib/tailor-summary";
 import {
   estimateSkirtYardage,
@@ -374,7 +375,7 @@ export function MakePieceRow({
           <span className="font-medium">{item.performerName}</span>
           <span className="text-xs muted">
             {item.castName}
-            {item.assignment === "understudy" ? " · u/s" : ""}
+            {assignmentShortTag(item.assignment)}
           </span>
           {fabricLabel && <span className="ml-auto text-xs muted">{fabricLabel}</span>}
           <span className="text-[var(--muted)]">{open ? "▾" : "▸"}</span>

@@ -49,7 +49,7 @@ beforeEach(() => {
 test("copyDesignLayer copies production, roles, designs, and duplicates images to new paths", async () => {
   getProductionByIdUnscoped.mockResolvedValue({ id: "p1", title: "Cats", notes: "fun" });
   createProduction.mockResolvedValue({ id: "p2" });
-  listRoles.mockResolvedValue([{ id: "r1", name: "Wizard", notes: "fl", display_order: 0 }]);
+  listRoles.mockResolvedValue([{ id: "r1", name: "Wizard", notes: "fl", display_order: 0, is_ensemble: true }]);
   insertRoleCopy.mockResolvedValue({ id: "r1new" });
   listRoleImagesForRoles.mockResolvedValue([{ id: "ri1", role_id: "r1", storage_path: "p1/r1/a.jpg" }]);
   addRoleImage.mockResolvedValue({});
@@ -62,7 +62,7 @@ test("copyDesignLayer copies production, roles, designs, and duplicates images t
   const out = await copyDesignLayer({ sourceProductionId: "p1", targetOrgId: "orgB", userId: "u1" });
 
   expect(createProduction).toHaveBeenCalledWith({ orgId: "orgB", createdBy: "u1", title: "Cats", notes: "fun" });
-  expect(insertRoleCopy).toHaveBeenCalledWith({ productionId: "p2", name: "Wizard", notes: "fl", displayOrder: 0 });
+  expect(insertRoleCopy).toHaveBeenCalledWith({ productionId: "p2", name: "Wizard", notes: "fl", displayOrder: 0, isEnsemble: true });
   expect(copyImage).toHaveBeenCalledWith("p1/r1/a.jpg", expect.stringMatching(/^p2\/r1new\/.+\.jpg$/));
   expect(addRoleImage).toHaveBeenCalledWith("r1new", expect.stringMatching(/^p2\/r1new\/.+\.jpg$/));
   expect(insertCostumeDesignCopy).toHaveBeenCalledWith({ productionId: "p2", roleId: "r1new", name: "Cloak", notes: "dn", displayOrder: 0 });
@@ -74,7 +74,7 @@ test("copyDesignLayer copies production, roles, designs, and duplicates images t
 test("copyDesignLayer still inserts the image row when the file copy fails (best-effort)", async () => {
   getProductionByIdUnscoped.mockResolvedValue({ id: "p1", title: "Cats", notes: null });
   createProduction.mockResolvedValue({ id: "p2" });
-  listRoles.mockResolvedValue([{ id: "r1", name: "Wizard", notes: null, display_order: 0 }]);
+  listRoles.mockResolvedValue([{ id: "r1", name: "Wizard", notes: null, display_order: 0, is_ensemble: true }]);
   insertRoleCopy.mockResolvedValue({ id: "r1new" });
   listRoleImagesForRoles.mockResolvedValue([{ id: "ri1", role_id: "r1", storage_path: "p1/r1/a.jpg" }]);
   addRoleImage.mockResolvedValue({});
