@@ -56,3 +56,18 @@ test("does not mutate the input", () => {
   sortRoles(roles, "character", ctx);
   expect(roles).toEqual(copy);
 });
+
+test("'performer' puts ensemble roles (no primary) with the unassigned roles", () => {
+  const withEnsemble = [
+    { id: "r1", name: "Tevye" },
+    { id: "rE", name: "Villagers" },
+    { id: "r4", name: "Motel" },
+  ];
+  const ensembleCastings = [
+    ...castings,
+    { castId: "c1", roleId: "rE", performerId: "p3", assignment: "ensemble" as const },
+  ];
+  expect(
+    names(sortRoles(withEnsemble, "performer", { castings: ensembleCastings, performers, selectedCastId: "c1" })),
+  ).toEqual(["Tevye", "Motel", "Villagers"]);
+});
