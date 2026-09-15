@@ -4,11 +4,33 @@ import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
 import { MeasurementDot } from "@/components/MeasurementDot";
-import type { MeasureStatus, Role, Performer, Casting } from "@/components/ProductionWorkspace";
+import { PerformerPicker } from "@/components/PerformerPicker";
+import { pickerCandidates, performerRoleSummaries, isLastCasting } from "@/lib/performer-picker";
+import type { Assignment } from "@/lib/casting-assignment";
+import type { MeasureStatus, Role, Performer, Casting, Cast } from "@/components/ProductionWorkspace";
+
+interface CastingRow {
+  id: string;
+  cast_id: string;
+  role_id: string;
+  performer_id: string;
+  assignment: Assignment;
+}
+
+const toCasting = (c: CastingRow): Casting => ({
+  id: c.id,
+  castId: c.cast_id,
+  roleId: c.role_id,
+  performerId: c.performer_id,
+  assignment: c.assignment,
+});
 
 export function RoleCastPanel({
   productionId,
   role,
+  roles,
+  setRoles,
+  casts,
   selectedCastId,
   performers,
   setPerformers,
@@ -18,6 +40,9 @@ export function RoleCastPanel({
 }: {
   productionId: string;
   role: Role;
+  roles: Role[];
+  setRoles: Dispatch<SetStateAction<Role[]>>;
+  casts: Cast[];
   selectedCastId: string;
   performers: Performer[];
   setPerformers: Dispatch<SetStateAction<Performer[]>>;
@@ -31,55 +56,93 @@ export function RoleCastPanel({
   const nameOf = (performerId: string) => performers.find((p) => p.id === performerId)?.name ?? "";
   const statusOf = (performerId: string): MeasureStatus => measurementStatus[performerId] ?? "none";
 
-  async function addCastMember(name: string, assignment: "primary" | "understudy") {
-    if (!name.trim() || !selectedCastId) return;
+  const summaries = performerRoleSummaries(performers, castings, roles, casts);
+  const candidatesFor = (query: string) =>
+    pickerCandidates(query, performers, castings, { castId: selectedCastId, roleId: role.id }).map((p) => ({
+      id: p.id,
+      name: p.name,
+      summary: summaries[p.id] ?? "",
+    }));
+
+  async function addCastMember(who: { name: string } | { performerId: string }, assignment: Assignment) {
+    if (!selectedCastId) return;
+    if ("name" in who && !who.name.trim()) return;
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/productions/${productionId}/castings`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ castId: selectedCastId, roleId: role.id, name, assignment }),
+      body: JSON.stringify({ castId: selectedCastId, roleId: role.id, assignment, ...who }),
     });
     if (res.ok) {
       const { performer, casting } = (await res.json()) as {
         performer: { id: string; label: string };
-        casting: {
-          id: string;
-          cast_id: string;
-          role_id: string;
-          performer_id: string;
-          assignment: "primary" | "understudy";
-        };
+        casting: CastingRow;
       };
-      setPerformers((prev) => [...prev, { id: performer.id, name: performer.label }]);
-      setCastings((prev) => [
-        ...prev,
-        {
-          id: casting.id,
-          castId: casting.cast_id,
-          roleId: casting.role_id,
-          performerId: casting.performer_id,
-          assignment: casting.assignment,
-        },
-      ]);
+      // A reused performer is already in state — only append genuinely new ones.
+      setPerformers((prev) =>
+        prev.some((p) => p.id === performer.id) ? prev : [...prev, { id: performer.id, name: performer.label }],
+      );
+      setCastings((prev) => [...prev, toCasting(casting)]);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add cast member");
     }
     setBusy(false);
   }
 
-  async function removeCastMember(performerId: string) {
-    const who = nameOf(performerId);
-    if (!confirm(`Remove ${who || "this cast member"}? This also deletes their measurements and can't be undone.`)) {
-      return;
-    }
+  async function removeCasting(casting: Casting) {
+    const who = nameOf(casting.performerId) || "this cast member";
+    const message = isLastCasting(casting.performerId, casting.id, castings)
+      ? `Remove ${who}? This is their only role, so their measurements will be deleted too.`
+      : `Remove ${who} from ${role.name}?`;
+    if (!confirm(message)) return;
     setBusy(true);
-    const res = await fetch(`/api/performers/${performerId}`, { method: "DELETE", credentials: "include" });
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/castings/${casting.id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
     if (res.ok) {
-      setCastings((prev) => prev.filter((c) => c.performerId !== performerId));
+      const { performerDeleted } = (await res.json()) as { performerDeleted: boolean };
+      setCastings((prev) => prev.filter((c) => c.id !== casting.id));
+      if (performerDeleted) setPerformers((prev) => prev.filter((p) => p.id !== casting.performerId));
     } else {
       setError("Couldn't remove cast member");
+    }
+    setBusy(false);
+  }
+
+  async function toggleEnsemble(next: boolean) {
+    const count = castings.filter((c) => c.roleId === role.id).length;
+    if (count > 0) {
+      const noun = count === 1 ? "member" : "members";
+      const message = next
+        ? `${count} cast ${noun} will become ensemble ${noun}.`
+        : "The first-added member in each cast becomes primary; the rest become understudies.";
+      if (!confirm(message)) return;
+    }
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/productions/${productionId}/roles/${role.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ isEnsemble: next }),
+    });
+    if (!res.ok) {
+      setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't update role");
+      setBusy(false);
+      return;
+    }
+    setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...r, isEnsemble: next } : r)));
+    // Assignments were converted server-side — pull the fresh castings.
+    const list = await fetch(`/api/productions/${productionId}/castings`, { credentials: "include" });
+    if (list.ok) {
+      const { castings: rows } = (await list.json()) as { castings: CastingRow[] };
+      setCastings(rows.map(toCasting));
+    } else {
+      setError("Role updated — reload the page to see the new cast layout.");
     }
     setBusy(false);
   }
@@ -104,52 +167,82 @@ export function RoleCastPanel({
   const forRole = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
   const primary = forRole.find((c) => c.assignment === "primary");
   const understudies = forRole.filter((c) => c.assignment === "understudy");
+  const ensemble = forRole.filter((c) => c.assignment === "ensemble");
+
+  const link = (c: Casting, order?: number) => (
+    <CastLink
+      key={c.id}
+      order={order}
+      productionId={productionId}
+      performerId={c.performerId}
+      name={nameOf(c.performerId)}
+      status={statusOf(c.performerId)}
+      onRemove={() => removeCasting(c)}
+      onRename={(label) => renamePerformer(c.performerId, label)}
+      busy={busy}
+    />
+  );
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        {primary ? (
-          <CastLink
-            productionId={productionId}
-            performerId={primary.performerId}
-            name={nameOf(primary.performerId)}
-            status={statusOf(primary.performerId)}
-            onRemove={() => removeCastMember(primary.performerId)}
-            onRename={(label) => renamePerformer(primary.performerId, label)}
-            busy={busy}
-          />
-        ) : (
-          <AddName placeholder="Add primary" onAdd={(n) => addCastMember(n, "primary")} busy={busy} />
-        )}
-      </div>
+      <label className="inline-flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={role.isEnsemble}
+          disabled={busy}
+          onChange={(e) => toggleEnsemble(e.target.checked)}
+        />
+        Ensemble role <span className="muted">(no primary or understudies)</span>
+      </label>
 
-      <div>
-        <div className="mb-1 flex flex-wrap items-center gap-2">
-          <span className="lbl">Understudies</span>
-          <AddName
-            placeholder="Add understudy"
-            addLabel="Add"
-            block
-            onAdd={(n) => addCastMember(n, "understudy")}
-            busy={busy}
-          />
-        </div>
-        <div className="flex flex-col items-start gap-1">
-          {understudies.map((u, i) => (
-            <CastLink
-              key={u.performerId}
-              order={i + 1}
-              productionId={productionId}
-              performerId={u.performerId}
-              name={nameOf(u.performerId)}
-              status={statusOf(u.performerId)}
-              onRemove={() => removeCastMember(u.performerId)}
-              onRename={(label) => renamePerformer(u.performerId, label)}
+      {role.isEnsemble ? (
+        <div>
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <span className="lbl">Ensemble</span>
+            <PerformerPicker
+              placeholder="Add performer"
+              block
               busy={busy}
+              candidates={candidatesFor}
+              onAddNew={(name) => addCastMember({ name }, "ensemble")}
+              onPickExisting={(performerId) => addCastMember({ performerId }, "ensemble")}
             />
-          ))}
+          </div>
+          <div className="flex flex-col items-start gap-1">{ensemble.map((c) => link(c))}</div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {primary ? (
+              link(primary)
+            ) : (
+              <PerformerPicker
+                placeholder="Add primary"
+                busy={busy}
+                candidates={candidatesFor}
+                onAddNew={(name) => addCastMember({ name }, "primary")}
+                onPickExisting={(performerId) => addCastMember({ performerId }, "primary")}
+              />
+            )}
+          </div>
+
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="lbl">Understudies</span>
+              <PerformerPicker
+                placeholder="Add understudy"
+                addLabel="Add"
+                block
+                busy={busy}
+                candidates={candidatesFor}
+                onAddNew={(name) => addCastMember({ name }, "understudy")}
+                onPickExisting={(performerId) => addCastMember({ performerId }, "understudy")}
+              />
+            </div>
+            <div className="flex flex-col items-start gap-1">{understudies.map((u, i) => link(u, i + 1))}</div>
+          </div>
+        </>
+      )}
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
     </div>
   );
@@ -262,63 +355,5 @@ function PencilIcon() {
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
-  );
-}
-
-function AddName({
-  placeholder,
-  addLabel,
-  onAdd,
-  busy,
-  block,
-}: {
-  placeholder: string;
-  addLabel?: string;
-  onAdd: (name: string) => void;
-  busy: boolean;
-  block?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="link-muted text-sm">
-        + {addLabel ?? placeholder}
-      </button>
-    );
-  }
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onAdd(name);
-        setName("");
-        setOpen(false);
-      }}
-      className={`${block ? "flex w-full flex-wrap" : "inline-flex"} items-center gap-1.5`}
-    >
-      <input
-        autoFocus
-        className="field w-44 !p-1.5 text-sm"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder={placeholder}
-      />
-      <button type="submit" disabled={busy} className="btn-ghost text-sm">
-        Add
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(false);
-          setName("");
-        }}
-        className="link-muted text-sm"
-      >
-        Cancel
-      </button>
-    </form>
   );
 }

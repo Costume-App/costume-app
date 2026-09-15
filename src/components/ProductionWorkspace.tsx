@@ -333,6 +333,7 @@ export function ProductionWorkspace({
               selectedCastId={selectedCastId}
               tint={tint}
               edge={edge}
+              roles={roles}
               setRoles={setRoles}
               performers={performers}
               setPerformers={setPerformers}

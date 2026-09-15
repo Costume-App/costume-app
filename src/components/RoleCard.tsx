@@ -24,6 +24,7 @@ export function RoleCard({
   selectedCastId,
   tint,
   edge,
+  roles,
   setRoles,
   performers,
   setPerformers,
@@ -43,6 +44,7 @@ export function RoleCard({
   selectedCastId: string;
   tint: string;
   edge: string;
+  roles: Role[];
   setRoles: Dispatch<SetStateAction<Role[]>>;
   hasImages: boolean;
   performers: Performer[];
@@ -253,6 +255,9 @@ export function RoleCard({
             <RoleCastPanel
               productionId={productionId}
               role={role}
+              roles={roles}
+              setRoles={setRoles}
+              casts={casts}
               selectedCastId={selectedCastId}
               performers={performers}
               setPerformers={setPerformers}
