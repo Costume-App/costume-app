@@ -19,7 +19,7 @@ import type { Assignment } from "@/lib/casting-assignment";
 
 export type MeasureStatus = "none" | "partial" | "complete";
 export interface Cast { id: string; name: string; color: string }
-export interface Role { id: string; name: string; notes: string | null }
+export interface Role { id: string; name: string; notes: string | null; isEnsemble: boolean }
 export interface Performer { id: string; name: string }
 export interface Casting {
   id: string;
@@ -70,6 +70,7 @@ export function ProductionWorkspace({
   const [designs, setDesigns] = useState<CostumeDesign[]>(initialDesigns);
   const [pieces, setPieces] = useState<CostumePiece[]>(initialPieces);
   const [newRole, setNewRole] = useState("");
+  const [newRoleEnsemble, setNewRoleEnsemble] = useState(false);
   const [newCast, setNewCast] = useState("");
   const [newCastColor, setNewCastColor] = useState(DEFAULT_CAST_COLOR);
   const [showAddCast, setShowAddCast] = useState(false);
@@ -97,12 +98,18 @@ export function ProductionWorkspace({
       method: "POST",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ name: newRole }),
+      body: JSON.stringify({ name: newRole, isEnsemble: newRoleEnsemble }),
     });
     if (res.ok) {
-      const { role } = (await res.json()) as { role: { id: string; name: string; notes: string | null } };
-      setRoles((prev) => [...prev, { id: role.id, name: role.name, notes: role.notes }]);
+      const { role } = (await res.json()) as {
+        role: { id: string; name: string; notes: string | null; is_ensemble: boolean };
+      };
+      setRoles((prev) => [
+        ...prev,
+        { id: role.id, name: role.name, notes: role.notes, isEnsemble: role.is_ensemble },
+      ]);
       setNewRole("");
+      setNewRoleEnsemble(false);
     } else {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't add role");
     }
@@ -344,13 +351,21 @@ export function ProductionWorkspace({
         </ul>
       )}
 
-      <form onSubmit={addRole} className="flex gap-2">
+      <form onSubmit={addRole} className="flex flex-wrap items-center gap-2">
         <input
-          className="field flex-1"
+          className="field min-w-0 flex-1"
           value={newRole}
           onChange={(e) => setNewRole(e.target.value)}
           placeholder="Add a role (character)"
         />
+        <label className="inline-flex items-center gap-1.5 text-sm">
+          <input
+            type="checkbox"
+            checked={newRoleEnsemble}
+            onChange={(e) => setNewRoleEnsemble(e.target.checked)}
+          />
+          Ensemble
+        </label>
         <button type="submit" disabled={busy} className="btn-primary shrink-0">
           Add role
         </button>

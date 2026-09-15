@@ -136,7 +136,7 @@ export default async function ProductionDetailPage({
       <ProductionWorkspace
         productionId={id}
         initialCasts={casts.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
-        initialRoles={roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes }))}
+        initialRoles={roles.map((r) => ({ id: r.id, name: r.name, notes: r.notes, isEnsemble: r.is_ensemble }))}
         initialPerformers={performers.map((p) => ({ id: p.id, name: p.label }))}
         initialCastings={castings.map((c) => ({
           id: c.id,

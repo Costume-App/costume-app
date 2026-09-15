@@ -68,23 +68,21 @@ export function RoleCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const primary = castings.find(
-    (c) => c.castId === selectedCastId && c.roleId === role.id && c.assignment === "primary",
-  );
-  const summary = primary ? performers.find((p) => p.id === primary.performerId)?.name ?? "—" : "—";
+  const roleCastings = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
+  const primary = roleCastings.find((c) => c.assignment === "primary");
+  const summary = role.isEnsemble
+    ? `Ensemble · ${roleCastings.length}`
+    : primary
+      ? performers.find((p) => p.id === primary.performerId)?.name ?? "—"
+      : "—";
 
   // Collapsed-row indicators.
-  const measureAgg = aggregateMeasureStatus(
-    castings
-      .filter((c) => c.castId === selectedCastId && c.roleId === role.id)
-      .map((c) => measurementStatus[c.performerId] ?? "none"),
-  );
+  const measureAgg = aggregateMeasureStatus(roleCastings.map((c) => measurementStatus[c.performerId] ?? "none"));
   const hasNotes = !!role.notes && role.notes.trim().length > 0;
   // Shirt is filled when any piece for this role still needs making (source = make).
   const sources = resolvePieceSources(pieces);
   const roleDesigns = designs.filter((d) => d.role_id === role.id);
   const hasPieces = roleDesigns.length > 0;
-  const roleCastings = castings.filter((c) => c.castId === selectedCastId && c.roleId === role.id);
   const needsMake = roleCastings.some((c) =>
     roleDesigns.some((d) => (sources[pieceKey(c.id, d.id)]?.source ?? defaultSourceFor(d)) === "make"),
   );
