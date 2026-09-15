@@ -68,11 +68,19 @@ export async function applyCastImport(
   payload: ApplyPayload,
   existing: ExistingData,
 ): Promise<ImportCounts> {
-  const newCastCount = payload.casts.filter((c) => c.target.kind === "new").length;
+  // Casts and performers no casting references (the review screen dropped that row) are never
+  // sent to the RPC — same rule as toApplyPayload. Roles are left as-is; unlike casts/performers,
+  // an unused role is still meaningful to create ahead of casting anyone into it.
+  const castKeys = new Set(payload.castings.map((c) => c.castKey));
+  const performerKeys = new Set(payload.castings.map((c) => c.performerKey));
+  const casts = payload.casts.filter((c) => castKeys.has(c.key));
+  const performers = payload.performers.filter((p) => performerKeys.has(p.key));
+
+  const newCastCount = casts.filter((c) => c.target.kind === "new").length;
   const colors = pickCastColors(existing.casts.map((c) => c.color), newCastCount);
   let nextColor = 0;
   const rpcPayload = {
-    casts: payload.casts.map(({ key, target }) =>
+    casts: casts.map(({ key, target }) =>
       target.kind === "existing"
         ? { key, id: target.castId }
         : { key, name: cleanName(target.name), color: colors[nextColor++] },
@@ -82,7 +90,7 @@ export async function applyCastImport(
         ? { key, id: target.roleId }
         : { key, name: cleanName(target.name), is_ensemble: target.isEnsemble },
     ),
-    performers: payload.performers.map(({ key, target }) =>
+    performers: performers.map(({ key, target }) =>
       target.kind === "existing" ? { key, id: target.performerId } : { key, name: cleanName(target.name) },
     ),
     castings: payload.castings.map((c) => ({

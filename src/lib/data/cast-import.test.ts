@@ -68,12 +68,15 @@ const payload: ApplyPayload = {
     { key: "p0", target: { kind: "existing", performerId: "p1" } },
     { key: "p1", target: { kind: "new", name: "Kim  Lee" } },
   ],
-  castings: [{ key: "k0", castKey: "c1", roleKey: "r1", performerKey: "p1", assignment: "ensemble" }],
+  castings: [
+    { key: "k0", castKey: "c0", roleKey: "r0", performerKey: "p0", assignment: "primary" },
+    { key: "k1", castKey: "c1", roleKey: "r1", performerKey: "p1", assignment: "ensemble" },
+  ],
 };
 
 test("applyCastImport sends a resolved payload to the RPC and returns its counts", async () => {
-  rpc.mockResolvedValue({ data: { casts: 1, roles: 1, performers: 1, castings: 1 }, error: null });
-  expect(await applyCastImport("prod1", payload, existing)).toEqual({ casts: 1, roles: 1, performers: 1, castings: 1 });
+  rpc.mockResolvedValue({ data: { casts: 1, roles: 1, performers: 1, castings: 2 }, error: null });
+  expect(await applyCastImport("prod1", payload, existing)).toEqual({ casts: 1, roles: 1, performers: 1, castings: 2 });
   expect(rpc).toHaveBeenCalledWith("import_cast_list", {
     p_production_id: "prod1",
     p_payload: {
@@ -89,9 +92,31 @@ test("applyCastImport sends a resolved payload to the RPC and returns its counts
         { key: "p0", id: "p1" },
         { key: "p1", name: "Kim Lee" },
       ],
-      castings: [{ cast: "c1", role: "r1", performer: "p1", assignment: "ensemble" }],
+      castings: [
+        { cast: "c0", role: "r0", performer: "p0", assignment: "primary" },
+        { cast: "c1", role: "r1", performer: "p1", assignment: "ensemble" },
+      ],
     },
   });
+});
+
+test("applyCastImport drops casts and performers no casting references", async () => {
+  rpc.mockResolvedValue({ data: { casts: 1, roles: 1, performers: 1, castings: 2 }, error: null });
+  const withUnreferenced: ApplyPayload = {
+    ...payload,
+    casts: [...payload.casts, { key: "c2", target: { kind: "new", name: "Unused Cast" } }],
+    performers: [...payload.performers, { key: "p2", target: { kind: "new", name: "Unused Performer" } }],
+  };
+  await applyCastImport("prod1", withUnreferenced, existing);
+  const sentPayload = rpc.mock.calls[0][1].p_payload;
+  expect(sentPayload.casts).toEqual([
+    { key: "c0", id: "c1" },
+    { key: "c1", name: "Blue Cast", color: "red" },
+  ]);
+  expect(sentPayload.performers).toEqual([
+    { key: "p0", id: "p1" },
+    { key: "p1", name: "Kim Lee" },
+  ]);
 });
 
 test("applyCastImport turns unique violations and missing ids into a ConflictError", async () => {
