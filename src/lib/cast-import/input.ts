@@ -64,7 +64,8 @@ async function readDocx(bytes: Buffer): Promise<string> {
   try {
     const { value } = await mammoth.convertToHtml({ buffer: bytes });
     return value;
-  } catch {
+  } catch (err) {
+    console.error("Couldn't read .docx upload:", err);
     throw new ValidationError(UNREADABLE);
   }
 }
@@ -73,7 +74,8 @@ async function readXlsx(bytes: Buffer): Promise<string> {
   let sheets: Awaited<ReturnType<typeof readExcelFile>>;
   try {
     sheets = await readExcelFile(bytes);
-  } catch {
+  } catch (err) {
+    console.error("Couldn't read .xlsx upload:", err);
     throw new ValidationError(UNREADABLE);
   }
   return sheets

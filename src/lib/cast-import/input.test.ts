@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { ValidationError } from "@/lib/errors";
+import { ACCEPTED_EXTENSIONS } from "@/lib/cast-import/limits";
 
 vi.mock("server-only", () => ({}));
 const convertToHtml = vi.fn();
@@ -69,6 +70,7 @@ test(".xlsx sheets become tab-separated text; line breaks inside a cell become s
 });
 
 test("unreadable Word/Excel files get a paste-instead message", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
   convertToHtml.mockRejectedValue(new Error("Can't find end of central directory"));
   await expect(toCastListContent({ text: null, file: file("bad.docx", "x") })).rejects.toThrow(
     "Couldn't read that file — try pasting the text instead.",
@@ -77,6 +79,7 @@ test("unreadable Word/Excel files get a paste-instead message", async () => {
   await expect(toCastListContent({ text: null, file: file("bad.xlsx", "x") })).rejects.toThrow(
     "Couldn't read that file — try pasting the text instead.",
   );
+  expect(console.error).toHaveBeenCalled();
 });
 
 test("unsupported types and files over 4 MB are rejected", async () => {
@@ -85,4 +88,16 @@ test("unsupported types and files over 4 MB are rejected", async () => {
   );
   const big = file("big.pdf", new Uint8Array(4 * 1024 * 1024 + 1));
   await expect(toCastListContent({ text: null, file: big })).rejects.toThrow("Files must be 4 MB or smaller.");
+});
+
+test("every accepted extension is handled by the converter", async () => {
+  const bytes = new Uint8Array([1, 2, 3, 4, 5]); // non-empty bytes
+  convertToHtml.mockResolvedValue({ value: "<p>Alf</p>" });
+  readExcelFile.mockResolvedValue([{ sheet: "S", data: [["Alf"]] }]);
+
+  for (const ext of ACCEPTED_EXTENSIONS) {
+    const result = await toCastListContent({ text: null, file: file("cast" + ext, bytes) });
+    expect(result).toBeDefined();
+    expect(result.length).toBeGreaterThan(0);
+  }
 });
