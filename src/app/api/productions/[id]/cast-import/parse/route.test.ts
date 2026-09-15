@@ -108,3 +108,14 @@ test("400 for input problems, 422 unreadable, 502 service failure", async () => 
   parseCastList.mockRejectedValueOnce(new CastListServiceError("Couldn't read the cast list right now — try again."));
   expect((await POST(req(textForm("x")), ctx("p1"))).status).toBe(502);
 });
+
+test("400 when the body isn't valid form data", async () => {
+  const invalidReq = new Request("http://test", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const res = await POST(invalidReq, ctx("p1"));
+  expect(res.status).toBe(400);
+  expect((await res.json()).error).toBe("Paste a cast list or choose a file.");
+  expect(consoleSpy).toHaveBeenCalled();
+  expect(toCastListContent).not.toHaveBeenCalled();
+  consoleSpy.mockRestore();
+});

@@ -32,7 +32,8 @@ export async function POST(request: Request, { params }: Ctx) {
     let form: FormData;
     try {
       form = await request.formData();
-    } catch {
+    } catch (err) {
+      console.error("Couldn't parse cast import form data:", err);
       throw new ValidationError("Paste a cast list or choose a file.");
     }
     const text = form.get("text");
