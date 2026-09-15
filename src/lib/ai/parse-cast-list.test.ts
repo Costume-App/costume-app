@@ -44,6 +44,8 @@ test("sends the content first, then the instructions, with the JSON schema, on S
   expect(params.output_config.format.type).toBe("json_schema");
   expect(params.messages[0].content[0]).toEqual(content[0]);
   expect(params.messages[0].content.at(-1).type).toBe("text");
+  // Route maxDuration is 120s; the SDK timeout must stay comfortably under that.
+  expect(Anthropic).toHaveBeenCalledWith({ timeout: 100_000, maxRetries: 1 });
 });
 
 test("CAST_IMPORT_MODEL overrides the model; blank falls back", async () => {
@@ -89,6 +91,7 @@ test("a 400 from the API (e.g. a corrupt PDF) is unreadable; other API failures 
   const BadRequest = (Anthropic as unknown as { BadRequestError: new (m: string) => Error }).BadRequestError;
   create.mockRejectedValue(new BadRequest("Could not process PDF"));
   await expect(parseCastList(content)).rejects.toThrow("Couldn't read that file — try pasting the text instead.");
+  expect(console.error).toHaveBeenCalledWith("Cast list AI request rejected:", expect.any(Error));
   create.mockRejectedValue(new Error("socket hang up"));
   await expect(parseCastList(content)).rejects.toThrow(CastListServiceError);
 });

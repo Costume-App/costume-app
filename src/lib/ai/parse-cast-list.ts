@@ -77,7 +77,9 @@ const INSTRUCTIONS = [
 // is schema-constrained and sanitized, only names reach the UI, and nothing is saved until the
 // user confirms the review.
 export async function parseCastList(content: Anthropic.ContentBlockParam[]): Promise<RawExtraction> {
-  const client = new Anthropic();
+  // The parse route's maxDuration is 120s; keep the SDK's own timeout comfortably under that so a
+  // slow request fails with a clear error instead of the route being killed mid-call.
+  const client = new Anthropic({ timeout: 100_000, maxRetries: 1 });
   let response: Anthropic.Message;
   try {
     response = await client.messages.create({
@@ -92,6 +94,7 @@ export async function parseCastList(content: Anthropic.ContentBlockParam[]): Pro
     });
   } catch (err) {
     if (err instanceof Anthropic.BadRequestError) {
+      console.error("Cast list AI request rejected:", err);
       throw new CastListUnreadableError("Couldn't read that file — try pasting the text instead.");
     }
     console.error("Cast list AI call failed:", err);
