@@ -124,3 +124,7 @@ test("Clerk provider is wired to CLERK_LOCALIZATION", () => {
   expect(layout).toContain('import { CLERK_LOCALIZATION } from "@/lib/clerk-localization"');
   expect(layout).toContain("localization={CLERK_LOCALIZATION}");
 });
+
+test("privacy policy covers reading imported cast lists among service-provider functions", () => {
+  expect(PRIVACY).toContain("automated fabric estimates, and reading cast lists you import");
+});

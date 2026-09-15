@@ -13,6 +13,9 @@ import { RoleIconLegend } from "@/components/RoleIconLegend";
 import { usePersistentState } from "@/lib/use-persistent-state";
 import { sortRoles, ROLE_SORT_OPTIONS, type RoleSortMode } from "@/lib/role-sort";
 import { RoleSuggestionBanner, type RoleSuggestion } from "@/components/RoleSuggestionBanner";
+import { CastImportPanel } from "@/components/cast-import/CastImportPanel";
+import { describeCounts } from "@/lib/cast-import/counts";
+import type { ImportCounts, WorkspaceSnapshot } from "@/lib/cast-import/types";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 import type { Assignment } from "@/lib/casting-assignment";
@@ -88,6 +91,20 @@ export function ProductionWorkspace({
     "order",
   );
   const sortedRoles = sortRoles(roles, sortMode, { castings, performers, selectedCastId });
+
+  const [showImport, setShowImport] = useState(false);
+  const [importNote, setImportNote] = useState<string | null>(null);
+
+  // A finished import replaces the cast-list state with fresh server data in one go.
+  function applyImport(workspace: WorkspaceSnapshot, counts: ImportCounts) {
+    setCasts(workspace.casts);
+    setRoles(workspace.roles);
+    setPerformers(workspace.performers);
+    setCastings(workspace.castings);
+    if (!workspace.casts.some((c) => c.id === selectedCastId)) setSelectedCastId(workspace.casts[0]?.id ?? "");
+    setShowImport(false);
+    setImportNote(`Imported ${describeCounts(counts)}.`);
+  }
 
   async function addRole(e: React.FormEvent) {
     e.preventDefault();
@@ -289,6 +306,22 @@ export function ProductionWorkspace({
         )}
       </div>
 
+      {importNote && (
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span>{importNote}</span>
+          <button type="button" onClick={() => setImportNote(null)} className="link-muted">
+            Dismiss
+          </button>
+        </p>
+      )}
+      {showImport && (
+        <CastImportPanel
+          productionId={productionId}
+          onImported={applyImport}
+          onClose={() => setShowImport(false)}
+        />
+      )}
+
       {roles.length === 0 ? (
         <>
           {!suggestDismissed && (
@@ -301,7 +334,16 @@ export function ProductionWorkspace({
             />
           )}
           <p className="rounded-xl border border-dashed border-[var(--field-line)] p-6 text-center muted">
-            No roles yet. Add the first character below.
+            No roles yet. Add the first character below
+            {showImport ? "." : (
+              <>
+                , or{" "}
+                <button type="button" onClick={() => setShowImport(true)} className="link-red">
+                  import a cast list
+                </button>
+                .
+              </>
+            )}
           </p>
         </>
       ) : (
@@ -310,20 +352,27 @@ export function ProductionWorkspace({
             <div className="min-w-0 flex-1">
               <RoleIconLegend />
             </div>
-            <label className="flex shrink-0 items-center gap-1.5 text-sm muted">
-              Sort
-              <select
-                className="field !p-1.5 text-sm"
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as RoleSortMode)}
-              >
-                {ROLE_SORT_OPTIONS.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+              {!showImport && (
+                <button type="button" onClick={() => setShowImport(true)} className="link-muted text-sm">
+                  Import cast list
+                </button>
+              )}
+              <label className="flex shrink-0 items-center gap-1.5 text-sm muted">
+                Sort
+                <select
+                  className="field !p-1.5 text-sm"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as RoleSortMode)}
+                >
+                  {ROLE_SORT_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </li>
           {sortedRoles.map((r) => (
             <RoleCard

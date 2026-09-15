@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { errorResponse } from "@/lib/api";
 import { AuthError } from "@/lib/auth-context";
-import { ValidationError, NotFoundError, PlanLimitError } from "@/lib/errors";
+import { ValidationError, NotFoundError, PlanLimitError, ConflictError } from "@/lib/errors";
 import { PLANS } from "@/lib/billing-plans";
 
 async function body(res: Response) {
@@ -41,4 +41,10 @@ test("errorResponse maps PlanLimitError to 402 with reason and plans", async () 
   expect(body.reason).toBe("needs_unlock");
   expect(body.plans).toEqual(PLANS);
   expect(typeof body.error).toBe("string");
+});
+
+test("ConflictError maps to 409 with its message", async () => {
+  const res = errorResponse(new ConflictError("The cast list changed while you were importing. Reload to see the latest."));
+  expect(res.status).toBe(409);
+  expect((await body(res)).error).toBe("The cast list changed while you were importing. Reload to see the latest.");
 });

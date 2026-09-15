@@ -14,6 +14,14 @@ export class NotFoundError extends Error {
   }
 }
 
+// Thrown when the data changed underneath a multi-step write (e.g. a concurrent edit); maps to HTTP 409.
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
 // Thrown when an action exceeds the org's plan entitlements; maps to HTTP 402.
 export type PlanLimitReason = "needs_unlock" | "needs_seat" | "needs_paid_plan";
 

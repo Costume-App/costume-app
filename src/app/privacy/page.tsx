@@ -72,7 +72,8 @@ export default function PrivacyPage() {
         <P>We do not sell or rent your information.</P>
         <P>
           We use third-party service providers to operate the service — for hosting, account
-          sign-in, payment processing, email delivery, and automated fabric estimates. Each
+          sign-in, payment processing, email delivery, automated fabric estimates, and reading cast
+          lists you import. Each
           receives only the information it needs to perform its function on our behalf. Beyond
           that, we share information only where the law requires it.
         </P>

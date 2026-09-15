@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { AuthError } from "@/lib/auth-context";
-import { ValidationError, NotFoundError, PlanLimitError } from "@/lib/errors";
+import { ValidationError, NotFoundError, PlanLimitError, ConflictError } from "@/lib/errors";
 import { PLANS } from "@/lib/billing-plans";
 
 // Maps known error types to HTTP responses; everything else is a 500.
@@ -16,6 +16,9 @@ export function errorResponse(err: unknown): NextResponse {
   }
   if (err instanceof NotFoundError) {
     return NextResponse.json({ error: err.message }, { status: 404 });
+  }
+  if (err instanceof ConflictError) {
+    return NextResponse.json({ error: err.message }, { status: 409 });
   }
   if (err instanceof SyntaxError) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
