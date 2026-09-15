@@ -62,7 +62,12 @@ function nonEmpty(text: string): string {
 
 async function readDocx(bytes: Buffer): Promise<string> {
   try {
-    const { value } = await mammoth.convertToHtml({ buffer: bytes });
+    // Drop embedded image data — mammoth otherwise inlines images as base64 data URIs, and a
+    // one-page .docx with a logo can trip MAX_TEXT_CHARS on its own.
+    const { value } = await mammoth.convertToHtml(
+      { buffer: bytes },
+      { convertImage: mammoth.images.imgElement(async () => ({ src: "" })) },
+    );
     return value;
   } catch (err) {
     console.error("Couldn't read .docx upload:", err);

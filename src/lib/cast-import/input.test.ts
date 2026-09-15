@@ -4,7 +4,12 @@ import { ACCEPTED_EXTENSIONS } from "@/lib/cast-import/limits";
 
 vi.mock("server-only", () => ({}));
 const convertToHtml = vi.fn();
-vi.mock("mammoth", () => ({ default: { convertToHtml: (...a: unknown[]) => convertToHtml(...a) } }));
+vi.mock("mammoth", () => ({
+  default: {
+    convertToHtml: (...a: unknown[]) => convertToHtml(...a),
+    images: { imgElement: (fn: unknown) => fn },
+  },
+}));
 const readExcelFile = vi.fn();
 vi.mock("read-excel-file/node", () => ({ default: (...a: unknown[]) => readExcelFile(...a) }));
 
@@ -57,7 +62,10 @@ test(".docx is converted to HTML so table cells stay separate", async () => {
   expect(await toCastListContent({ text: null, file: file("cast.docx", "zip") })).toEqual([
     { type: "text", text: "<table><tr><td><p>Alf</p></td><td><p>Ada Finch</p></td></tr></table>" },
   ]);
-  expect(convertToHtml).toHaveBeenCalledWith({ buffer: expect.any(Buffer) });
+  expect(convertToHtml).toHaveBeenCalledWith(
+    { buffer: expect.any(Buffer) },
+    expect.objectContaining({ convertImage: expect.anything() }),
+  );
 });
 
 test(".xlsx sheets become tab-separated text; line breaks inside a cell become semicolons", async () => {
