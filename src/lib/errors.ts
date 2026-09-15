@@ -31,3 +31,6 @@ export class PlanLimitError extends Error {
     this.reason = reason;
   }
 }
+
+// Postgres "invalid input syntax" (e.g. a malformed UUID in a lookup) — callers treat it as not found.
+export const PG_INVALID_TEXT_REPRESENTATION = "22P02";

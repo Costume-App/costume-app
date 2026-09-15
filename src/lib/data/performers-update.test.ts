@@ -36,3 +36,8 @@ test("updatePerformer throws NotFoundError when no row matches", async () => {
   maybeSingle.mockResolvedValue({ data: null, error: null });
   await expect(updatePerformer("nope", "X")).rejects.toBeInstanceOf(NotFoundError);
 });
+
+test("updatePerformer rejects a name over 100 characters", async () => {
+  await expect(updatePerformer("pf1", "x".repeat(101))).rejects.toBeInstanceOf(ValidationError);
+  expect(update).not.toHaveBeenCalled();
+});

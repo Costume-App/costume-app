@@ -86,8 +86,8 @@ export function PerformerPicker({
                 }}
                 className="flex w-full flex-col items-start px-2.5 py-1.5 text-left hover:bg-[var(--bg)] disabled:opacity-50"
               >
-                <span className="font-medium">{m.name}</span>
-                {m.summary && <span className="text-xs muted">{m.summary}</span>}
+                <span className="max-w-full font-medium [overflow-wrap:anywhere]">{m.name}</span>
+                {m.summary && <span className="max-w-full text-xs muted [overflow-wrap:anywhere]">{m.summary}</span>}
               </button>
             </li>
           ))}

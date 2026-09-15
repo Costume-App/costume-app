@@ -9,7 +9,8 @@ const findEqProd = vi.fn(() => ({ maybeSingle: findMaybeSingle }));
 const findEqId = vi.fn(() => ({ eq: findEqProd }));
 const remainingLimit = vi.fn();
 const remainingEq = vi.fn(() => ({ limit: remainingLimit }));
-const deleteEq = vi.fn();
+const deleteSelect = vi.fn();
+const deleteEq = vi.fn(() => ({ select: deleteSelect }));
 const del = vi.fn(() => ({ eq: deleteEq }));
 const select = vi.fn((cols: string) => (cols === "performer_id" ? { eq: findEqId } : { eq: remainingEq }));
 const from = vi.fn((_t: string) => ({ select, delete: del }));
@@ -25,7 +26,7 @@ vi.mock("@/lib/data/performers", () => ({
 import { removeCasting } from "@/lib/data/castings";
 
 beforeEach(() => {
-  [findMaybeSingle, findEqProd, findEqId, remainingLimit, remainingEq, deleteEq, del, select, from, deletePerformer].forEach(
+  [findMaybeSingle, findEqProd, findEqId, remainingLimit, remainingEq, deleteSelect, deleteEq, del, select, from, deletePerformer].forEach(
     (m) => m.mockReset(),
   );
   findEqProd.mockReturnValue({ maybeSingle: findMaybeSingle });
@@ -34,7 +35,8 @@ beforeEach(() => {
   del.mockReturnValue({ eq: deleteEq });
   select.mockImplementation((cols: string) => (cols === "performer_id" ? { eq: findEqId } : { eq: remainingEq }));
   from.mockReturnValue({ select, delete: del });
-  deleteEq.mockResolvedValue({ error: null });
+  deleteEq.mockReturnValue({ select: deleteSelect });
+  deleteSelect.mockResolvedValue({ data: [{ id: "c1" }], error: null });
 });
 
 test("removes only the casting when the performer has other roles", async () => {
@@ -59,5 +61,19 @@ test("deletes the performer when it was their last casting", async () => {
 test("404s a casting outside the production without deleting anything", async () => {
   findMaybeSingle.mockResolvedValue({ data: null, error: null });
   await expect(removeCasting("p1", "cX")).rejects.toBeInstanceOf(NotFoundError);
+  expect(del).not.toHaveBeenCalled();
+});
+
+test("a casting already deleted by a concurrent request 404s and never touches the performer", async () => {
+  findMaybeSingle.mockResolvedValue({ data: { performer_id: "pf1" }, error: null });
+  deleteSelect.mockResolvedValue({ data: [], error: null });
+  await expect(removeCasting("p1", "c1")).rejects.toBeInstanceOf(NotFoundError);
+  expect(remainingEq).not.toHaveBeenCalled();
+  expect(deletePerformer).not.toHaveBeenCalled();
+});
+
+test("a malformed casting id (Postgres 22P02) is a 404, not a 500", async () => {
+  findMaybeSingle.mockResolvedValue({ data: null, error: { code: "22P02", message: 'invalid input syntax for type uuid: "nope"' } });
+  await expect(removeCasting("p1", "nope")).rejects.toBeInstanceOf(NotFoundError);
   expect(del).not.toHaveBeenCalled();
 });

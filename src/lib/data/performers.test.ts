@@ -130,3 +130,14 @@ test("upsertMeasurement rejects when neither value is given", async () => {
     upsertMeasurement({ performerId: "pf1", measurementKey: "waist", unit: "in" }),
   ).rejects.toBeInstanceOf(ValidationError);
 });
+
+test("createPerformer rejects a name over 100 characters", async () => {
+  await expect(createPerformer({ productionId: "p1", label: "x".repeat(101) })).rejects.toBeInstanceOf(ValidationError);
+  expect(insert).not.toHaveBeenCalled();
+});
+
+test("createPerformer accepts exactly 100 characters", async () => {
+  insertSingle.mockResolvedValue({ data: { id: "pf2", label: "y".repeat(100) }, error: null });
+  await createPerformer({ productionId: "p1", label: "y".repeat(100) });
+  expect(insert).toHaveBeenCalledWith({ production_id: "p1", label: "y".repeat(100) });
+});

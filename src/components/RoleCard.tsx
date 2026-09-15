@@ -194,12 +194,12 @@ export function RoleCard({
               <span className="text-[var(--muted)]">{open ? "▾" : "▸"}</span>
               <span className="font-display text-lg font-semibold">{role.name}</span>
               {!open && (
-                <span className="ml-auto flex items-center gap-1.5 text-xs muted">
+                <span className="ml-auto flex min-w-0 items-center gap-1.5 text-xs muted">
                   {hasImages && <ImageIcon />}
                   {hasNotes && <NoteIcon />}
                   <MeasurementDot status={measureAgg} />
                   {hasPieces && <ShirtIcon done={!needsMake} />}
-                  <span className="ml-0.5">{summary}</span>
+                  <span className="ml-0.5 min-w-0 truncate">{summary}</span>
                 </span>
               )}
             </button>
