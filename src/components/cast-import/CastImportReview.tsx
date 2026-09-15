@@ -54,7 +54,7 @@ export function CastImportReview({
             <label key={c.key} className="flex flex-wrap items-center gap-2 text-sm">
               <span className="min-w-0 break-words">{c.label ?? "No cast named"} →</span>
               <select
-                className="field !p-1.5 text-sm"
+                className="field min-w-0 max-w-full !p-1.5 text-sm"
                 value={c.target.kind === "existing" ? c.target.castId : "new"}
                 disabled={busy}
                 onChange={(e) =>
@@ -141,7 +141,7 @@ function RoleReviewCard({ role, draft, existing, analysis, busy, onChange }: Sha
           <span className="min-w-0 flex-1 break-words font-semibold">{existingRole?.name ?? role.sourceName}</span>
         )}
         <select
-          className="field !p-1.5 text-sm"
+          className="field min-w-0 max-w-full !p-1.5 text-sm"
           aria-label={`Where ${role.sourceName} goes`}
           value={target.kind === "existing" ? target.roleId : "new"}
           disabled={busy}
@@ -268,7 +268,7 @@ function CastingRow({
         <span className="min-w-0 break-words font-medium">{name}</span>
         {performer.candidateIds.length > 0 ? (
           <select
-            className="field !p-1 text-xs"
+            className="field min-w-0 max-w-full !p-1 text-xs"
             aria-label={`Who is ${performer.sourceName}`}
             value={pt.kind === "existing" ? pt.performerId : "new"}
             disabled={busy}
