@@ -9,7 +9,7 @@ Set in `.env.local` and Vercel (all five required; `isBillingConfigured()` gates
 - Endpoint: `https://www.measuremycostume.com/api/billing/webhook` (public; verified by signature).
 - Events to send: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`.
 - The signing secret from that endpoint is `STRIPE_WEBHOOK_SECRET`.
-- Local testing: `stripe listen --forward-to localhost:6100/api/billing/webhook` (use the printed `whsec_…` as the local `STRIPE_WEBHOOK_SECRET`), then `stripe trigger checkout.session.completed`.
+- Local testing: `stripe listen --forward-to localhost:3001/api/billing/webhook` (use the printed `whsec_…` as the local `STRIPE_WEBHOOK_SECRET`), then `stripe trigger checkout.session.completed`.
 
 ## Smoke test (test mode)
 1. Fresh org with no plan → `/productions` → New Production → see the gate with real buy buttons.
