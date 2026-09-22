@@ -36,7 +36,9 @@ export function PerformerNotes({ performerId, notes }: { performerId: string; no
       return;
     }
     const { performer } = (await res.json()) as { performer: { notes: string | null } };
-    lastSaved.current = (performer.notes ?? "").trim();
+    const trimmed = performer.notes ?? "";
+    lastSaved.current = trimmed;
+    setValue(trimmed);
     setBusy(false);
     setSaved(true);
   }

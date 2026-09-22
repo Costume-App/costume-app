@@ -8,6 +8,7 @@ const rpc = vi.fn();
 vi.mock("@/lib/data/performers", () => ({
   listPerformers: (...a: unknown[]) => listPerformers(...a),
   getMeasurementsForPerformers: (...a: unknown[]) => getMeasurementsForPerformers(...a),
+  MAX_PERFORMER_NOTES: 4000,
 }));
 vi.mock("@/lib/data/measurement-definitions", () => ({
   listMeasurementDefinitions: (...a: unknown[]) => listMeasurementDefinitions(...a),
@@ -120,6 +121,50 @@ test("refuses two forms in the same payload that target the same existing perfor
     "Two forms are for Ada Finch. Import them separately or remove one.",
   );
   expect(rpc).not.toHaveBeenCalled();
+});
+
+test("rejects a notes append that would push the performer's notes past the limit", async () => {
+  const withNotes: ExistingData = {
+    performers: [{ id: P1, name: "Ada Finch", notes: "e".repeat(3000), measurements: {} }],
+    definitions: [],
+  };
+  const payload: ApplyPayload = {
+    forms: [
+      {
+        performer: { kind: "existing", performerId: P1 },
+        measurements: [],
+        notesAppend: "a".repeat(1001), // 3000 + 2 (separator) + 1001 = 4003 > 4000
+      },
+    ],
+  };
+  await expect(applyMeasurementImport("prod1", payload, withNotes)).rejects.toBeInstanceOf(ValidationError);
+  await expect(applyMeasurementImport("prod1", payload, withNotes)).rejects.toThrow(
+    "Ada Finch's notes would be too long after this import. Shorten their notes or untick the notes block.",
+  );
+  expect(rpc).not.toHaveBeenCalled();
+});
+
+test("allows a notes append that lands exactly at the limit", async () => {
+  rpc.mockResolvedValue({ data: { performers: 0, measurements: 0, notes: 1 }, error: null });
+  const withNotes: ExistingData = {
+    performers: [{ id: P1, name: "Ada Finch", notes: "e".repeat(3000), measurements: {} }],
+    definitions: [],
+  };
+  const payload: ApplyPayload = {
+    forms: [
+      {
+        performer: { kind: "existing", performerId: P1 },
+        measurements: [],
+        notesAppend: "a".repeat(998), // 3000 + 2 (separator) + 998 = 4000, exactly at the limit
+      },
+    ],
+  };
+  await expect(applyMeasurementImport("prod1", payload, withNotes)).resolves.toEqual({
+    performersCreated: 0,
+    measurementsWritten: 0,
+    notesAppended: 1,
+  });
+  expect(rpc).toHaveBeenCalledTimes(1);
 });
 
 test("maps the RPC's P0002 to ConflictError and other errors to Error", async () => {

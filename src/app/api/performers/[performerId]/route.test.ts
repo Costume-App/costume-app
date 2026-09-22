@@ -1,4 +1,5 @@
 import { expect, test, vi, beforeEach } from "vitest";
+import { ValidationError } from "@/lib/errors";
 
 const getAuthContext = vi.fn();
 vi.mock("@/lib/auth-context", async () => {
@@ -14,10 +15,29 @@ vi.mock("@/lib/data/production-access", () => ({
 const deletePerformer = vi.fn();
 const updatePerformer = vi.fn();
 const updatePerformerNotes = vi.fn();
+const MAX_PERFORMER_NAME = 100;
+const MAX_PERFORMER_NOTES = 4000;
 vi.mock("@/lib/data/performers", () => ({
   deletePerformer: (...a: unknown[]) => deletePerformer(...a),
   updatePerformer: (...a: unknown[]) => updatePerformer(...a),
   updatePerformerNotes: (...a: unknown[]) => updatePerformerNotes(...a),
+  // Mirrors the real validators (same rules as updatePerformer/updatePerformerNotes) without
+  // pulling in the real module's supabaseAdmin import.
+  validatePerformerLabel: (label: string) => {
+    const trimmed = label.trim();
+    if (!trimmed) throw new ValidationError("Name is required");
+    if (trimmed.length > MAX_PERFORMER_NAME) {
+      throw new ValidationError(`Name must be ${MAX_PERFORMER_NAME} characters or fewer`);
+    }
+    return trimmed;
+  },
+  validatePerformerNotes: (notes: string | null) => {
+    const trimmed = (notes ?? "").trim();
+    if (trimmed.length > MAX_PERFORMER_NOTES) {
+      throw new ValidationError(`Notes must be ${MAX_PERFORMER_NOTES} characters or fewer`);
+    }
+    return trimmed;
+  },
 }));
 
 import { DELETE, PATCH } from "@/app/api/performers/[performerId]/route";
@@ -88,6 +108,13 @@ test("PATCH with label and notes updates both, label first, and returns the fina
   const labelOrder = updatePerformer.mock.invocationCallOrder[0];
   const notesOrder = updatePerformerNotes.mock.invocationCallOrder[0];
   expect(labelOrder).toBeLessThan(notesOrder);
+});
+
+test("PATCH with a valid label and over-long notes rejects whole, before writing the label", async () => {
+  const res = await PATCH(patchReq({ label: "Jane Banks", notes: "a".repeat(4001) }), ctx("pf1"));
+  expect(res.status).toBe(400);
+  expect(updatePerformer).not.toHaveBeenCalled();
+  expect(updatePerformerNotes).not.toHaveBeenCalled();
 });
 
 test("PATCH with a JSON null body is 400, not 500", async () => {

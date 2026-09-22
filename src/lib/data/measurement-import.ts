@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
-import { getMeasurementsForPerformers, listPerformers } from "@/lib/data/performers";
+import { getMeasurementsForPerformers, listPerformers, MAX_PERFORMER_NOTES } from "@/lib/data/performers";
 import { ConflictError, ValidationError } from "@/lib/errors";
 import { matchKey } from "@/lib/cast-import/normalize";
 import { STALE_IMPORT_MESSAGE } from "@/lib/measurement-import/payload";
@@ -41,6 +41,7 @@ export async function applyMeasurementImport(
   existing: ExistingData,
 ): Promise<ImportResult> {
   const labelById = new Map(existing.performers.map((p) => [p.id, p.name]));
+  const notesById = new Map(existing.performers.map((p) => [p.id, p.notes]));
   const keys = new Set(existing.performers.map((p) => matchKey(p.name)));
   const takenByThisImport = new Map<string, string>();
   const existingIdsInThisImport = new Set<string>();
@@ -52,6 +53,20 @@ export async function applyMeasurementImport(
         throw new ValidationError(`Two forms are for ${label}. Import them separately or remove one.`);
       }
       existingIdsInThisImport.add(form.performer.performerId);
+
+      // Mirror the RPC's concat_ws(E'\n\n', nullif(notes, ''), append) exactly: an empty string
+      // counts as no existing notes, and only a non-empty append (after trim) is written at all.
+      const appendTrimmed = (form.notesAppend ?? "").trim();
+      if (appendTrimmed) {
+        const existingNotes = notesById.get(form.performer.performerId) ?? null;
+        const existingLength = existingNotes ? existingNotes.length : 0;
+        const resultLength = existingLength > 0 ? existingLength + 2 + appendTrimmed.length : appendTrimmed.length;
+        if (resultLength > MAX_PERFORMER_NOTES) {
+          throw new ValidationError(
+            `${label}'s notes would be too long after this import. Shorten their notes or untick the notes block.`,
+          );
+        }
+      }
     }
     if (form.performer.kind === "new") {
       const key = matchKey(form.performer.name);

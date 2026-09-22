@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
-import { deletePerformer, updatePerformer, updatePerformerNotes, type Performer } from "@/lib/data/performers";
+import {
+  deletePerformer,
+  updatePerformer,
+  updatePerformerNotes,
+  validatePerformerLabel,
+  validatePerformerNotes,
+  type Performer,
+} from "@/lib/data/performers";
 import { assertPerformerInOrg } from "@/lib/data/production-access";
 import { ValidationError } from "@/lib/errors";
 
@@ -30,10 +37,18 @@ export async function PATCH(request: Request, { params }: Ctx) {
     }
     const { label, notes } = body as { label?: unknown; notes?: unknown };
     const hasNotes = "notes" in body;
+    const hasLabel = typeof label === "string";
+
+    // Validate everything the body asks to change before writing anything: a valid label
+    // alongside an invalid notes value (or vice versa) must reject whole, not write the
+    // first field and 400 on the second.
+    if (hasLabel) validatePerformerLabel(label);
+    if (hasNotes) validatePerformerNotes(typeof notes === "string" ? notes : null);
+
     let performer: Performer | undefined;
     // Label and notes are independent: a label-only body renames as before, a
     // notes-only body edits notes only, and both together update both, label first.
-    if (typeof label === "string") {
+    if (hasLabel) {
       performer = await updatePerformer(performerId, label);
     }
     if (hasNotes) {
