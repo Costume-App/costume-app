@@ -1,0 +1,167 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e4]:
+      - link "Productions" [ref=e5] [cursor=pointer]:
+        - /url: /productions
+      - link "Inventory" [ref=e6] [cursor=pointer]:
+        - /url: /inventory
+      - link "My Work" [ref=e7] [cursor=pointer]:
+        - /url: /my-work
+      - generic [ref=e8]: combine-qa+clerk_test@example.com
+  - main [ref=e9]:
+    - link "← Cast" [ref=e10] [cursor=pointer]:
+      - /url: /productions/9175286b-d8ab-4439-8381-44d15b9f9852
+    - generic [ref=e11]:
+      - paragraph [ref=e12]: Combine QA
+      - heading "Sarah Lee" [level=1] [ref=e13]
+      - list [ref=e14]:
+        - listitem [ref=e15]: Molly
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "Measurements" [level=2] [ref=e18]
+        - paragraph [ref=e19]: 0 of 20 measured
+      - group [ref=e20]:
+        - generic "Where do I measure?" [ref=e21] [cursor=pointer]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - text: Height
+            - generic [ref=e25]: Total height, no shoes
+          - generic [ref=e26]:
+            - spinbutton "Height (feet)" [ref=e27]
+            - generic [ref=e28]: ft
+            - spinbutton "Height (inches)" [ref=e29]
+            - generic [ref=e30]: in
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - generic [ref=e33]:
+              - text: Weight
+              - generic [ref=e34]: (lb)
+            - generic [ref=e35]: Approximate body weight
+          - spinbutton "Weight (lb) Approximate body weight" [ref=e37]
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - text: Chest / bust
+              - generic [ref=e41]: (in)
+            - generic [ref=e42]: Around the fullest part
+          - spinbutton "Chest / bust (in) Around the fullest part" [ref=e44]
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - text: Waist
+              - generic [ref=e48]: (in)
+            - generic [ref=e49]: Around the natural waistline
+          - spinbutton "Waist (in) Around the natural waistline" [ref=e51]
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - text: Hips
+              - generic [ref=e55]: (in)
+            - generic [ref=e56]: Around the fullest part of the hips
+          - spinbutton "Hips (in) Around the fullest part of the hips" [ref=e58]
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - text: Shoulder width
+              - generic [ref=e62]: (in)
+            - generic [ref=e63]: Seam to seam across the back
+          - spinbutton "Shoulder width (in) Seam to seam across the back" [ref=e65]
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - text: Sleeve length
+              - generic [ref=e69]: (in)
+            - generic [ref=e70]: Shoulder to wrist, arm slightly bent
+          - spinbutton "Sleeve length (in) Shoulder to wrist, arm slightly bent" [ref=e72]
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - text: Back length
+              - generic [ref=e76]: (in)
+            - generic [ref=e77]: Nape of neck to natural waist
+          - spinbutton "Back length (in) Nape of neck to natural waist" [ref=e79]
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - text: Inseam
+              - generic [ref=e83]: (in)
+            - generic [ref=e84]: Crotch to ankle
+          - spinbutton "Inseam (in) Crotch to ankle" [ref=e86]
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - text: Outseam
+              - generic [ref=e90]: (in)
+            - generic [ref=e91]: Waist to ankle
+          - spinbutton "Outseam (in) Waist to ankle" [ref=e93]
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - text: Neck
+              - generic [ref=e97]: (in)
+            - generic [ref=e98]: Around the base of the neck, for collars
+          - spinbutton "Neck (in) Around the base of the neck, for collars" [ref=e100]
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - generic [ref=e103]:
+              - text: Arm circumference
+              - generic [ref=e104]: (in)
+            - generic [ref=e105]: Around the fullest part of the upper arm
+          - spinbutton "Arm circumference (in) Around the fullest part of the upper arm" [ref=e107]
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - generic [ref=e110]:
+              - text: Wrist
+              - generic [ref=e111]: (in)
+            - generic [ref=e112]: Around the wrist bone, for cuffs
+          - spinbutton "Wrist (in) Around the wrist bone, for cuffs" [ref=e114]
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - text: Thigh
+              - generic [ref=e118]: (in)
+            - generic [ref=e119]: Around the fullest part of the thigh
+          - spinbutton "Thigh (in) Around the fullest part of the thigh" [ref=e121]
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - text: Knee
+              - generic [ref=e125]: (in)
+            - generic [ref=e126]: Around the knee, for breeches
+          - spinbutton "Knee (in) Around the knee, for breeches" [ref=e128]
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - generic [ref=e131]:
+              - text: Head circumference
+              - generic [ref=e132]: (in)
+            - generic [ref=e133]: Around the forehead, for hats and headpieces
+          - spinbutton "Head circumference (in) Around the forehead, for hats and headpieces" [ref=e135]
+        - generic [ref=e136]:
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - text: Nape to floor
+              - generic [ref=e139]: (in)
+            - generic [ref=e140]: Center back of the neck straight down to the floor
+          - spinbutton "Nape to floor (in) Center back of the neck straight down to the floor" [ref=e142]
+        - generic [ref=e143]:
+          - generic [ref=e144]:
+            - text: Shirt size
+            - generic [ref=e145]: e.g. XS, S, M, L, XL, XXL, XXXL
+          - textbox "Shirt size e.g. XS, S, M, L, XL, XXL, XXXL" [ref=e147]:
+            - /placeholder: e.g. XS, S, M, L, XL, XXL, XXXL
+        - generic [ref=e148]:
+          - generic [ref=e149]:
+            - text: Pant size
+            - generic [ref=e150]: Waist/Inseam, e.g. 36/30
+          - textbox "Pant size Waist/Inseam, e.g. 36/30" [ref=e152]:
+            - /placeholder: Waist/Inseam, e.g. 36/30
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - text: Shoe size
+            - generic [ref=e155]: e.g. Men's 10 or Women's 8.5
+          - textbox "Shoe size e.g. Men's 10 or Women's 8.5" [ref=e157]:
+            - /placeholder: e.g. Men's 10 or Women's 8.5
+  - button "Open Next.js Dev Tools" [ref=e163] [cursor=pointer]:
+    - img [ref=e164]
+  - alert [ref=e167]

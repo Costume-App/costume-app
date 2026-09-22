@@ -14,7 +14,8 @@ const upsertSingle = vi.fn();
 const upsertSelect = vi.fn(() => ({ single: upsertSingle }));
 const upsert = vi.fn(() => ({ select: upsertSelect }));
 const range = vi.fn();
-const inFn = vi.fn(() => ({ range }));
+const orderForPagedMeasurements = vi.fn(() => ({ range }));
+const inFn = vi.fn(() => ({ order: orderForPagedMeasurements }));
 
 const select = vi.fn((_cols: string) => ({ eq: listEq, in: inFn }));
 const from = vi.fn((_table: string) => ({ select, insert, delete: del, upsert }));
@@ -32,7 +33,7 @@ import {
 
 beforeEach(() => {
   [order, listEq, insertSingle, insertSelect, insert, deleteEq, del, measEq,
-    upsertSingle, upsertSelect, upsert, select, from, range, inFn].forEach((m) => m.mockReset());
+    upsertSingle, upsertSelect, upsert, select, from, range, inFn, orderForPagedMeasurements].forEach((m) => m.mockReset());
   listEq.mockReturnValue({ order });
   measEq.mockReturnValue({ order });
   insertSelect.mockReturnValue({ single: insertSingle });
@@ -40,7 +41,8 @@ beforeEach(() => {
   del.mockReturnValue({ eq: deleteEq });
   upsertSelect.mockReturnValue({ single: upsertSingle });
   upsert.mockReturnValue({ select: upsertSelect });
-  inFn.mockReturnValue({ range });
+  orderForPagedMeasurements.mockReturnValue({ range });
+  inFn.mockReturnValue({ order: orderForPagedMeasurements });
   select.mockReturnValue({ eq: listEq, in: inFn });
   from.mockReturnValue({ select, insert, delete: del, upsert });
 });
@@ -90,6 +92,7 @@ test("getFilledMeasurementCounts pages past PostgREST's row cap", async () => {
   const secondPage = [{ performer_id: "pf1" }];
   range.mockResolvedValueOnce({ data: firstPage, error: null }).mockResolvedValueOnce({ data: secondPage, error: null });
   const counts = await getFilledMeasurementCounts(["pf1", "pf2"]);
+  expect(orderForPagedMeasurements).toHaveBeenCalledWith("id");
   expect(range).toHaveBeenCalledTimes(2);
   expect(range).toHaveBeenNthCalledWith(1, 0, PAGE_SIZE - 1);
   expect(range).toHaveBeenNthCalledWith(2, PAGE_SIZE, PAGE_SIZE * 2 - 1);

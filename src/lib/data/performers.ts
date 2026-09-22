@@ -130,6 +130,7 @@ export async function getFilledMeasurementCounts(
       .from("performer_measurements")
       .select("performer_id")
       .in("performer_id", performerIds)
+      .order("id")
       .range(from, from + FILLED_COUNTS_PAGE_SIZE - 1);
     if (error) throw new Error(error.message);
     const rows = (data ?? []) as { performer_id: string }[];

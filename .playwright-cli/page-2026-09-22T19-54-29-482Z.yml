@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - button "Open organization switcher" [ref=e38] [cursor=pointer]:
+        - generic [ref=e39]:
+          - img "Combine QA Test Org's logo" [ref=e42]
+          - generic "Combine QA Test Org" [ref=e45]
+        - img [ref=e46]
+      - generic [ref=e4]:
+        - link "Productions" [ref=e5] [cursor=pointer]:
+          - /url: /productions
+        - link "Inventory" [ref=e6] [cursor=pointer]:
+          - /url: /inventory
+        - link "My Work" [ref=e7] [cursor=pointer]:
+          - /url: /my-work
+        - generic [ref=e8]: combine-qa+clerk_test@example.com
+        - button "Open user menu" [ref=e49] [cursor=pointer]:
+          - img "'s logo" [ref=e52]
+  - button "Open Next.js Dev Tools" [ref=e32] [cursor=pointer]:
+    - img [ref=e33]
+  - alert [ref=e36]
+  - main [ref=e77]:
+    - generic [ref=e78]:
+      - link "← Productions" [ref=e79] [cursor=pointer]:
+        - /url: /productions
+      - button "Share production →" [ref=e80]
+    - button "Combine QA" [ref=e82]:
+      - heading "Combine QA" [level=1] [ref=e83]
+    - button "▸ Production notes" [ref=e85]
+    - generic [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e88] [cursor=pointer]:
+          - button "Main Cast" [ref=e89]: Main Cast
+          - button "Rename Main Cast" [ref=e91]:
+            - img [ref=e92]
+        - button "Add cast" [ref=e94]: +
+      - generic [ref=e95]:
+        - paragraph [ref=e96]: Know this play's cast? Let AI suggest the standard roles.
+        - generic [ref=e97]:
+          - button "Suggest roles with AI" [ref=e98]
+          - button "Dismiss" [ref=e99]
+      - paragraph [ref=e100]:
+        - text: No roles yet. Add the first character below, or
+        - button "import a cast list" [ref=e101]
+        - text: .
+      - generic [ref=e102]:
+        - textbox "Add a role (character)" [ref=e103]
+        - generic [ref=e104]:
+          - checkbox "Ensemble" [ref=e105]
+          - text: Ensemble
+        - button "Add role" [ref=e106]
+    - button "Delete production" [ref=e109]

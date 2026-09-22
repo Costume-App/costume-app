@@ -14,9 +14,10 @@
 -- onto the kept row, fills the kept row's missing measurements from the dropped rows, and deletes
 -- the dropped rows, all in one transaction.
 --
--- 0037: adds a row lock over every performer the call touches (see below) so a write to a
--- dropped row, committed between the casting move and the delete, raises instead of being
--- silently cascade-deleted.
+-- 0037: locks every performer the call touches, and every measurement row on the dropped
+-- performers, in a stable order (see below), so a concurrent write to a dropped row's castings
+-- or measurements either commits first (and is carried over or moved) or waits and then raises,
+-- instead of being silently lost.
 --
 -- Rules:
 --   * The kept row's measurement values always win. Only keys it lacks are filled.
@@ -56,11 +57,11 @@ begin
     raise exception 'combine_scope: a dropped performer is not in this production' using errcode = 'P0002';
   end if;
 
-  -- Lock every performer this call touches, in a stable order, so a concurrent call touching an
-  -- overlapping set cannot deadlock against this one, and a write to a dropped row racing the
-  -- move below either commits first (and is carried over) or waits and then errors, instead of
-  -- being silently cascade-deleted.
+  -- Lock every performer this call touches, then every measurement row on the dropped
+  -- performers, both in a stable id order so a concurrent call touching an overlapping set
+  -- cannot deadlock against this one.
   perform 1 from performers where id = p_keep or id = any(p_drop) order by id for update;
+  perform 1 from performer_measurements where performer_id = any(p_drop) order by id for update;
 
   -- Move every casting. castings_cast_role_performer_key raises 23505 on a collision.
   update castings set performer_id = p_keep where performer_id = any(p_drop);

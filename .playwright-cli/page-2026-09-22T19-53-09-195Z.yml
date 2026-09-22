@@ -1,0 +1,56 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - banner [ref=e155]:
+    - generic [ref=e156]:
+      - button "Open organization switcher" [ref=e158] [cursor=pointer]:
+        - generic [ref=e159]:
+          - img "Combine QA Test Org's logo" [ref=e162]
+          - generic "Combine QA Test Org" [ref=e165]
+        - img [ref=e166]
+      - generic [ref=e168]:
+        - link "Productions" [ref=e169] [cursor=pointer]:
+          - /url: /productions
+        - link "Inventory" [ref=e170] [cursor=pointer]:
+          - /url: /inventory
+        - link "My Work" [ref=e171] [cursor=pointer]:
+          - /url: /my-work
+        - generic [ref=e172]: combine-qa+clerk_test@example.com
+        - button "Open user menu" [ref=e174] [cursor=pointer]:
+          - img "'s logo" [ref=e177]
+  - main [ref=e194]:
+    - heading "Subscribe to add a production" [level=1] [ref=e195]
+    - paragraph [ref=e196]: "Your current plan doesn’t include another production. Choose a plan to add one:"
+    - generic [ref=e197]:
+      - article [ref=e199]:
+        - heading "Pay Per Production" [level=3] [ref=e200]
+        - paragraph [ref=e201]: $49.99 one-time, per production
+        - list [ref=e202]:
+          - listitem [ref=e203]:
+            - generic [ref=e204]: ✦
+            - generic [ref=e205]: 1 production
+          - listitem [ref=e206]:
+            - generic [ref=e207]: ✦
+            - generic [ref=e208]: 3 makers included
+          - listitem [ref=e209]:
+            - generic [ref=e210]: ✦
+            - generic [ref=e211]: +$10 per extra maker
+        - button "Choose →" [ref=e212]
+      - article [ref=e214]:
+        - generic [ref=e215]: Best value
+        - heading "Unlimited" [level=3] [ref=e216]
+        - paragraph [ref=e217]: $99.99 per year
+        - list [ref=e218]:
+          - listitem [ref=e219]:
+            - generic [ref=e220]: ✦
+            - generic [ref=e221]: Unlimited productions
+          - listitem [ref=e222]:
+            - generic [ref=e223]: ✦
+            - generic [ref=e224]: Unlimited makers
+          - listitem [ref=e225]:
+            - generic [ref=e226]: ✦
+            - generic [ref=e227]: Best for ongoing programs
+        - button "Choose →" [ref=e228]
+    - link "Back" [ref=e230] [cursor=pointer]:
+      - /url: /productions

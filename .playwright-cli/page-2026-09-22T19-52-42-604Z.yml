@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e17]:
+          - heading "Create your account" [level=1] [ref=e18]
+          - paragraph [ref=e19]: Welcome! Please fill in the details to get started.
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic: Email address
+              - textbox "Email address" [disabled]:
+                - /placeholder: Enter your email address
+                - text: combine-qa+clerk_test@example.com
+            - generic [ref=e31]:
+              - generic [ref=e32]:
+                - generic [ref=e33]:
+                  - generic: Password
+                - generic [ref=e35]:
+                  - textbox "Password" [disabled]:
+                    - /placeholder: Create a password
+                    - text: CombineQA-Test-Pass-2026!
+                  - button "Show password" [ref=e37] [cursor=pointer]:
+                    - img [ref=e38]
+              - generic [ref=e41]: Your password meets all the necessary requirements.
+              - paragraph [ref=e69]:
+                - img [ref=e70]
+                - text: Your password meets all the necessary requirements.
+          - generic [ref=e43]:
+            - generic [ref=e45]:
+              - checkbox "I confirm I am legally able to create this account for myself and for my organization, and I agree to the https://www.measuremycostume.com/terms and https://www.measuremycostume.com/privacy." [checked] [disabled]
+              - generic: I confirm I am legally able to create this account for myself and for my organization, and I agree to the https://www.measuremycostume.com/terms and https://www.measuremycostume.com/privacy.
+            - button "Loading" [disabled]:
+              - generic:
+                - generic "Loading"
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]: Already have an account?
+          - link "Sign in" [ref=e55] [cursor=pointer]:
+            - /url: http://localhost:6100/sign-in
+        - generic [ref=e57]:
+          - generic [ref=e59]:
+            - paragraph [ref=e60]: Secured by
+            - link "Clerk logo" [ref=e61] [cursor=pointer]:
+              - /url: https://go.clerk.com/components
+              - img [ref=e62]
+          - paragraph [ref=e67]: Development mode
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]

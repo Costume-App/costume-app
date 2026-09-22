@@ -1,0 +1,143 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - button "Open organization switcher" [ref=e169] [cursor=pointer]:
+        - generic [ref=e170]:
+          - img "Combine QA Test Org's logo" [ref=e173]
+          - generic "Combine QA Test Org" [ref=e176]
+        - img [ref=e177]
+      - generic [ref=e4]:
+        - link "Productions" [ref=e5] [cursor=pointer]:
+          - /url: /productions
+        - link "Inventory" [ref=e6] [cursor=pointer]:
+          - /url: /inventory
+        - link "My Work" [ref=e7] [cursor=pointer]:
+          - /url: /my-work
+        - generic [ref=e8]: combine-qa+clerk_test@example.com
+        - button "Open user menu" [ref=e180] [cursor=pointer]:
+          - img "'s logo" [ref=e183]
+  - button "Open Next.js Dev Tools" [ref=e163] [cursor=pointer]:
+    - img [ref=e164]
+  - alert [ref=e167]
+  - main [ref=e191]:
+    - generic [ref=e192]:
+      - link "← Productions" [ref=e193] [cursor=pointer]:
+        - /url: /productions
+      - button "Share production →" [ref=e194]
+    - button "Combine QA" [ref=e196]:
+      - heading "Combine QA" [level=1] [ref=e197]
+    - button "▸ Production notes" [ref=e199]
+    - generic [ref=e200]:
+      - generic [ref=e201]:
+        - generic [ref=e202] [cursor=pointer]:
+          - button "Main Cast" [ref=e203]: Main Cast
+          - button "Rename Main Cast" [ref=e205]:
+            - img [ref=e206]
+        - button "Add cast" [ref=e208]: +
+      - paragraph [ref=e209]:
+        - generic [ref=e210]: 1 name appears more than once.
+        - button "Combine duplicates" [ref=e211]
+      - list [ref=e212]:
+        - listitem [ref=e213]:
+          - button "▸ Key" [ref=e215]
+          - generic [ref=e216]:
+            - button "Import cast list" [ref=e217]
+            - generic [ref=e218]:
+              - text: Sort
+              - combobox "Sort" [ref=e219]:
+                - option "Order added" [selected]
+                - option "Character A–Z"
+                - option "Performer A–Z"
+        - listitem [ref=e220]:
+          - generic [ref=e221]:
+            - button "▾ Molly" [ref=e222]:
+              - generic [ref=e223]: ▾
+              - generic [ref=e224]: Molly
+            - button "Rename Molly" [ref=e225]:
+              - img [ref=e226]
+            - button "Remove Molly" [ref=e228]: ×
+          - generic [ref=e229]:
+            - generic [ref=e230]:
+              - button "Ideas & Notes" [ref=e231]
+              - button "Cast & Measure" [ref=e232]
+              - button "Costume" [ref=e233]
+            - generic [ref=e234]:
+              - generic [ref=e235]:
+                - checkbox "Ensemble role (no primary or understudies)" [ref=e236]
+                - text: Ensemble role
+                - generic [ref=e237]: (no primary or understudies)
+              - generic [ref=e239]:
+                - img "Measurements in progress" [ref=e240]
+                - link "Sarah Lee" [ref=e243] [cursor=pointer]:
+                  - /url: /productions/9175286b-d8ab-4439-8381-44d15b9f9852/performers/1c1dc9d9-c464-45f9-bf1f-7904bf290ace
+                - button "Rename Sarah Lee" [ref=e244]:
+                  - img [ref=e245]
+                - button "Remove Sarah Lee" [ref=e247]: ×
+              - generic [ref=e249]:
+                - generic [ref=e250]: Understudies
+                - button "+ Add" [ref=e251]
+        - listitem [ref=e252]:
+          - generic [ref=e253]:
+            - button "▾ Orphans" [ref=e254]:
+              - generic [ref=e255]: ▾
+              - generic [ref=e256]: Orphans
+            - button "Rename Orphans" [ref=e257]:
+              - img [ref=e258]
+            - button "Remove Orphans" [ref=e260]: ×
+          - generic [ref=e261]:
+            - generic [ref=e262]:
+              - button "Ideas & Notes" [ref=e263]
+              - button "Cast & Measure" [ref=e264]
+              - button "Costume" [ref=e265]
+            - generic [ref=e266]:
+              - generic [ref=e267]:
+                - checkbox "Ensemble role (no primary or understudies)" [checked] [ref=e268]
+                - text: Ensemble role
+                - generic [ref=e269]: (no primary or understudies)
+              - generic [ref=e270]:
+                - generic [ref=e271]:
+                  - generic [ref=e272]: Ensemble
+                  - button "+ Add performer" [ref=e273]
+                - generic [ref=e275]:
+                  - img "No measurements yet" [ref=e276]
+                  - link "Sarah Lee" [ref=e278] [cursor=pointer]:
+                    - /url: /productions/9175286b-d8ab-4439-8381-44d15b9f9852/performers/22ac51cc-db08-4d97-8323-189d1986e748
+                  - button "Rename Sarah Lee" [ref=e279]:
+                    - img [ref=e280]
+                  - button "Remove Sarah Lee" [ref=e282]: ×
+        - listitem [ref=e283]:
+          - generic [ref=e284]:
+            - button "▾ Sailors" [ref=e285]:
+              - generic [ref=e286]: ▾
+              - generic [ref=e287]: Sailors
+            - button "Rename Sailors" [ref=e288]:
+              - img [ref=e289]
+            - button "Remove Sailors" [ref=e291]: ×
+          - generic [ref=e292]:
+            - generic [ref=e293]:
+              - button "Ideas & Notes" [ref=e294]
+              - button "Cast & Measure" [ref=e295]
+              - button "Costume" [ref=e296]
+            - generic [ref=e297]:
+              - generic [ref=e298]:
+                - checkbox "Ensemble role (no primary or understudies)" [checked] [ref=e299]
+                - text: Ensemble role
+                - generic [ref=e300]: (no primary or understudies)
+              - generic [ref=e301]:
+                - generic [ref=e302]:
+                  - generic [ref=e303]: Ensemble
+                  - button "+ Add performer" [ref=e304]
+                - generic [ref=e306]:
+                  - img "No measurements yet" [ref=e307]
+                  - link "Sarah Lee" [ref=e309] [cursor=pointer]:
+                    - /url: /productions/9175286b-d8ab-4439-8381-44d15b9f9852/performers/1a7bb790-1e20-4ed5-bde3-ae8866588ab5
+                  - button "Rename Sarah Lee" [ref=e310]:
+                    - img [ref=e311]
+                  - button "Remove Sarah Lee" [ref=e313]: ×
+      - generic [ref=e314]:
+        - textbox "Add a role (character)" [ref=e315]
+        - generic [ref=e316]:
+          - checkbox "Ensemble" [ref=e317]
+          - text: Ensemble
+        - button "Add role" [ref=e318]
+    - button "Delete production" [ref=e321]

@@ -1,0 +1,135 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: Measure My Costume
+        - generic [ref=e6]:
+          - link "Pricing" [ref=e7] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Request a demo" [ref=e8] [cursor=pointer]:
+            - /url: mailto:hello@measuremycostume.com?subject=Demo%20request%20%E2%80%94%20Measure%20My%20Costume
+          - link "Log in" [ref=e9] [cursor=pointer]:
+            - /url: /sign-in
+    - generic [ref=e11]:
+      - paragraph [ref=e12]:
+        - generic [ref=e13]: ✦
+        - text: The costume shop, organized
+        - generic [ref=e14]: ✦
+      - heading "Measure My Costume" [level=1] [ref=e15]
+      - paragraph [ref=e16]: Every costume, every cast member, every yard — in one place.
+      - generic [ref=e17]:
+        - link "Get started →" [ref=e18] [cursor=pointer]:
+          - /url: /sign-up
+        - link "Request a demo" [ref=e19] [cursor=pointer]:
+          - /url: mailto:hello@measuremycostume.com?subject=Demo%20request%20%E2%80%94%20Measure%20My%20Costume
+      - paragraph [ref=e20]: Built for school & community theater programs
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - paragraph [ref=e23]: The program
+        - heading "Everything a Production Needs, in One Place" [level=2] [ref=e24]
+      - generic [ref=e25]:
+        - generic [ref=e27]: Act I · Costumes & Inventory
+        - generic [ref=e29]:
+          - article [ref=e30]:
+            - img [ref=e32]
+            - heading "Source Every Piece" [level=3] [ref=e38]
+            - paragraph [ref=e39]: "Decide each costume: make it, buy it, or pull it from inventory."
+          - article [ref=e40]:
+            - img [ref=e42]
+            - heading "Piece Inspiration" [level=3] [ref=e45]
+            - paragraph [ref=e46]: Collect photos and ideas for every costume piece in one place.
+          - article [ref=e47]:
+            - img [ref=e49]
+            - heading "House Inventory" [level=3] [ref=e52]
+            - paragraph [ref=e53]: Track your stock with photos and a storage location for every piece.
+          - article [ref=e54]:
+            - img [ref=e56]
+            - heading "Automatic Fabric Estimates" [level=3] [ref=e62]
+            - paragraph [ref=e63]: Get the yardage for every costume piece, calculated automatically.
+      - generic [ref=e64]:
+        - generic [ref=e66]: Act II · Production
+        - generic [ref=e68]:
+          - article [ref=e69]:
+            - img [ref=e71]
+            - heading "Everything in One Place" [level=3] [ref=e76]
+            - paragraph [ref=e77]: Casts, roles, costumes, fabric, and budget for a whole show — together.
+          - article [ref=e78]:
+            - img [ref=e80]
+            - heading "Auto-Built Cast Lists" [level=3] [ref=e85]
+            - paragraph [ref=e86]: Generate the standard roles for popular productions in a click.
+          - article [ref=e87]:
+            - img [ref=e89]
+            - heading "Character Boards" [level=3] [ref=e93]
+            - paragraph [ref=e94]: Pin reference photos, ideas, and notes to every role.
+          - article [ref=e95]:
+            - img [ref=e97]
+            - heading "Cast Measurements" [level=3] [ref=e100]
+            - paragraph [ref=e101]: Capture each performer's measurements right where you need them.
+      - generic [ref=e102]:
+        - generic [ref=e104]: Act III · Cost
+        - article [ref=e107]:
+          - img [ref=e109]
+          - heading "Cost at a Glance" [level=3] [ref=e112]
+          - paragraph [ref=e113]: See your production's whole estimated cost in one place.
+    - generic [ref=e114]:
+      - generic [ref=e115]:
+        - paragraph [ref=e116]: Pricing
+        - heading "Simple Plans for Every Program" [level=2] [ref=e117]
+      - generic [ref=e118]:
+        - article [ref=e119]:
+          - heading "Pay Per Production" [level=3] [ref=e120]
+          - paragraph [ref=e121]: $49.99 one-time, per production
+          - list [ref=e122]:
+            - listitem [ref=e123]:
+              - generic [ref=e124]: ✦
+              - generic [ref=e125]: 1 production
+            - listitem [ref=e126]:
+              - generic [ref=e127]: ✦
+              - generic [ref=e128]: 3 makers included
+            - listitem [ref=e129]:
+              - generic [ref=e130]: ✦
+              - generic [ref=e131]: +$10 per extra maker
+          - link "Get started →" [ref=e132] [cursor=pointer]:
+            - /url: /get-started?plan=unlock
+        - article [ref=e133]:
+          - generic [ref=e134]: Best value
+          - heading "Unlimited" [level=3] [ref=e135]
+          - paragraph [ref=e136]: $99.99 per year
+          - list [ref=e137]:
+            - listitem [ref=e138]:
+              - generic [ref=e139]: ✦
+              - generic [ref=e140]: Unlimited productions
+            - listitem [ref=e141]:
+              - generic [ref=e142]: ✦
+              - generic [ref=e143]: Unlimited makers
+            - listitem [ref=e144]:
+              - generic [ref=e145]: ✦
+              - generic [ref=e146]: Best for ongoing programs
+          - link "Get started →" [ref=e147] [cursor=pointer]:
+            - /url: /get-started?plan=unlimited
+    - generic [ref=e150]:
+      - paragraph [ref=e151]: Curtain call
+      - heading "Ready for Your Next Production?" [level=2] [ref=e152]
+      - paragraph [ref=e153]: Spin up the show, build the cast, and let the costumes follow.
+      - generic [ref=e154]:
+        - link "Get started →" [ref=e155] [cursor=pointer]:
+          - /url: /sign-up
+        - link "Request a demo" [ref=e156] [cursor=pointer]:
+          - /url: mailto:hello@measuremycostume.com?subject=Demo%20request%20%E2%80%94%20Measure%20My%20Costume
+    - contentinfo [ref=e157]:
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - paragraph [ref=e160]: Measure My Costume
+          - paragraph [ref=e161]: Production & costume management for the stage.
+        - generic [ref=e162]:
+          - link "Log in" [ref=e163] [cursor=pointer]:
+            - /url: /sign-in
+          - link "Get started" [ref=e164] [cursor=pointer]:
+            - /url: /sign-up
+          - link "Contact" [ref=e165] [cursor=pointer]:
+            - /url: mailto:hello@measuremycostume.com?subject=Demo%20request%20%E2%80%94%20Measure%20My%20Costume
+          - link "Terms" [ref=e166] [cursor=pointer]:
+            - /url: /terms
+          - link "Privacy" [ref=e167] [cursor=pointer]:
+            - /url: /privacy
+  - alert [ref=e168]

@@ -76,7 +76,7 @@ export function CombineDuplicatesPanel({
         setError(COMBINE_MAYBE_DONE);
       } else if (data.error && data.completed && data.completed > 0) {
         const n = data.completed;
-        setError(`${data.error} ${n} name${n === 1 ? "" : "s"} were already combined. Reload to see them.`);
+        setError(`${data.error} ${n} name${n === 1 ? " was" : "s were"} already combined. Reload to see them.`);
       } else {
         setError(data.error ?? COMBINE_FAILED);
       }
