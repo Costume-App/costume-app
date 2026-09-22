@@ -54,7 +54,10 @@ beforeEach(() => {
 });
 
 test("POST combines each matched group in request order and returns counts plus the snapshot", async () => {
-  const res = await POST(req({ groups: [{ performerIds: [D, C] }, { performerIds: [A, B] }] }), ctx("p1"));
+  const res = await POST(
+    req({ groups: [{ performerIds: [D, C], keepId: C }, { performerIds: [A, B], keepId: A }] }),
+    ctx("p1"),
+  );
   expect(res.status).toBe(200);
   expect(combinePerformers).toHaveBeenNthCalledWith(1, "p1", C, [D]);
   expect(combinePerformers).toHaveBeenNthCalledWith(2, "p1", A, [B]);
@@ -67,8 +70,9 @@ test("POST combines each matched group in request order and returns counts plus 
 
 test("POST 404 when the production is not in the org", async () => {
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await POST(req({ groups: [{ performerIds: [A, B] }] }), ctx("p1"));
+  const res = await POST(req({ groups: [{ performerIds: [A, B], keepId: A }] }), ctx("p1"));
   expect(res.status).toBe(404);
+  expect(loadDuplicateGroups).not.toHaveBeenCalled();
   expect(combinePerformers).not.toHaveBeenCalled();
 });
 
@@ -79,7 +83,14 @@ test("POST 400 on a malformed body", async () => {
 });
 
 test("POST 409 when a requested set is not a current group, and runs nothing", async () => {
-  const res = await POST(req({ groups: [{ performerIds: [A, C] }] }), ctx("p1"));
+  const res = await POST(req({ groups: [{ performerIds: [A, C], keepId: A }] }), ctx("p1"));
+  expect(res.status).toBe(409);
+  await expect(res.json()).resolves.toEqual({ error: "The cast list changed. Reload and review again." });
+  expect(combinePerformers).not.toHaveBeenCalled();
+});
+
+test("POST 409 when the requested keeper does not match the computed keeper, and runs nothing", async () => {
+  const res = await POST(req({ groups: [{ performerIds: [A, B], keepId: B }] }), ctx("p1"));
   expect(res.status).toBe(409);
   await expect(res.json()).resolves.toEqual({ error: "The cast list changed. Reload and review again." });
   expect(combinePerformers).not.toHaveBeenCalled();
@@ -87,7 +98,7 @@ test("POST 409 when a requested set is not a current group, and runs nothing", a
 
 test("POST 409 for a blocked group", async () => {
   loadDuplicateGroups.mockResolvedValue([{ ...group("ava", [A, B]), blocked: { reason: "collision", castId: "ct", roleId: "r" } }]);
-  const res = await POST(req({ groups: [{ performerIds: [A, B] }] }), ctx("p1"));
+  const res = await POST(req({ groups: [{ performerIds: [A, B], keepId: A }] }), ctx("p1"));
   expect(res.status).toBe(409);
   expect(combinePerformers).not.toHaveBeenCalled();
 });
@@ -96,7 +107,10 @@ test("POST stops at the first failing group and reports how many completed", asy
   combinePerformers
     .mockResolvedValueOnce({ castings_moved: 1, measurements_filled: 0, performers_removed: 1 })
     .mockRejectedValueOnce(new ConflictError("Same person is cast twice in one role. Remove one casting first."));
-  const res = await POST(req({ groups: [{ performerIds: [A, B] }, { performerIds: [C, D] }] }), ctx("p1"));
+  const res = await POST(
+    req({ groups: [{ performerIds: [A, B], keepId: A }, { performerIds: [C, D], keepId: C }] }),
+    ctx("p1"),
+  );
   expect(res.status).toBe(409);
   await expect(res.json()).resolves.toEqual({
     error: "Same person is cast twice in one role. Remove one casting first.",

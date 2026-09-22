@@ -111,6 +111,7 @@ import {
   toCombineRequest,
   describeCombineCounts,
   MAX_COMBINE_GROUPS,
+  MAX_GROUP_MEMBERS,
   type DuplicateGroup,
 } from "@/lib/performer-duplicates";
 
@@ -127,49 +128,73 @@ const group = (key: string, ids: string[], blocked: DuplicateGroup["blocked"] = 
 });
 
 test("parseCombineBody accepts well-formed groups of uuids", () => {
-  expect(parseCombineBody({ groups: [{ performerIds: [A, B] }] })).toEqual([{ performerIds: [A, B] }]);
+  expect(parseCombineBody({ groups: [{ performerIds: [A, B], keepId: A }] })).toEqual([
+    { performerIds: [A, B], keepId: A },
+  ]);
 });
 
 test.each([
   ["not an object", "x"],
   ["groups missing", {}],
   ["group not an object", { groups: ["x"] }],
-  ["ids not an array", { groups: [{ performerIds: A }] }],
-  ["fewer than two ids", { groups: [{ performerIds: [A] }] }],
-  ["non-uuid id", { groups: [{ performerIds: [A, "nope"] }] }],
-  ["repeated id inside a group", { groups: [{ performerIds: [A, A] }] }],
+  ["ids not an array", { groups: [{ performerIds: A, keepId: A }] }],
+  ["fewer than two ids", { groups: [{ performerIds: [A], keepId: A }] }],
+  ["non-uuid id", { groups: [{ performerIds: [A, "nope"], keepId: A }] }],
+  ["repeated id inside a group", { groups: [{ performerIds: [A, A], keepId: A }] }],
   ["no groups", { groups: [] }],
+  ["keepId missing", { groups: [{ performerIds: [A, B] }] }],
+  ["keepId not one of performerIds", { groups: [{ performerIds: [A, B], keepId: C }] }],
 ])("parseCombineBody rejects %s", (_label, body) => {
   expect(() => parseCombineBody(body)).toThrow(ValidationError);
 });
 
 test("parseCombineBody rejects more than MAX_COMBINE_GROUPS groups", () => {
-  const groups = Array.from({ length: MAX_COMBINE_GROUPS + 1 }, () => ({ performerIds: [A, B] }));
+  const groups = Array.from({ length: MAX_COMBINE_GROUPS + 1 }, () => ({ performerIds: [A, B], keepId: A }));
   expect(() => parseCombineBody({ groups })).toThrow(ValidationError);
+});
+
+test("parseCombineBody rejects more than MAX_GROUP_MEMBERS ids in one group", () => {
+  const performerIds = Array.from(
+    { length: MAX_GROUP_MEMBERS + 1 },
+    (_, i) => `${(i + 1).toString(16).padStart(8, "0")}-1111-4111-8111-111111111111`,
+  );
+  expect(() => parseCombineBody({ groups: [{ performerIds, keepId: performerIds[0] }] })).toThrow(ValidationError);
 });
 
 test("matchRequestedGroups returns the computed groups in request order when every set matches", () => {
   const computed = [group("ava", [A, B]), group("bo", [C, A])];
-  const matched = matchRequestedGroups([{ performerIds: [A, C] }, { performerIds: [B, A] }], computed);
+  const matched = matchRequestedGroups(
+    [{ performerIds: [A, C], keepId: C }, { performerIds: [B, A], keepId: A }],
+    computed,
+  );
   expect(matched?.map((g) => g.key)).toEqual(["bo", "ava"]);
 });
 
 test.each([
-  ["an id set that matches no group", [{ performerIds: [A, C] }], [group("ava", [A, B])]],
-  ["a partial set", [{ performerIds: [A, B] }], [group("ava", [A, B, C])]],
-  ["a blocked group", [{ performerIds: [A, B] }], [group("ava", [A, B], { reason: "collision", castId: "ct", roleId: "r" })]],
-  ["the same group twice", [{ performerIds: [A, B] }, { performerIds: [B, A] }], [group("ava", [A, B])]],
+  ["an id set that matches no group", [{ performerIds: [A, C], keepId: A }], [group("ava", [A, B])]],
+  ["a partial set", [{ performerIds: [A, B], keepId: A }], [group("ava", [A, B, C])]],
+  [
+    "a blocked group",
+    [{ performerIds: [A, B], keepId: A }],
+    [group("ava", [A, B], { reason: "collision", castId: "ct", roleId: "r" })],
+  ],
+  [
+    "the same group twice",
+    [{ performerIds: [A, B], keepId: A }, { performerIds: [B, A], keepId: A }],
+    [group("ava", [A, B])],
+  ],
+  ["a keeper that does not match the computed keeper", [{ performerIds: [A, B], keepId: B }], [group("ava", [A, B])]],
 ])("matchRequestedGroups returns null for %s", (_label, requested, computed) => {
   expect(matchRequestedGroups(requested, computed)).toBeNull();
 });
 
-test("toCombineRequest sends only selected, unblocked groups with every member id", () => {
+test("toCombineRequest sends only selected, unblocked groups with every member id and the keeper", () => {
   const groups = [
     group("ava", [A, B]),
     group("bo", [C, A], { reason: "collision", castId: "ct", roleId: "r" }),
     group("cy", [B, C]),
   ];
-  expect(toCombineRequest(groups, new Set(["ava", "bo"]))).toEqual([{ performerIds: [A, B] }]);
+  expect(toCombineRequest(groups, new Set(["ava", "bo"]))).toEqual([{ performerIds: [A, B], keepId: A }]);
 });
 
 test("describeCombineCounts pluralizes", () => {

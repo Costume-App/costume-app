@@ -74,11 +74,13 @@ export function findDuplicateGroups(input: DuplicateInput): DuplicateGroup[] {
 }
 
 export const MAX_COMBINE_GROUPS = 200;
+export const MAX_GROUP_MEMBERS = 500;
 export const CAST_LIST_CHANGED = "The cast list changed. Reload and review again.";
 export const COMBINE_COLLISION = "Same person is cast twice in one role. Remove one casting first.";
 
 export interface CombineRequestGroup {
   performerIds: string[];
+  keepId: string;
 }
 
 export interface CombineCounts {
@@ -103,12 +105,19 @@ export function parseCombineBody(body: unknown): CombineRequestGroup[] {
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new ValidationError(INVALID);
     const ids = (raw as { performerIds?: unknown }).performerIds;
     if (!Array.isArray(ids) || ids.length < 2) throw new ValidationError(INVALID);
+    if (ids.length > MAX_GROUP_MEMBERS) {
+      throw new ValidationError(`Combine at most ${MAX_GROUP_MEMBERS} names in one group.`);
+    }
     const performerIds = ids.map((id) => {
       if (typeof id !== "string" || !UUID.test(id)) throw new ValidationError(INVALID);
       return id;
     });
     if (new Set(performerIds).size !== performerIds.length) throw new ValidationError(INVALID);
-    return { performerIds };
+    const keepId = (raw as { keepId?: unknown }).keepId;
+    if (typeof keepId !== "string" || !UUID.test(keepId) || !performerIds.includes(keepId)) {
+      throw new ValidationError(INVALID);
+    }
+    return { performerIds, keepId };
   });
 }
 
@@ -128,7 +137,7 @@ export function matchRequestedGroups(
   for (const r of requested) {
     const key = setKey(r.performerIds);
     const g = byMembers.get(key);
-    if (!g || g.blocked || used.has(key)) return null;
+    if (!g || g.blocked || used.has(key) || g.keepId !== r.keepId) return null;
     used.add(key);
     matched.push(g);
   }
@@ -139,7 +148,7 @@ export function matchRequestedGroups(
 export function toCombineRequest(groups: DuplicateGroup[], selectedKeys: ReadonlySet<string>): CombineRequestGroup[] {
   return groups
     .filter((g) => selectedKeys.has(g.key) && !g.blocked)
-    .map((g) => ({ performerIds: g.members.map((m) => m.performerId) }));
+    .map((g) => ({ performerIds: g.members.map((m) => m.performerId), keepId: g.keepId }));
 }
 
 export function describeCombineCounts(counts: CombineCounts): string {

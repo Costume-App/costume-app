@@ -64,14 +64,22 @@ export function CombineDuplicatesPanel({
         counts?: CombineCounts;
         workspace?: WorkspaceSnapshot;
         error?: string;
+        completed?: number;
       };
       if (res.ok && data.counts && data.workspace) {
         onCombined(data.workspace, data.counts); // the parent closes this panel
         return;
       }
       // A 5xx may mean some groups committed before the response failed; a 4xx is a clean
-      // rejection whose message says what to do.
-      setError(res.status >= 500 ? COMBINE_MAYBE_DONE : (data.error ?? COMBINE_FAILED));
+      // rejection whose message says what to do, plus how far a partial batch got.
+      if (res.status >= 500) {
+        setError(COMBINE_MAYBE_DONE);
+      } else if (data.error && data.completed && data.completed > 0) {
+        const n = data.completed;
+        setError(`${data.error} ${n} name${n === 1 ? "" : "s"} were already combined. Reload to see them.`);
+      } else {
+        setError(data.error ?? COMBINE_FAILED);
+      }
     } catch {
       setError(COMBINE_MAYBE_DONE);
     }
