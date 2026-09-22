@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CAST_COLORS,
   castColorHex,
@@ -19,6 +19,8 @@ import type { ImportCounts, WorkspaceSnapshot } from "@/lib/cast-import/types";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
 import type { CostumePiece } from "@/lib/data/costume-pieces";
 import type { Assignment } from "@/lib/casting-assignment";
+import { CombineDuplicatesPanel } from "@/components/CombineDuplicatesPanel";
+import { findDuplicateGroups, describeCombineCounts, type CombineCounts } from "@/lib/performer-duplicates";
 
 export type MeasureStatus = "none" | "partial" | "complete";
 export interface Cast { id: string; name: string; color: string }
@@ -39,6 +41,7 @@ export function ProductionWorkspace({
   initialPerformers,
   initialCastings,
   measurementStatus,
+  filledCounts,
   imageRoleIds,
   initialDesigns,
   initialPieces,
@@ -52,6 +55,7 @@ export function ProductionWorkspace({
   initialPerformers: Performer[];
   initialCastings: Casting[];
   measurementStatus: Record<string, MeasureStatus>;
+  filledCounts: Record<string, number>;
   imageRoleIds: string[];
   initialDesigns: CostumeDesign[];
   initialPieces: CostumePiece[];
@@ -66,7 +70,7 @@ export function ProductionWorkspace({
     initialCasts[0]?.id ?? "",
   );
   // Shared workspace data lives here so both tabs (and cast switches) stay live
-  // without a reload — the role cards' panels mutate these via the setters below.
+  // without a reload, since the role cards' panels mutate these via the setters below.
   const [roles, setRoles] = useState<Role[]>(initialRoles);
   const [performers, setPerformers] = useState<Performer[]>(initialPerformers);
   const [castings, setCastings] = useState<Casting[]>(initialCastings);
@@ -94,6 +98,13 @@ export function ProductionWorkspace({
 
   const [showImport, setShowImport] = useState(false);
   const [importNote, setImportNote] = useState<string | null>(null);
+  const [showCombine, setShowCombine] = useState(false);
+  // Same-name performers, kept live from workspace state so the notice follows renames,
+  // adds, removals, imports and combines without a reload.
+  const duplicateGroups = useMemo(
+    () => findDuplicateGroups({ performers, castings, filledCounts }),
+    [performers, castings, filledCounts],
+  );
 
   // A finished import replaces the cast-list state with fresh server data in one go.
   function applyImport(workspace: WorkspaceSnapshot, counts: ImportCounts) {
@@ -104,6 +115,17 @@ export function ProductionWorkspace({
     if (!workspace.casts.some((c) => c.id === selectedCastId)) setSelectedCastId(workspace.casts[0]?.id ?? "");
     setShowImport(false);
     setImportNote(`Imported ${describeCounts(counts)}.`);
+  }
+
+  // A finished combine replaces the cast-list state with fresh server data, like an import.
+  function applyCombine(workspace: WorkspaceSnapshot, counts: CombineCounts) {
+    setCasts(workspace.casts);
+    setRoles(workspace.roles);
+    setPerformers(workspace.performers);
+    setCastings(workspace.castings);
+    if (!workspace.casts.some((c) => c.id === selectedCastId)) setSelectedCastId(workspace.casts[0]?.id ?? "");
+    setShowCombine(false);
+    setImportNote(describeCombineCounts(counts));
   }
 
   async function addRole(e: React.FormEvent) {
@@ -314,6 +336,35 @@ export function ProductionWorkspace({
           </button>
         </p>
       )}
+      {duplicateGroups.length > 0 && !showCombine && (
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span>
+            {duplicateGroups.length === 1 ? "1 name appears" : `${duplicateGroups.length} names appear`} more than
+            once.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setShowImport(false);
+              setShowCombine(true);
+            }}
+            className="link-red"
+          >
+            Combine duplicates
+          </button>
+        </p>
+      )}
+      {showCombine && (
+        <CombineDuplicatesPanel
+          productionId={productionId}
+          groups={duplicateGroups}
+          roles={roles}
+          casts={casts}
+          measurementStatus={measurementStatus}
+          onCombined={applyCombine}
+          onClose={() => setShowCombine(false)}
+        />
+      )}
       {showImport && (
         <CastImportPanel
           productionId={productionId}
@@ -338,7 +389,14 @@ export function ProductionWorkspace({
             {showImport ? "." : (
               <>
                 , or{" "}
-                <button type="button" onClick={() => setShowImport(true)} className="link-red">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCombine(false);
+                    setShowImport(true);
+                  }}
+                  className="link-red"
+                >
                   import a cast list
                 </button>
                 .
@@ -354,7 +412,14 @@ export function ProductionWorkspace({
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
               {!showImport && (
-                <button type="button" onClick={() => setShowImport(true)} className="link-muted text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCombine(false);
+                    setShowImport(true);
+                  }}
+                  className="link-muted text-sm"
+                >
                   Import cast list
                 </button>
               )}

@@ -87,6 +87,9 @@ export default function GuidePage() {
             <LI><B>Ensemble roles</B> — tick <B>Ensemble</B> when adding a role (or on its Cast &amp; Measure
               tab) for groups like &ldquo;Villagers&rdquo;: no primary or understudies, just a list of
               performers who each need a costume.</LI>
+            <LI><B>Combine duplicates</B>: if the same person was added under several roles as separate
+              entries, the cast list offers <I>Combine duplicates</I>. It keeps one entry per name, moves
+              every role onto it, and carries the measurements over, so you only take them once.</LI>
           </UL>
         </Section>
 

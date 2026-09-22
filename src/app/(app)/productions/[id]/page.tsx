@@ -146,6 +146,7 @@ export default async function ProductionDetailPage({
           assignment: c.assignment,
         }))}
         measurementStatus={measurementStatus}
+        filledCounts={filledCounts}
         imageRoleIds={imageRoleIds}
         initialDesigns={designs}
         initialPieces={pieces}
