@@ -92,7 +92,6 @@ No database access, so it is unit-testable and shared by the page and the route.
 export interface DuplicateMember {
   performerId: string;
   name: string;              // as stored
-  createdAt: string;
   filledMeasurements: number;
   castings: { castingId: string; castId: string; roleId: string; assignment: Assignment }[];
 }
@@ -105,17 +104,25 @@ export interface DuplicateGroup {
 }
 
 export function findDuplicateGroups(input: {
-  performers: { id: string; label: string; created_at: string }[];
-  castings: { id: string; cast_id: string; role_id: string; performer_id: string; assignment: Assignment }[];
+  performers: { id: string; name: string }[];
+  castings: { id: string; castId: string; roleId: string; performerId: string; assignment: Assignment }[];
   filledCounts: Record<string, number>;
 }): DuplicateGroup[];
+```
+
+The input uses the workspace's camelCase shapes so the page, the route, and the client component
+call the same function without an adapter. Members are returned with the kept member first.
+
+```ts
 ```
 
 Rules:
 
 - Group by `matchKey(label)` from `src/lib/cast-import/normalize.ts`. Groups of one are dropped.
-- `keepId` is the member with the highest `filledMeasurements`; ties go to the earliest
-  `created_at`, then the smallest id for determinism.
+- `keepId` is the member with the highest `filledMeasurements`; ties go to the smallest id.
+  Creation time is deliberately not a tie-breaker: the client does not hold it for rows added
+  during the session, and the client and server must rank identically so the review's "Kept"
+  badge is what the server keeps.
 - `blocked` is set when any two members share a `(cast_id, role_id)` pair, because moving one onto
   the other would violate the castings unique key. The review shows the role and cast so the user
   can remove one casting by hand.
@@ -134,7 +141,8 @@ pure function. `combinePerformers` calls the RPC and maps a `combine_collision` 
 
 ### Route: `POST /api/productions/[id]/performers/combine`
 
-Body: `{ groups: { keepId: string; dropIds: string[] }[] }`, at most 200 groups, ids must be UUIDs.
+Body: `{ groups: { performerIds: string[] }[] }`, at most 200 groups, ids must be UUIDs. The
+client sends each selected group's full member set; the server decides which member is kept.
 
 Steps:
 
@@ -142,8 +150,9 @@ Steps:
 2. Shape-check the body the way `parseApplyPayload` does. Reject on any malformed item with a
    `ValidationError` ("Invalid request. Reload and try again.").
 3. Recompute `loadDuplicateGroups` from fresh data. Every requested group must match a computed
-   group exactly: same `keepId`, same set of `dropIds`, and not `blocked`. A request that does not
-   match is stale (someone renamed or removed a row since the review loaded) and fails with
+   group exactly: the same set of member ids, and not `blocked`; no group may be requested twice.
+   A request that does not match is stale (someone renamed or removed a row since the review
+   loaded) and fails with
    `ConflictError("The cast list changed. Reload and review again.")` before anything runs. This is
    what guarantees the server never merges two different names or a row from another production,
    regardless of what the client sends.
@@ -161,23 +170,24 @@ of data any member can already create and delete row by row.
 
 ### Detection and entry point
 
-`src/app/(app)/productions/[id]/page.tsx` already loads performers, castings, and filled counts. It
-calls `findDuplicateGroups` and passes `duplicateGroups` to `ProductionWorkspace`.
+`src/app/(app)/productions/[id]/page.tsx` already loads performers, castings, and the per-performer
+filled measurement counts it uses for the status indicators. It passes those counts to
+`ProductionWorkspace` as a new `filledCounts` prop (`Record<string, number>`).
 
-In `ProductionWorkspace`, next to the existing "Import cast list" link (line 357 area), when
-`duplicateGroups.length > 0`:
+`ProductionWorkspace` derives `duplicateGroups` with `useMemo` from its live `performers`,
+`castings`, and `filledCounts` state through the same pure function, so the notice updates after
+any change the workspace already tracks (rename, add, remove, import, combine) without a reload.
+A performer added during the session has no entry in `filledCounts` and counts as 0, which is
+true. After a combine, the kept row's count is stale until reload, but its group no longer exists,
+so nothing depends on it. The server's recompute in route step 3 stays the authority.
+
+The notice renders on its own line above the roles list, in the same place the post-import note
+appears, when `duplicateGroups.length > 0` and the panel is closed:
 
 > 14 names appear more than once. [Combine duplicates]
 
-Singular form for one name. The link opens the review panel in the same slot the import panel
-uses. The two panels never show at once.
-
-The workspace recomputes `duplicateGroups` client-side after any change it already tracks
-(rename, add, remove, import) using the same pure function, with `filledMeasurements` taken from
-the server-provided `measurementStatus` as 0, 1, or 2 (none, partial, complete) since exact counts
-are not on the client. Ranking within a group therefore may differ from the server's until reload;
-the review states "Which copy is kept is confirmed when you combine", and the server's recompute in
-step 3 is the authority. Simpler alternative rejected: reloading the page after every edit.
+Singular form for one name. The link opens the review panel in the slot the import panel uses and
+closes the import panel if it was open. The two panels never show at once.
 
 ### Review panel: `src/components/CombineDuplicatesPanel.tsx`
 
@@ -227,8 +237,10 @@ Vitest, following the repo's mock patterns:
 - `api/.../combine/route.test.ts`: 404 outside the org; 400 on malformed body; 409 when a requested
   group is not in the recompute (wrong keeper, extra id, blocked group); sequential run stops at the
   first failure and reports completed count; success returns counts and the snapshot.
-- `CombineDuplicatesPanel.test.tsx`: renders groups, blocked group unchecked and disabled, submit
-  sends only checked groups.
+- The panel's request-building and note-wording helpers live in the pure module and are tested
+  there: a request contains only selected, unblocked groups; the note pluralizes correctly. The
+  Vitest environment is node with no DOM, matching the repo, so the component itself is verified in
+  the browser pass rather than a render test.
 
 Migration verification, per the home CLAUDE.md: confirm the function and its grants through
 `pg_proc` and `has_function_privilege` under `set role postgres`, not `information_schema`.
