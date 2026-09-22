@@ -103,3 +103,80 @@ test("ignores performers whose name normalizes to nothing", () => {
   });
   expect(groups).toEqual([]);
 });
+
+import { ValidationError } from "@/lib/errors";
+import {
+  parseCombineBody,
+  matchRequestedGroups,
+  toCombineRequest,
+  describeCombineCounts,
+  MAX_COMBINE_GROUPS,
+  type DuplicateGroup,
+} from "@/lib/performer-duplicates";
+
+const A = "11111111-1111-4111-8111-111111111111";
+const B = "22222222-2222-4222-8222-222222222222";
+const C = "33333333-3333-4333-8333-333333333333";
+
+const member = (performerId: string, filled = 0) => ({ performerId, name: "Ava", filledMeasurements: filled, castings: [] });
+const group = (key: string, ids: string[], blocked: DuplicateGroup["blocked"] = null): DuplicateGroup => ({
+  key,
+  keepId: ids[0],
+  members: ids.map((id) => member(id)),
+  blocked,
+});
+
+test("parseCombineBody accepts well-formed groups of uuids", () => {
+  expect(parseCombineBody({ groups: [{ performerIds: [A, B] }] })).toEqual([{ performerIds: [A, B] }]);
+});
+
+test.each([
+  ["not an object", "x"],
+  ["groups missing", {}],
+  ["group not an object", { groups: ["x"] }],
+  ["ids not an array", { groups: [{ performerIds: A }] }],
+  ["fewer than two ids", { groups: [{ performerIds: [A] }] }],
+  ["non-uuid id", { groups: [{ performerIds: [A, "nope"] }] }],
+  ["repeated id inside a group", { groups: [{ performerIds: [A, A] }] }],
+  ["no groups", { groups: [] }],
+])("parseCombineBody rejects %s", (_label, body) => {
+  expect(() => parseCombineBody(body)).toThrow(ValidationError);
+});
+
+test("parseCombineBody rejects more than MAX_COMBINE_GROUPS groups", () => {
+  const groups = Array.from({ length: MAX_COMBINE_GROUPS + 1 }, () => ({ performerIds: [A, B] }));
+  expect(() => parseCombineBody({ groups })).toThrow(ValidationError);
+});
+
+test("matchRequestedGroups returns the computed groups in request order when every set matches", () => {
+  const computed = [group("ava", [A, B]), group("bo", [C, A])];
+  const matched = matchRequestedGroups([{ performerIds: [A, C] }, { performerIds: [B, A] }], computed);
+  expect(matched?.map((g) => g.key)).toEqual(["bo", "ava"]);
+});
+
+test.each([
+  ["an id set that matches no group", [{ performerIds: [A, C] }], [group("ava", [A, B])]],
+  ["a partial set", [{ performerIds: [A, B] }], [group("ava", [A, B, C])]],
+  ["a blocked group", [{ performerIds: [A, B] }], [group("ava", [A, B], { reason: "collision", castId: "ct", roleId: "r" })]],
+  ["the same group twice", [{ performerIds: [A, B] }, { performerIds: [B, A] }], [group("ava", [A, B])]],
+])("matchRequestedGroups returns null for %s", (_label, requested, computed) => {
+  expect(matchRequestedGroups(requested, computed)).toBeNull();
+});
+
+test("toCombineRequest sends only selected, unblocked groups with every member id", () => {
+  const groups = [
+    group("ava", [A, B]),
+    group("bo", [C, A], { reason: "collision", castId: "ct", roleId: "r" }),
+    group("cy", [B, C]),
+  ];
+  expect(toCombineRequest(groups, new Set(["ava", "bo"]))).toEqual([{ performerIds: [A, B] }]);
+});
+
+test("describeCombineCounts pluralizes", () => {
+  expect(describeCombineCounts({ groups: 1, castingsMoved: 2, measurementsFilled: 1, performersRemoved: 1 })).toBe(
+    "Combined 1 name; 1 measurement carried over.",
+  );
+  expect(describeCombineCounts({ groups: 3, castingsMoved: 9, measurementsFilled: 0, performersRemoved: 6 })).toBe(
+    "Combined 3 names; 0 measurements carried over.",
+  );
+});

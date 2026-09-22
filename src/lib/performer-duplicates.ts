@@ -2,6 +2,7 @@
 // review panel so all three see the same groups and the same kept row.
 import { matchKey } from "@/lib/cast-import/normalize";
 import type { Assignment } from "@/lib/casting-assignment";
+import { ValidationError } from "@/lib/errors";
 
 export interface DuplicateMember {
   performerId: string;
@@ -70,4 +71,79 @@ export function findDuplicateGroups(input: DuplicateInput): DuplicateGroup[] {
   }
   groups.sort((a, b) => a.members[0].name.localeCompare(b.members[0].name, undefined, { sensitivity: "base" }));
   return groups;
+}
+
+export const MAX_COMBINE_GROUPS = 200;
+export const CAST_LIST_CHANGED = "The cast list changed. Reload and review again.";
+export const COMBINE_COLLISION = "Same person is cast twice in one role. Remove one casting first.";
+
+export interface CombineRequestGroup {
+  performerIds: string[];
+}
+
+export interface CombineCounts {
+  groups: number;
+  castingsMoved: number;
+  measurementsFilled: number;
+  performersRemoved: number;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const INVALID = "Invalid request. Reload and try again.";
+
+// Shape-check an untrusted body. Whether the ids form a real group is matchRequestedGroups' job.
+export function parseCombineBody(body: unknown): CombineRequestGroup[] {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) throw new ValidationError(INVALID);
+  const groups = (body as { groups?: unknown }).groups;
+  if (!Array.isArray(groups) || groups.length === 0) throw new ValidationError(INVALID);
+  if (groups.length > MAX_COMBINE_GROUPS) {
+    throw new ValidationError(`Combine at most ${MAX_COMBINE_GROUPS} names at a time.`);
+  }
+  return groups.map((raw): CombineRequestGroup => {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new ValidationError(INVALID);
+    const ids = (raw as { performerIds?: unknown }).performerIds;
+    if (!Array.isArray(ids) || ids.length < 2) throw new ValidationError(INVALID);
+    const performerIds = ids.map((id) => {
+      if (typeof id !== "string" || !UUID.test(id)) throw new ValidationError(INVALID);
+      return id;
+    });
+    if (new Set(performerIds).size !== performerIds.length) throw new ValidationError(INVALID);
+    return { performerIds };
+  });
+}
+
+function setKey(ids: string[]): string {
+  return [...ids].sort().join("|");
+}
+
+// Every requested id set must be exactly one computed, unblocked group, and no group twice.
+// Returns the computed groups in request order, or null when anything does not line up.
+export function matchRequestedGroups(
+  requested: CombineRequestGroup[],
+  computed: DuplicateGroup[],
+): DuplicateGroup[] | null {
+  const byMembers = new Map(computed.map((g) => [setKey(g.members.map((m) => m.performerId)), g]));
+  const used = new Set<string>();
+  const matched: DuplicateGroup[] = [];
+  for (const r of requested) {
+    const key = setKey(r.performerIds);
+    const g = byMembers.get(key);
+    if (!g || g.blocked || used.has(key)) return null;
+    used.add(key);
+    matched.push(g);
+  }
+  return matched;
+}
+
+// What the review panel submits: the selected, unblocked groups, each as its full member set.
+export function toCombineRequest(groups: DuplicateGroup[], selectedKeys: ReadonlySet<string>): CombineRequestGroup[] {
+  return groups
+    .filter((g) => selectedKeys.has(g.key) && !g.blocked)
+    .map((g) => ({ performerIds: g.members.map((m) => m.performerId) }));
+}
+
+export function describeCombineCounts(counts: CombineCounts): string {
+  const names = counts.groups === 1 ? "1 name" : `${counts.groups} names`;
+  const filled = counts.measurementsFilled === 1 ? "1 measurement" : `${counts.measurementsFilled} measurements`;
+  return `Combined ${names}; ${filled} carried over.`;
 }
