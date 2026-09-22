@@ -1,10 +1,16 @@
 import { MAX_IMAGE_EDGE } from "@/lib/measurement-import/limits";
 
+// Some browsers and file pickers leave File.type empty, so fall back to the extension.
+export function isImageFile(file: { type: string; name: string }): boolean {
+  if (file.type) return file.type.startsWith("image/");
+  return /\.(jpe?g|png)$/i.test(file.name);
+}
+
 // Shrink a phone photo before upload. Phone JPEGs run 2 to 9 MB and Vercel caps request bodies
 // at 4.5 MB; handwriting is still readable at 2000 px on the long edge. PDFs and anything that
 // cannot be decoded are returned untouched.
 export async function downscaleImage(file: File, maxEdge: number = MAX_IMAGE_EDGE): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
+  if (!isImageFile(file)) return file;
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });

@@ -2,16 +2,9 @@
 
 import { formatHeight } from "@/lib/height";
 import { MAX_NEW_PERFORMER_NAME } from "@/lib/measurement-import/limits";
-import { contributes, reviewBlocks } from "@/lib/measurement-import/review";
+import { contributes, orderedEntries, reviewBlocks, type ParseFailure } from "@/lib/measurement-import/review";
 import { fieldStatus } from "@/lib/measurement-import/status";
 import type { ExistingData, FieldStatus, FormDraft, FormSelection, PerformerTarget } from "@/lib/measurement-import/types";
-
-export interface ParseFailure {
-  id: string;
-  fileName: string;
-  message: string;
-  retryable: boolean;
-}
 
 const STATUS_LABEL: Record<FieldStatus, string> = {
   new: "new",
@@ -44,6 +37,7 @@ function Thumb({ url }: { url: string | undefined }) {
 // One card per read photo: who it is for, every recognized field against what is saved, and the
 // notes block. Ticked rows are what the import writes.
 export function MeasurementImportReview({
+  order,
   drafts,
   existing,
   selections,
@@ -57,6 +51,7 @@ export function MeasurementImportReview({
   onRetry,
   onImport,
 }: {
+  order: string[];
   drafts: FormDraft[];
   existing: ExistingData;
   selections: Record<string, FormSelection>;
@@ -74,6 +69,7 @@ export function MeasurementImportReview({
   const labels = new Map(existing.definitions.map((d) => [d.key, d.label]));
   const blocks = reviewBlocks(drafts, existing, selections);
   const cardBlocked = Object.keys(blocks.cards).length > 0;
+  const entries = orderedEntries(order, drafts, failures);
 
   const importable = drafts.filter((d) => {
     const hasName = d.performer.kind === "existing" || d.performer.name.trim() !== "";
@@ -82,27 +78,30 @@ export function MeasurementImportReview({
 
   return (
     <div className="space-y-4">
-      {failures.map((f) => (
-        <div key={f.id} className="flex items-start gap-3 rounded-xl border border-[var(--field-line)] p-4 text-sm">
-          <Thumb url={thumbs[f.id]} />
-          <div className="min-w-0">
-            <p className="font-medium">{f.fileName}</p>
-            <p className="text-[var(--red)]">{f.message}</p>
-            <p className="mt-1 flex gap-3">
-              {f.retryable && (
-                <button type="button" onClick={() => onRetry(f.id)} disabled={busy} className="link-red">
-                  Try again
-                </button>
-              )}
-              <button type="button" onClick={() => onRemove(f.id)} disabled={busy} className="link-muted">
-                Remove
-              </button>
-            </p>
-          </div>
-        </div>
-      ))}
-
-      {drafts.map((draft) => {
+      {entries.map((entry) => {
+        if (entry.kind === "failure") {
+          const f = entry.failure;
+          return (
+            <div key={f.id} className="flex items-start gap-3 rounded-xl border border-[var(--field-line)] p-4 text-sm">
+              <Thumb url={thumbs[f.id]} />
+              <div className="min-w-0">
+                <p className="font-medium">{f.fileName}</p>
+                <p className="text-[var(--red)]">{f.message}</p>
+                <p className="mt-1 flex gap-3">
+                  {f.retryable && (
+                    <button type="button" onClick={() => onRetry(f.id)} disabled={busy} className="link-red">
+                      Try again
+                    </button>
+                  )}
+                  <button type="button" onClick={() => onRemove(f.id)} disabled={busy} className="link-muted">
+                    Remove
+                  </button>
+                </p>
+              </div>
+            </div>
+          );
+        }
+        const draft = entry.draft;
         const selection = selections[draft.id] ?? { fields: {}, notes: false };
         const chosen = draft.performer.kind === "existing" ? byId.get(draft.performer.performerId) : undefined;
         const saved = chosen?.measurements ?? {};
@@ -228,8 +227,11 @@ export function MeasurementImportReview({
         );
       })}
 
-      {blocks.missingName.length > 0 && <p className="text-sm text-[var(--red)]">Give every form a performer before importing.</p>}
-      {cardBlocked && <p className="text-sm text-[var(--red)]">Fix the forms marked in red before importing.</p>}
+      {blocks.missingName.length > 0 ? (
+        <p className="text-sm text-[var(--red)]">Give every form a performer before importing.</p>
+      ) : (
+        cardBlocked && <p className="text-sm text-[var(--red)]">Fix the forms marked in red before importing.</p>
+      )}
       <button
         type="button"
         onClick={onImport}

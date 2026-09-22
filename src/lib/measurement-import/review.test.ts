@@ -1,5 +1,13 @@
 import { expect, test } from "vitest";
-import { contributes, initialSelection, reviewBlocks, targetChanged } from "@/lib/measurement-import/review";
+import {
+  contributes,
+  initialSelection,
+  MISSING_NAME_MESSAGE,
+  orderedEntries,
+  reviewBlocks,
+  targetChanged,
+  type ParseFailure,
+} from "@/lib/measurement-import/review";
 import type { ExistingData, FormDraft, FormSelection, PerformerTarget } from "@/lib/measurement-import/types";
 
 const ADA = "11111111-1111-4111-8111-111111111111";
@@ -68,7 +76,7 @@ test("contributes mirrors the apply payload: a ticked readable field or ticked n
 test("reviewBlocks lists a new performer with no name as missing", () => {
   const d = draft("d1", { kind: "new", name: "  " });
   const blocks = reviewBlocks([d], existing, { d1: allOn(d) });
-  expect(blocks).toEqual({ missingName: ["d1"], cards: {} });
+  expect(blocks).toEqual({ missingName: ["d1"], cards: { d1: MISSING_NAME_MESSAGE } });
 });
 
 test("reviewBlocks blocks a new performer whose name is already in the production, ignoring case and spacing", () => {
@@ -102,4 +110,25 @@ test("reviewBlocks ignores a same-target form that sends nothing, and different 
   const c = draft("d3", { kind: "existing", performerId: ADA });
   const blocks = reviewBlocks([a, b, c], existing, { d1: allOn(a), d2: { fields: {}, notes: false }, d3: allOn(c) });
   expect(blocks).toEqual({ missingName: [], cards: {} });
+});
+
+const fail = (id: string): ParseFailure => ({ id, fileName: `${id}.jpg`, message: "x", retryable: true });
+
+test("orderedEntries interleaves drafts and failures in upload order", () => {
+  const a = draft("a", { kind: "existing", performerId: ADA });
+  const c = draft("c", { kind: "existing", performerId: BEN });
+  const entries = orderedEntries(["a", "b", "c"], [c, a], [fail("b")]);
+  expect(entries.map((e) => (e.kind === "draft" ? `draft:${e.draft.id}` : `failure:${e.failure.id}`))).toEqual([
+    "draft:a",
+    "failure:b",
+    "draft:c",
+  ]);
+});
+
+test("orderedEntries puts a retried success back in its original slot and skips ids still being read", () => {
+  const a = draft("a", { kind: "existing", performerId: ADA });
+  const b = draft("b", { kind: "existing", performerId: BEN });
+  // b failed first, was retried and its draft appended last; d is in flight.
+  const entries = orderedEntries(["b", "a", "d"], [a, b], []);
+  expect(entries.map((e) => (e.kind === "draft" ? e.draft.id : e.failure.id))).toEqual(["b", "a"]);
 });

@@ -2,6 +2,35 @@ import { matchKey } from "@/lib/cast-import/normalize";
 import { fieldStatus, preChecked } from "@/lib/measurement-import/status";
 import type { ExistingData, FormDraft, FormSelection, PerformerTarget } from "@/lib/measurement-import/types";
 
+export interface ParseFailure {
+  id: string;
+  fileName: string;
+  message: string;
+  retryable: boolean;
+}
+
+export type ReviewEntry = { kind: "draft"; draft: FormDraft } | { kind: "failure"; failure: ParseFailure };
+
+export const MISSING_NAME_MESSAGE = "Pick a performer above, or type a name for the new one.";
+
+// Cards in upload order: a failure keeps its place, and a retried success takes the same slot.
+// Ids still being read (in neither list) are skipped.
+export function orderedEntries(order: string[], drafts: FormDraft[], failures: ParseFailure[]): ReviewEntry[] {
+  const draftById = new Map(drafts.map((d) => [d.id, d]));
+  const failureById = new Map(failures.map((f) => [f.id, f]));
+  const entries: ReviewEntry[] = [];
+  for (const id of order) {
+    const draft = draftById.get(id);
+    if (draft) {
+      entries.push({ kind: "draft", draft });
+      continue;
+    }
+    const failure = failureById.get(id);
+    if (failure) entries.push({ kind: "failure", failure });
+  }
+  return entries;
+}
+
 // The ticks a card starts with for its chosen performer: new and changed values on, the rest off.
 export function initialSelection(draft: FormDraft, existing: ExistingData): FormSelection {
   const target = draft.performer;
@@ -28,7 +57,7 @@ export function contributes(draft: FormDraft, selection: FormSelection | undefin
 
 export interface ReviewBlocks {
   missingName: string[]; // draft ids choosing a new performer with no name yet
-  cards: Record<string, string>; // draft id -> inline message that blocks the import
+  cards: Record<string, string>; // draft id -> inline message that blocks the import (missing names too)
 }
 
 // Everything that stops the import, found before the apply route refuses it: a new performer with
@@ -45,8 +74,10 @@ export function reviewBlocks(
 
   for (const d of drafts) {
     if (d.performer.kind !== "new") continue;
-    if (d.performer.name.trim() === "") missingName.push(d.id);
-    else if (existingKeys.has(matchKey(d.performer.name))) {
+    if (d.performer.name.trim() === "") {
+      missingName.push(d.id);
+      cards[d.id] = MISSING_NAME_MESSAGE;
+    } else if (existingKeys.has(matchKey(d.performer.name))) {
       cards[d.id] = `${d.performer.name.trim()} is already in this production. Pick them above, or change the name.`;
     }
   }

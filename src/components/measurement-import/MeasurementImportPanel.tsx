@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MeasurementImportReview, type ParseFailure } from "@/components/measurement-import/MeasurementImportReview";
-import { downscaleImage } from "@/lib/measurement-import/downscale";
+import { MeasurementImportReview } from "@/components/measurement-import/MeasurementImportReview";
+import { downscaleImage, isImageFile } from "@/lib/measurement-import/downscale";
 import { ACCEPTED_EXTENSIONS, MAX_FILE_BYTES, MAX_FORMS, UNSUPPORTED_FILE_MESSAGE } from "@/lib/measurement-import/limits";
 import { toApplyPayload } from "@/lib/measurement-import/payload";
-import { initialSelection, targetChanged } from "@/lib/measurement-import/review";
+import { initialSelection, targetChanged, type ParseFailure } from "@/lib/measurement-import/review";
 import type { ExistingData, FormDraft, FormSelection, ImportResult, PerformerTarget } from "@/lib/measurement-import/types";
 
 const READ_FAILED = "Couldn't read that photo right now. Try again.";
 const IMPORT_FAILED = "Couldn't import the forms. Try again.";
 const IMPORT_MAYBE_DONE = "The import may have finished. Reload the page to check before trying again.";
 const TOO_LARGE = "That file is still over 4 MB after shrinking. Take the photo again at a lower resolution.";
+const PDF_TOO_LARGE = "That PDF is over 4 MB. Save it at a smaller size, or upload a photo of the form instead.";
 
 // Import measurement forms: choose photos, each is read in turn, review every value, import once.
 export function MeasurementImportPanel({
@@ -24,6 +25,7 @@ export function MeasurementImportPanel({
   onClose: () => void;
 }) {
   const [existing, setExisting] = useState<ExistingData | null>(null);
+  const [order, setOrder] = useState<string[]>([]); // upload order, so cards keep their places
   const [drafts, setDrafts] = useState<FormDraft[]>([]);
   const [selections, setSelections] = useState<Record<string, FormSelection>>({});
   const [failures, setFailures] = useState<ParseFailure[]>([]);
@@ -35,6 +37,10 @@ export function MeasurementImportPanel({
   const pending = useRef(new Map<string, File>());
   // Object URLs for the card thumbnails, held here too so unmount can revoke every one of them.
   const thumbUrls = useRef(new Map<string, string>());
+  // The workspace can unmount this panel mid-read (Combine duplicates, Import cast list). Stop the
+  // read loop there, so no further paid parse calls go out and no URL outlives the cleanup.
+  const alive = useRef(true);
+  const reads = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,14 +61,19 @@ export function MeasurementImportPanel({
 
   useEffect(() => {
     const urls = thumbUrls.current;
+    const controller = new AbortController();
+    alive.current = true;
+    reads.current = controller;
     return () => {
+      alive.current = false;
+      controller.abort();
       for (const url of urls.values()) URL.revokeObjectURL(url);
       urls.clear();
     };
   }, []);
 
   function addThumb(id: string, file: File) {
-    if (!file.type.startsWith("image/")) return; // PDFs get no thumbnail
+    if (!alive.current || !isImageFile(file)) return; // PDFs get no thumbnail
     const url = URL.createObjectURL(file);
     thumbUrls.current.set(id, url);
     setThumbs((prev) => ({ ...prev, [id]: url }));
@@ -88,8 +99,10 @@ export function MeasurementImportPanel({
         method: "POST",
         credentials: "include",
         body: form,
+        signal: reads.current?.signal,
       });
       const data = (await res.json().catch(() => ({}))) as { draft?: FormDraft; error?: string };
+      if (!alive.current) return;
       if (res.ok && data.draft) {
         const draft = { ...data.draft, id };
         setDrafts((prev) => [...prev, draft]);
@@ -101,7 +114,8 @@ export function MeasurementImportPanel({
       // and 4xx means this file will fail the same way again.
       const retryable = res.status === 500 || res.status === 502;
       setFailures((prev) => [...prev, { id, fileName: file.name, message: data.error ?? READ_FAILED, retryable }]);
-    } catch {
+    } catch (err) {
+      if (!alive.current || (err instanceof DOMException && err.name === "AbortError")) return; // panel closed
       setFailures((prev) => [...prev, { id, fileName: file.name, message: READ_FAILED, retryable: true }]);
     }
   }
@@ -110,7 +124,7 @@ export function MeasurementImportPanel({
     const picked = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (!existing || picked.length === 0) return;
-    if (drafts.length + picked.length > MAX_FORMS) {
+    if (drafts.length + failures.length + picked.length > MAX_FORMS) {
       setError(`Import up to ${MAX_FORMS} forms at a time.`);
       return;
     }
@@ -118,15 +132,19 @@ export function MeasurementImportPanel({
     setBusy(true);
     setProgress({ done: 0, total: picked.length });
     for (const [i, raw] of picked.entries()) {
+      if (!alive.current) return;
       const id = crypto.randomUUID();
+      setOrder((prev) => [...prev, id]);
       const dot = raw.name.lastIndexOf(".");
       const ext = dot === -1 ? "" : raw.name.slice(dot).toLowerCase();
       if (!(ACCEPTED_EXTENSIONS as readonly string[]).includes(ext)) {
         setFailures((prev) => [...prev, { id, fileName: raw.name, message: UNSUPPORTED_FILE_MESSAGE, retryable: false }]);
       } else {
         const file = await downscaleImage(raw);
+        if (!alive.current) return;
         if (file.size > MAX_FILE_BYTES) {
-          setFailures((prev) => [...prev, { id, fileName: raw.name, message: TOO_LARGE, retryable: false }]);
+          const message = isImageFile(file) ? TOO_LARGE : PDF_TOO_LARGE;
+          setFailures((prev) => [...prev, { id, fileName: raw.name, message, retryable: false }]);
         } else {
           pending.current.set(id, file);
           addThumb(id, file);
@@ -151,6 +169,7 @@ export function MeasurementImportPanel({
   function remove(id: string) {
     pending.current.delete(id);
     dropThumb(id);
+    setOrder((prev) => prev.filter((x) => x !== id));
     setDrafts((prev) => prev.filter((d) => d.id !== id));
     setFailures((prev) => prev.filter((f) => f.id !== id));
     setSelections((prev) => {
@@ -221,7 +240,7 @@ export function MeasurementImportPanel({
         <input
           type="file"
           className="sr-only"
-          accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+          accept={ACCEPTED_EXTENSIONS.join(",")}
           multiple
           disabled={busy || !existing}
           onChange={chooseFiles}
@@ -237,6 +256,7 @@ export function MeasurementImportPanel({
 
       {existing && (drafts.length > 0 || failures.length > 0) && (
         <MeasurementImportReview
+          order={order}
           drafts={drafts}
           existing={existing}
           selections={selections}
