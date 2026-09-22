@@ -13,8 +13,11 @@ const measEq = vi.fn(() => ({ order }));
 const upsertSingle = vi.fn();
 const upsertSelect = vi.fn(() => ({ single: upsertSingle }));
 const upsert = vi.fn(() => ({ select: upsertSelect }));
+const range = vi.fn();
+const orderForPagedMeasurements = vi.fn(() => ({ range }));
+const inFn = vi.fn(() => ({ order: orderForPagedMeasurements }));
 
-const select = vi.fn((_cols: string) => ({ eq: listEq }));
+const select = vi.fn((_cols: string) => ({ eq: listEq, in: inFn }));
 const from = vi.fn((_table: string) => ({ select, insert, delete: del, upsert }));
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: (table: string) => from(table) } }));
@@ -24,12 +27,13 @@ import {
   createPerformer,
   deletePerformer,
   getMeasurements,
+  getFilledMeasurementCounts,
   upsertMeasurement,
 } from "@/lib/data/performers";
 
 beforeEach(() => {
   [order, listEq, insertSingle, insertSelect, insert, deleteEq, del, measEq,
-    upsertSingle, upsertSelect, upsert, select, from].forEach((m) => m.mockReset());
+    upsertSingle, upsertSelect, upsert, select, from, range, inFn, orderForPagedMeasurements].forEach((m) => m.mockReset());
   listEq.mockReturnValue({ order });
   measEq.mockReturnValue({ order });
   insertSelect.mockReturnValue({ single: insertSingle });
@@ -37,7 +41,9 @@ beforeEach(() => {
   del.mockReturnValue({ eq: deleteEq });
   upsertSelect.mockReturnValue({ single: upsertSingle });
   upsert.mockReturnValue({ select: upsertSelect });
-  select.mockReturnValue({ eq: listEq });
+  orderForPagedMeasurements.mockReturnValue({ range });
+  inFn.mockReturnValue({ order: orderForPagedMeasurements });
+  select.mockReturnValue({ eq: listEq, in: inFn });
   from.mockReturnValue({ select, insert, delete: del, upsert });
 });
 
@@ -76,6 +82,22 @@ test("getMeasurements filters by performer", async () => {
   expect(from).toHaveBeenCalledWith("performer_measurements");
   expect(listEq).toHaveBeenCalledWith("performer_id", "pf1");
   expect(rows).toEqual([{ measurement_key: "waist", value_numeric: 28 }]);
+});
+
+test("getFilledMeasurementCounts pages past PostgREST's row cap", async () => {
+  const PAGE_SIZE = 1000;
+  const firstPage = Array.from({ length: PAGE_SIZE }, (_, i) => ({
+    performer_id: i % 2 === 0 ? "pf1" : "pf2",
+  }));
+  const secondPage = [{ performer_id: "pf1" }];
+  range.mockResolvedValueOnce({ data: firstPage, error: null }).mockResolvedValueOnce({ data: secondPage, error: null });
+  const counts = await getFilledMeasurementCounts(["pf1", "pf2"]);
+  expect(orderForPagedMeasurements).toHaveBeenCalledWith("id");
+  expect(range).toHaveBeenCalledTimes(2);
+  expect(range).toHaveBeenNthCalledWith(1, 0, PAGE_SIZE - 1);
+  expect(range).toHaveBeenNthCalledWith(2, PAGE_SIZE, PAGE_SIZE * 2 - 1);
+  expect(counts.pf1).toBe(PAGE_SIZE / 2 + 1);
+  expect(counts.pf2).toBe(PAGE_SIZE / 2);
 });
 
 test("upsertMeasurement upserts on (performer_id, measurement_key)", async () => {

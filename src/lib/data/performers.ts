@@ -113,20 +113,32 @@ export async function getMeasurementsForPerformers(
   return (data ?? []) as PerformerMeasurement[];
 }
 
+const FILLED_COUNTS_PAGE_SIZE = 1000;
+
 // How many measurement fields each performer has filled in, keyed by performer id.
 // Each (performer_id, measurement_key) row is unique, so a row count == filled-field count.
+// Paginated: PostgREST silently caps a single select at its max-rows setting, and this count now
+// feeds the combine feature's keeper tie-break, so an undercount past that cap can flip a merge.
 export async function getFilledMeasurementCounts(
   performerIds: string[],
 ): Promise<Record<string, number>> {
   if (performerIds.length === 0) return {};
-  const { data, error } = await supabaseAdmin
-    .from("performer_measurements")
-    .select("performer_id")
-    .in("performer_id", performerIds);
-  if (error) throw new Error(error.message);
   const counts: Record<string, number> = {};
-  for (const row of (data ?? []) as { performer_id: string }[]) {
-    counts[row.performer_id] = (counts[row.performer_id] ?? 0) + 1;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabaseAdmin
+      .from("performer_measurements")
+      .select("performer_id")
+      .in("performer_id", performerIds)
+      .order("id")
+      .range(from, from + FILLED_COUNTS_PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as { performer_id: string }[];
+    for (const row of rows) {
+      counts[row.performer_id] = (counts[row.performer_id] ?? 0) + 1;
+    }
+    if (rows.length < FILLED_COUNTS_PAGE_SIZE) break;
+    from += FILLED_COUNTS_PAGE_SIZE;
   }
   return counts;
 }

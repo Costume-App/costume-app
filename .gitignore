@@ -38,3 +38,4 @@ next-env.d.ts
 
 # Meeting transcripts (kept locally, not versioned)
 docs/*.odt
+.playwright-cli/
