@@ -1,3 +1,9 @@
+-- Verify after applying (dashboard SQL editor, per the home CLAUDE.md use pg_proc, not information_schema):
+--   set role postgres;
+--   select proname, prosecdef from pg_proc where proname = 'import_measurement_forms';
+-- Expected: one row, prosecdef false (security invoker, matching 0033/0035/0036/0037; only
+-- service_role can execute it, via the revoke/grant below).
+
 -- Measurement form import: write reviewed measurements (and leftover notes) for several
 -- performers in one transaction. The payload is built server-side (src/lib/data/measurement-import.ts)
 -- after validation.
@@ -12,10 +18,17 @@
 -- Existing performer ids must belong to p_production_id and measurement keys must exist in
 -- measurement_definitions (P0002 otherwise). Any error rolls the whole import back. Returns the
 -- counts of performers created, measurement rows written, and notes appended.
+--
+-- Every existing performer id in the payload is locked up front, in id order, before anything is
+-- written: combine_performers (0037) locks its own performer set in id order too, so a consistent
+-- order across both functions avoids a deadlock when they touch an overlapping row.
+--
+-- performer_measurements.updated_at is left untouched on both insert (its column default of
+-- now() covers a first write) and on the on-conflict update: 0037's tie-break, and upsertMeasurement
+-- before it, both rely on updated_at never moving after a measurement's first insert.
 create or replace function import_measurement_forms(p_production_id uuid, p_payload jsonb)
 returns jsonb
 language plpgsql
-security definer
 set search_path = public
 as $$
 declare
@@ -24,20 +37,35 @@ declare
   v_performer_id uuid;
   v_unit text;
   v_notes text;
+  v_existing_ids uuid[];
+  v_locked_id uuid;
+  v_locked_count int := 0;
   n_performers int := 0;
   n_measurements int := 0;
   n_notes int := 0;
 begin
+  select array_agg(distinct (f->'performer'->>'id')::uuid)
+  into v_existing_ids
+  from jsonb_array_elements(coalesce(p_payload->'forms', '[]'::jsonb)) f
+  where f->'performer' ? 'id';
+
+  if v_existing_ids is not null then
+    for v_locked_id in
+      select id from performers
+      where production_id = p_production_id and id = any(v_existing_ids)
+      order by id
+      for update
+    loop
+      v_locked_count := v_locked_count + 1;
+    end loop;
+    if v_locked_count <> array_length(v_existing_ids, 1) then
+      raise exception 'A performer in this import is not in this production' using errcode = 'P0002';
+    end if;
+  end if;
+
   for v_form in select value from jsonb_array_elements(coalesce(p_payload->'forms', '[]'::jsonb)) loop
-    v_performer_id := null;
     if v_form->'performer' ? 'id' then
-      select id into v_performer_id
-      from performers
-      where id = (v_form->'performer'->>'id')::uuid and production_id = p_production_id
-      for update;
-      if v_performer_id is null then
-        raise exception 'Performer % is not in this production', v_form->'performer'->>'id' using errcode = 'P0002';
-      end if;
+      v_performer_id := (v_form->'performer'->>'id')::uuid;
     else
       insert into performers (production_id, label, created_at)
       values (p_production_id, v_form->'performer'->>'name', clock_timestamp())
@@ -50,20 +78,18 @@ begin
       if v_unit is null then
         raise exception 'Unknown measurement %', v_m->>'key' using errcode = 'P0002';
       end if;
-      insert into performer_measurements (performer_id, measurement_key, value_numeric, value_text, unit, updated_at)
+      insert into performer_measurements (performer_id, measurement_key, value_numeric, value_text, unit)
       values (
         v_performer_id,
         v_m->>'key',
         (v_m->>'value_numeric')::numeric,
         v_m->>'value_text',
-        v_unit,
-        now()
+        v_unit
       )
       on conflict (performer_id, measurement_key) do update
         set value_numeric = excluded.value_numeric,
             value_text = excluded.value_text,
-            unit = excluded.unit,
-            updated_at = now();
+            unit = excluded.unit;
       n_measurements := n_measurements + 1;
     end loop;
 

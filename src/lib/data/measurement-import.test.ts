@@ -62,6 +62,7 @@ test("applyMeasurementImport calls the RPC with the snake_case payload and maps 
   };
   const result = await applyMeasurementImport("prod1", payload, existing);
   expect(result).toEqual({ performersCreated: 1, measurementsWritten: 2, notesAppended: 1 });
+  expect(rpc).toHaveBeenCalledTimes(1);
   expect(rpc).toHaveBeenCalledWith("import_measurement_forms", {
     p_production_id: "prod1",
     p_payload: {
@@ -103,6 +104,20 @@ test("refuses two forms in the same payload that create the same new performer n
   await expect(applyMeasurementImport("prod1", payload, existing)).rejects.toBeInstanceOf(ValidationError);
   await expect(applyMeasurementImport("prod1", payload, existing)).rejects.toThrow(
     "Two forms create the same new performer: Bo Tran. Pick one performer for both.",
+  );
+  expect(rpc).not.toHaveBeenCalled();
+});
+
+test("refuses two forms in the same payload that target the same existing performer", async () => {
+  const payload: ApplyPayload = {
+    forms: [
+      { performer: { kind: "existing", performerId: P1 }, measurements: [{ key: "chest", valueNumeric: 36, valueText: null }], notesAppend: null },
+      { performer: { kind: "existing", performerId: P1 }, measurements: [{ key: "chest", valueNumeric: 37, valueText: null }], notesAppend: null },
+    ],
+  };
+  await expect(applyMeasurementImport("prod1", payload, existing)).rejects.toBeInstanceOf(ValidationError);
+  await expect(applyMeasurementImport("prod1", payload, existing)).rejects.toThrow(
+    "Two forms are for Ada Finch. Import them separately or remove one.",
   );
   expect(rpc).not.toHaveBeenCalled();
 });

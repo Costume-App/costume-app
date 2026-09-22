@@ -27,6 +27,7 @@ import {
   createPerformer,
   deletePerformer,
   getMeasurements,
+  getMeasurementsForPerformers,
   getFilledMeasurementCounts,
   upsertMeasurement,
 } from "@/lib/data/performers";
@@ -82,6 +83,30 @@ test("getMeasurements filters by performer", async () => {
   expect(from).toHaveBeenCalledWith("performer_measurements");
   expect(listEq).toHaveBeenCalledWith("performer_id", "pf1");
   expect(rows).toEqual([{ measurement_key: "waist", value_numeric: 28 }]);
+});
+
+test("getMeasurementsForPerformers pages past PostgREST's row cap", async () => {
+  const PAGE_SIZE = 1000;
+  const firstPage = Array.from({ length: PAGE_SIZE }, (_, i) => ({
+    id: `m${i}`,
+    performer_id: "pf1",
+    measurement_key: "chest",
+    value_numeric: 36,
+    value_text: null,
+    unit: "in",
+    updated_at: "",
+  }));
+  const secondPage = [
+    { id: "mLast", performer_id: "pf1", measurement_key: "waist", value_numeric: 30, value_text: null, unit: "in", updated_at: "" },
+  ];
+  range.mockResolvedValueOnce({ data: firstPage, error: null }).mockResolvedValueOnce({ data: secondPage, error: null });
+  const rows = await getMeasurementsForPerformers(["pf1"]);
+  expect(orderForPagedMeasurements).toHaveBeenCalledWith("id");
+  expect(range).toHaveBeenCalledTimes(2);
+  expect(range).toHaveBeenNthCalledWith(1, 0, PAGE_SIZE - 1);
+  expect(range).toHaveBeenNthCalledWith(2, PAGE_SIZE, PAGE_SIZE * 2 - 1);
+  expect(rows).toHaveLength(PAGE_SIZE + 1);
+  expect(rows[rows.length - 1]).toEqual(secondPage[0]);
 });
 
 test("getFilledMeasurementCounts pages past PostgREST's row cap", async () => {

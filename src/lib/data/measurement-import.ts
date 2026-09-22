@@ -33,17 +33,26 @@ export async function loadMeasurementImportContext(productionId: string): Promis
 // `existing` must be freshly loaded by the caller: the review may be stale, and a "new" performer
 // whose name now matches an existing one would recreate the duplicate rows migration 0036 exists
 // to clean up, so that case is refused here instead of created. Two forms in the same payload
-// that would create the same new performer are refused too, before either one reaches the RPC.
+// that would create the same new performer, or that both target the same existing performer, are
+// refused too, before either one reaches the RPC.
 export async function applyMeasurementImport(
   productionId: string,
   payload: ApplyPayload,
   existing: ExistingData,
 ): Promise<ImportResult> {
-  const ids = new Set(existing.performers.map((p) => p.id));
+  const labelById = new Map(existing.performers.map((p) => [p.id, p.name]));
   const keys = new Set(existing.performers.map((p) => matchKey(p.name)));
   const takenByThisImport = new Map<string, string>();
+  const existingIdsInThisImport = new Set<string>();
   for (const form of payload.forms) {
-    if (form.performer.kind === "existing" && !ids.has(form.performer.performerId)) throw new ConflictError(STALE_IMPORT_MESSAGE);
+    if (form.performer.kind === "existing") {
+      const label = labelById.get(form.performer.performerId);
+      if (label === undefined) throw new ConflictError(STALE_IMPORT_MESSAGE);
+      if (existingIdsInThisImport.has(form.performer.performerId)) {
+        throw new ValidationError(`Two forms are for ${label}. Import them separately or remove one.`);
+      }
+      existingIdsInThisImport.add(form.performer.performerId);
+    }
     if (form.performer.kind === "new") {
       const key = matchKey(form.performer.name);
       if (keys.has(key)) throw new ConflictError(STALE_IMPORT_MESSAGE);
