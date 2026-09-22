@@ -1,0 +1,9 @@
+export const MAX_FORMS = 20;
+export const MAX_FILE_BYTES = 4 * 1024 * 1024; // Vercel caps request bodies at 4.5 MB
+export const MAX_IMAGE_EDGE = 2000; // px, long edge after client-side downscale
+export const MAX_TEXT_VALUE = 40; // characters, for size fields
+export const MAX_NOTES_APPEND = 2000; // characters
+export const MIN_BARE_HEIGHT_INCHES = 36; // a bare number below this is not a height in inches
+export const ACCEPTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"] as const;
+export const MAX_NEW_PERFORMER_NAME = 100;
+export const UNSUPPORTED_FILE_MESSAGE = "Upload a JPG, PNG or PDF of the form.";
