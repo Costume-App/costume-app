@@ -7,6 +7,7 @@ import { listRoles } from "@/lib/data/roles";
 import { listCasts } from "@/lib/data/casts";
 import { listCastings } from "@/lib/data/castings";
 import { MeasurementForm } from "@/components/MeasurementForm";
+import { PerformerNotes } from "@/components/PerformerNotes";
 
 export default async function MeasurementPage({
   params,
@@ -73,6 +74,7 @@ export default async function MeasurementPage({
         )}
       </div>
       <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
+      <PerformerNotes performerId={performerId} notes={performer?.notes ?? null} />
     </main>
   );
 }

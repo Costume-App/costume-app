@@ -66,6 +66,25 @@ export async function updatePerformer(id: string, label: string): Promise<Perfor
   return data as Performer;
 }
 
+export const MAX_PERFORMER_NOTES = 4000;
+
+// Free-text notes shown on the performer's measurement page. Empty text clears them.
+export async function updatePerformerNotes(id: string, notes: string | null): Promise<Performer> {
+  const trimmed = (notes ?? "").trim();
+  if (trimmed.length > MAX_PERFORMER_NOTES) {
+    throw new ValidationError(`Notes must be ${MAX_PERFORMER_NOTES} characters or fewer`);
+  }
+  const { data, error } = await supabaseAdmin
+    .from("performers")
+    .update({ notes: trimmed || null })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Performer not found");
+  return data as Performer;
+}
+
 export async function deletePerformer(id: string): Promise<void> {
   const { error } = await supabaseAdmin.from("performers").delete().eq("id", id);
   if (error) throw new Error(error.message);
