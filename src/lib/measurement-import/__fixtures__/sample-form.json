@@ -1,0 +1,23 @@
+{
+  "name": "Sample Performer",
+  "casted_as": "Sample Role",
+  "sex": "Male",
+  "age": null,
+  "contact": null,
+  "sizes": { "shirt": null, "pant": null, "shoe": null },
+  "fields": [
+    { "label": "A chest", "value": "36\"" },
+    { "label": "B waist (1\" above navel)", "value": "31" },
+    { "label": "C hip", "value": "39" },
+    { "label": "D inseam (crotch to above foot)", "value": "29.5" },
+    { "label": "G shoulders across back", "value": "19.5" },
+    { "label": "Head", "value": "22.5" },
+    { "label": "Hip-ankle", "value": "41.5" },
+    { "label": "Neck", "value": "14.25" },
+    { "label": "Nape-W", "value": "19" },
+    { "label": "Sh-W", "value": "24.25" },
+    { "label": "Sh-E", "value": "13" },
+    { "label": "E-Wr", "value": "11" }
+  ],
+  "notes": ["Crystal - Vest"]
+}
