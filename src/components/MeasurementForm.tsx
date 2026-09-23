@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import { splitHeight, combineHeight } from "@/lib/height";
-import { measurementPayload } from "@/lib/measurement-input";
+import { measurementPayload, parseMeasurementNumber } from "@/lib/measurement-input";
 import { BodyDiagram } from "@/components/BodyDiagram";
+import { usePendingSaves } from "@/components/PendingSaves";
+
+type SaveStatus = "saving" | "saved" | "error" | "invalid";
+
+const STATUS_LABEL: Record<SaveStatus, string> = {
+  saving: "Saving",
+  saved: "Saved",
+  error: "Couldn't save",
+  invalid: "Couldn't read that number",
+};
 
 interface Definition {
   key: string;
@@ -29,8 +39,9 @@ export function MeasurementForm({
     }
     return v;
   });
-  const [saved, setSaved] = useState<Record<string, "saving" | "saved" | "error">>({});
+  const [saved, setSaved] = useState<Record<string, SaveStatus>>({});
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const pendingSaves = usePendingSaves();
 
   const initialHeight = splitHeight(Number(initialValues.height ?? 0));
   const [heightFeet, setHeightFeet] = useState(
@@ -40,11 +51,21 @@ export function MeasurementForm({
     "height" in initialValues ? String(initialHeight.inches) : "",
   );
 
-  async function saveHeight() {
+  function saveHeight() {
+    pendingSaves.track(persistHeight());
+  }
+
+  async function persistHeight() {
     if (heightFeet.trim() === "" && heightInches.trim() === "") return;
     const heightDef = definitions.find((d) => d.key === "height");
     if (!heightDef) return;
-    const total = combineHeight(Number(heightFeet || 0), Number(heightInches || 0));
+    const feet = heightFeet.trim() === "" ? 0 : parseMeasurementNumber(heightFeet);
+    const inches = heightInches.trim() === "" ? 0 : parseMeasurementNumber(heightInches);
+    if (feet === null || inches === null) {
+      setSaved((s) => ({ ...s, height: "invalid" }));
+      return;
+    }
+    const total = combineHeight(feet, inches);
     setSaved((s) => ({ ...s, height: "saving" }));
     const res = await fetch(`/api/performers/${performerId}/measurements`, {
       method: "PUT",
@@ -56,9 +77,18 @@ export function MeasurementForm({
     setValues((v) => ({ ...v, height: String(total) }));
   }
 
-  async function save(def: Definition, raw: string) {
-    const payload = measurementPayload(def, raw);
-    if (!payload) return; // nothing to save for an empty field
+  function save(def: Definition, raw: string) {
+    pendingSaves.track(persist(def, raw));
+  }
+
+  async function persist(def: Definition, raw: string) {
+    const result = measurementPayload(def, raw);
+    if (result.kind === "blank") return; // nothing to save for an empty field
+    if (result.kind === "invalid") {
+      setSaved((s) => ({ ...s, [def.key]: "invalid" }));
+      return;
+    }
+    const payload = result.payload;
     setSaved((s) => ({ ...s, [def.key]: "saving" }));
     const res = await fetch(`/api/performers/${performerId}/measurements`, {
       method: "PUT",
@@ -98,10 +128,11 @@ export function MeasurementForm({
               </span>
               <span className="flex shrink-0 items-center gap-1">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min="0"
-                  className="field w-16 text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  className="field w-16 text-right"
                   value={heightFeet}
                   onChange={(e) => setHeightFeet(e.target.value)}
                   onFocus={() => setActiveKey("height")}
@@ -110,11 +141,10 @@ export function MeasurementForm({
                 />
                 <span className="text-sm muted">ft</span>
                 <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="11"
-                  className="field w-16 text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  className="field w-16 text-right"
                   value={heightInches}
                   onChange={(e) => setHeightInches(e.target.value)}
                   onFocus={() => setActiveKey("height")}
@@ -129,12 +159,12 @@ export function MeasurementForm({
                       background:
                         saved[def.key] === "saved"
                           ? "var(--green)"
-                          : saved[def.key] === "error"
+                          : saved[def.key] === "error" || saved[def.key] === "invalid"
                             ? "var(--red)"
                             : "var(--muted)",
                     }}
-                    title={saved[def.key] === "saved" ? "Saved" : saved[def.key] === "error" ? "Couldn't save" : "Saving"}
-                    aria-label={saved[def.key] === "saved" ? "Saved" : saved[def.key] === "error" ? "Couldn't save" : "Saving"}
+                    title={STATUS_LABEL[saved[def.key]]}
+                    aria-label={STATUS_LABEL[saved[def.key]]}
                   />
                 )}
               </span>
@@ -165,12 +195,12 @@ export function MeasurementForm({
                       background:
                         saved[def.key] === "saved"
                           ? "var(--green)"
-                          : saved[def.key] === "error"
+                          : saved[def.key] === "error" || saved[def.key] === "invalid"
                             ? "var(--red)"
                             : "var(--muted)",
                     }}
-                    title={saved[def.key] === "saved" ? "Saved" : saved[def.key] === "error" ? "Couldn't save" : "Saving"}
-                    aria-label={saved[def.key] === "saved" ? "Saved" : saved[def.key] === "error" ? "Couldn't save" : "Saving"}
+                    title={STATUS_LABEL[saved[def.key]]}
+                    aria-label={STATUS_LABEL[saved[def.key]]}
                   />
                 )}
               </span>
@@ -190,10 +220,10 @@ export function MeasurementForm({
               </span>
               <span className="relative w-28 shrink-0">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.10"
-                  className="field w-full !pr-8 !pl-6 text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  autoComplete="off"
+                  className="field w-full !pr-8 !pl-6 text-right"
                   value={values[def.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [def.key]: e.target.value }))}
                   onFocus={() => setActiveKey(def.key)}
@@ -206,12 +236,12 @@ export function MeasurementForm({
                       background:
                         saved[def.key] === "saved"
                           ? "var(--green)"
-                          : saved[def.key] === "error"
+                          : saved[def.key] === "error" || saved[def.key] === "invalid"
                             ? "var(--red)"
                             : "var(--muted)",
                     }}
-                    title={saved[def.key] === "saved" ? "Saved" : saved[def.key] === "error" ? "Couldn't save" : "Saving"}
-                    aria-label={saved[def.key] === "saved" ? "Saved" : saved[def.key] === "error" ? "Couldn't save" : "Saving"}
+                    title={STATUS_LABEL[saved[def.key]]}
+                    aria-label={STATUS_LABEL[saved[def.key]]}
                   />
                 )}
                 {values[def.key]?.trim() !== "" && (

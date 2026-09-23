@@ -103,6 +103,33 @@ export default function GuidePage() {
           <div className="surface mt-3 p-4">
             <BodyDiagram />
           </div>
+          <P>
+            <B>Measuring a group.</B> The bars at the top and bottom of a performer&apos;s page have{" "}
+            <B>Prev</B> and <B>Next</B> buttons, so you can move from one person to the next without
+            going back to the cast list. Tap the name in the middle to jump straight to anyone, and to
+            see how many measurements each person has so far. From there you can choose the order:{" "}
+            <B>By role</B> (the order on the Cast tab), <B>A to Z</B>, or <B>Order added</B>. Turn on{" "}
+            <B>Skip anyone fully measured</B> and Next goes only to people who still need measuring.
+            Your choice is remembered on that device.
+          </P>
+          <P>
+            <B>Writing instead of typing.</B> On an iPad with an Apple Pencil, you can write numbers
+            straight into any measurement box and the iPad turns your handwriting into text. This is
+            Apple&apos;s <B>Scribble</B> feature. If it doesn&apos;t work, turn it on in{" "}
+            <B>Settings &gt; Apple Pencil &gt; Scribble</B>. On Android, a Samsung S Pen or Gboard&apos;s handwriting keyboard
+            works the same way. You can write measurements the way you would on paper:{" "}
+            <B>34.5</B>, <B>34 1/2</B> and <B>34½</B> all save as 34.5. If a box shows a red dot,
+            the app couldn&apos;t read that number, so write it again.
+          </P>
+          <P>
+            <B>On a phone.</B> iPhones don&apos;t support Apple Pencil, but tapping a measurement box
+            opens a large number pad. You can also tap the microphone on the keyboard and say the
+            number (&ldquo;thirty four point five&rdquo;).
+          </P>
+          <P>
+            <B>Already written it on paper?</B> Use <B>Import measurement forms</B> on the production
+            to read a photo of the filled-in form.
+          </P>
         </Section>
 
         <Section id="designs" title="Costume designs & pieces">

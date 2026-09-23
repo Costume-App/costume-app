@@ -5,12 +5,14 @@ import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/producti
 import { NotFoundError } from "@/lib/errors";
 import { pageIdParams } from "@/lib/route-params";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
-import { getMeasurements, listPerformers } from "@/lib/data/performers";
+import { getFilledMeasurementCounts, getMeasurements, listPerformers } from "@/lib/data/performers";
 import { listRoles } from "@/lib/data/roles";
 import { listCasts } from "@/lib/data/casts";
 import { listCastings } from "@/lib/data/castings";
 import { MeasurementForm } from "@/components/MeasurementForm";
 import { PerformerNotes } from "@/components/PerformerNotes";
+import { PerformerSwitcher } from "@/components/PerformerSwitcher";
+import { PendingSavesProvider } from "@/components/PendingSaves";
 
 export default async function MeasurementPage({
   params,
@@ -40,6 +42,16 @@ export default async function MeasurementPage({
     listCasts(id),
     listCastings(id),
   ]);
+  // Same counts the Cast tab shows, for the switcher's "3/22" labels and skip rule.
+  const filled = await getFilledMeasurementCounts(performers.map((p) => p.id));
+  // Performer ids down the Cast tab: roles in order, each role's castings in cast order.
+  const castRank = new Map(casts.map((c, i) => [c.id, i]));
+  const roleOrder = roles.flatMap((r) =>
+    castings
+      .filter((c) => c.role_id === r.id)
+      .sort((a, b) => (castRank.get(a.cast_id) ?? 0) - (castRank.get(b.cast_id) ?? 0))
+      .map((c) => c.performer_id),
+  );
 
   const performer = performers.find((p) => p.id === performerId);
   // One performer can be cast in several roles/casts; they share this one set of measurements.
@@ -54,36 +66,54 @@ export default async function MeasurementPage({
       tag: c.assignment === "understudy" ? "Understudy" : c.assignment === "ensemble" ? "Ensemble" : null,
     }));
 
+  const switcher = {
+    productionId: id,
+    currentId: performerId,
+    performers: performers.map((p) => ({
+      id: p.id,
+      label: p.label,
+      createdAt: p.created_at,
+      filled: filled[p.id] ?? 0,
+    })),
+    roleOrder,
+    total: definitions.length,
+    fromSummary: backToSummary,
+  };
+
   const initial: Record<string, number | string> = {};
   for (const m of measurements) initial[m.measurement_key] = m.value_text ?? m.value_numeric ?? "";
 
   return (
     <main className="mx-auto max-w-lg p-6">
-      <Link
-        href={backToSummary ? `/productions/${id}/summary` : `/productions/${id}`}
-        className="link-muted text-sm"
-      >
-        ← {backToSummary ? "Back" : "Cast"}
-      </Link>
-      <div className="mt-2 mb-6">
-        <p className="text-sm muted">{production.title}</p>
-        <h1 className="font-display text-3xl font-semibold">{performer?.label ?? "Measurements"}</h1>
-        {appearances.length > 0 && (
-          <ul className="mt-1 space-y-0.5 text-base">
-            {appearances.map((a) => (
-              <li key={a.id}>
-                <span className="font-medium">{a.role}</span>
-                <span className="muted">
-                  {a.cast ? ` · ${a.cast}` : ""}
-                  {a.tag ? ` · ${a.tag}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
-      <PerformerNotes performerId={performerId} notes={performer?.notes ?? null} />
+      <PendingSavesProvider key={performerId}>
+        <PerformerSwitcher {...switcher} />
+        <Link
+          href={backToSummary ? `/productions/${id}/summary` : `/productions/${id}`}
+          className="link-muted text-sm"
+        >
+          ← {backToSummary ? "Back" : "Cast"}
+        </Link>
+        <div className="mt-2 mb-6">
+          <p className="text-sm muted">{production.title}</p>
+          <h1 className="font-display text-3xl font-semibold">{performer?.label ?? "Measurements"}</h1>
+          {appearances.length > 0 && (
+            <ul className="mt-1 space-y-0.5 text-base">
+              {appearances.map((a) => (
+                <li key={a.id}>
+                  <span className="font-medium">{a.role}</span>
+                  <span className="muted">
+                    {a.cast ? ` · ${a.cast}` : ""}
+                    {a.tag ? ` · ${a.tag}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
+        <PerformerNotes performerId={performerId} notes={performer?.notes ?? null} />
+        <PerformerSwitcher {...switcher} placement="bottom" />
+      </PendingSavesProvider>
     </main>
   );
 }
