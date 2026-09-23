@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import sample from "@/lib/measurement-import/__fixtures__/sample-form.json";
-import { buildDraft } from "@/lib/measurement-import/draft";
+import { buildDraft, formDate, localIsoDate } from "@/lib/measurement-import/draft";
 import type { DefinitionInfo, ExistingData, RawFormExtraction } from "@/lib/measurement-import/types";
 
 const def = (key: string, order: number, input_type = "number", unit = "in"): DefinitionInfo => ({
@@ -144,4 +144,19 @@ test("keeps an unreadable value as a field with null values, and the first of a 
   );
   expect(draft.fields).toEqual([{ key: "chest", label: "A chest", raw: "thirty-six", valueNumeric: null, valueText: null }]);
   expect(draft.notesToAppend).toBe("");
+});
+
+test("localIsoDate uses the local calendar day, not UTC", () => {
+  // 17:50 on Sep 22 local time.
+  expect(localIsoDate(new Date(2026, 8, 22, 17, 50))).toBe("2026-09-22");
+  expect(localIsoDate(new Date(2026, 0, 5, 0, 1))).toBe("2026-01-05");
+});
+
+test("formDate takes the browser's date and falls back to UTC for anything else", () => {
+  const now = new Date(Date.UTC(2026, 8, 23, 0, 50));
+  expect(formDate("2026-09-22", now)).toBe("2026-09-22");
+  expect(formDate(null, now)).toBe("2026-09-23");
+  expect(formDate("", now)).toBe("2026-09-23");
+  expect(formDate("Sep 22", now)).toBe("2026-09-23");
+  expect(formDate("2026-09-22<script>", now)).toBe("2026-09-23");
 });

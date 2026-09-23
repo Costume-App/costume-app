@@ -19,10 +19,13 @@ const ALIASES: Record<string, string> = {
   bust: "chest",
   "chest bust": "chest",
   waist: "waist",
+  // The printed guidance, for when the read drops its parentheses.
+  "waist 1 above navel": "waist",
   hip: "hips",
   hips: "hips",
   inseam: "inseam",
   "in seam": "inseam",
+  "inseam crotch to above foot": "inseam",
   "nape to floor": "nape_to_floor",
   "nape floor": "nape_to_floor",
   height: "height",

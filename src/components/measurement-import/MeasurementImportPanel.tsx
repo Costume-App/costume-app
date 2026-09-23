@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MeasurementImportReview } from "@/components/measurement-import/MeasurementImportReview";
 import { downscaleImage, isImageFile } from "@/lib/measurement-import/downscale";
+import { localIsoDate } from "@/lib/measurement-import/draft";
 import { ACCEPTED_EXTENSIONS, MAX_FILE_BYTES, MAX_FORMS, UNSUPPORTED_FILE_MESSAGE } from "@/lib/measurement-import/limits";
 import { toApplyPayload } from "@/lib/measurement-import/payload";
 import { initialSelection, targetChanged, type ParseFailure } from "@/lib/measurement-import/review";
@@ -94,6 +95,7 @@ export function MeasurementImportPanel({
   async function readOne(id: string, file: File, snapshot: ExistingData) {
     const form = new FormData();
     form.set("file", file);
+    form.set("today", localIsoDate(new Date()));
     try {
       const res = await fetch(`/api/productions/${productionId}/measurement-import/parse`, {
         method: "POST",

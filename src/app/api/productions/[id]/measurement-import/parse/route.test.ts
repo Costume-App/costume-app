@@ -78,6 +78,16 @@ test("returns a draft matched against the production", async () => {
   expect(assertProductionInOrg).toHaveBeenCalledWith("org_1", "p1");
 });
 
+test("stamps the notes block with the date the browser sent", async () => {
+  readMeasurementForm.mockResolvedValue({ ...extraction, notes: ["Vest"] });
+  const form = new FormData();
+  form.set("file", jpg);
+  form.set("today", "2026-09-22");
+  const res = await POST(new Request("http://test", { method: "POST", body: form }), ctx("p1"));
+  const { draft } = await res.json();
+  expect(draft.notesToAppend).toBe("From measurement form, 2026-09-22:\nVest");
+});
+
 test("501 when AI is not configured", async () => {
   isAiConfigured.mockReturnValue(false);
   const res = await POST(req(jpg), ctx("p1"));

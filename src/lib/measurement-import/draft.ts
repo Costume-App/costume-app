@@ -24,6 +24,19 @@ function parseByKey(key: string, inputType: string, raw: string): Pick<DraftFiel
   return { valueNumeric: parseInches(raw), valueText: null };
 }
 
+// The calendar day in the viewer's own time zone. The server runs in UTC, so an evening import in
+// the Americas would otherwise stamp tomorrow's date on the notes block.
+export function localIsoDate(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// The notes-block date the browser sent, or the server's UTC day when it sent nothing usable.
+export function formDate(value: unknown, now: Date): string {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return now.toISOString().slice(0, 10);
+}
+
 // Everything the app has no field for, as lines for the performer's notes. Empty when nothing is
 // left over, so the review shows no notes block at all.
 export function buildNotesBlock(extraction: RawFormExtraction, unmapped: Line[], today: string): string {

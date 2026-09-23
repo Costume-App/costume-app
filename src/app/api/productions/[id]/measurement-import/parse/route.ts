@@ -9,7 +9,7 @@ import {
   MeasurementFormUnreadableError,
 } from "@/lib/ai/read-measurement-form";
 import { CHOOSE_FILE, toFormContent } from "@/lib/measurement-import/input";
-import { buildDraft } from "@/lib/measurement-import/draft";
+import { buildDraft, formDate } from "@/lib/measurement-import/draft";
 import { loadMeasurementImportContext } from "@/lib/data/measurement-import";
 import { ValidationError } from "@/lib/errors";
 
@@ -43,7 +43,7 @@ export async function POST(request: Request, { params }: Ctx) {
     const draft = buildDraft(extraction, existing, {
       id: crypto.randomUUID(),
       fileName: file instanceof File ? file.name : "form",
-      today: new Date().toISOString().slice(0, 10),
+      today: formDate(form.get("today"), new Date()),
     });
     return NextResponse.json({ draft });
   } catch (err) {

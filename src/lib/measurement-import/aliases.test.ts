@@ -23,6 +23,9 @@ test.each([
   ["C hip", "hips"],
   ["Hips", "hips"],
   ["D inseam (crotch to above foot)", "inseam"],
+  // The model often drops the parentheses around the printed guidance.
+  ["D inseam crotch to above foot", "inseam"],
+  ['B waist 1" above navel', "waist"],
   ["E nape to floor", "nape_to_floor"],
   ["F height", "height"],
   ["G shoulders across back", "shoulder"],
