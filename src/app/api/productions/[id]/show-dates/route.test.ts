@@ -18,10 +18,12 @@ vi.mock("@/lib/data/show-dates", () => ({
 
 import { POST } from "@/app/api/productions/[id]/show-dates/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, addShowDate].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: P1 });
 });
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -33,37 +35,43 @@ const req = (body: unknown) =>
   });
 
 test("POST adds a show date with time (201)", async () => {
-  addShowDate.mockResolvedValue({ id: "s1", production_id: "p1", show_date: "2026-08-01", show_time: "14:00:00" });
-  const res = await POST(req({ date: "2026-08-01", time: "14:00" }), ctx("p1"));
+  addShowDate.mockResolvedValue({ id: "s1", production_id: P1, show_date: "2026-08-01", show_time: "14:00:00" });
+  const res = await POST(req({ date: "2026-08-01", time: "14:00" }), ctx(P1));
   expect(res.status).toBe(201);
-  expect(addShowDate).toHaveBeenCalledWith("p1", "2026-08-01", "14:00", null);
+  expect(addShowDate).toHaveBeenCalledWith(P1, "2026-08-01", "14:00", null);
 });
 
 test("POST defaults time to null when omitted", async () => {
-  addShowDate.mockResolvedValue({ id: "s4", production_id: "p1", show_date: "2026-08-02", show_time: null });
-  const res = await POST(req({ date: "2026-08-02" }), ctx("p1"));
+  addShowDate.mockResolvedValue({ id: "s4", production_id: P1, show_date: "2026-08-02", show_time: null });
+  const res = await POST(req({ date: "2026-08-02" }), ctx(P1));
   expect(res.status).toBe(201);
-  expect(addShowDate).toHaveBeenCalledWith("p1", "2026-08-02", null, null);
+  expect(addShowDate).toHaveBeenCalledWith(P1, "2026-08-02", null, null);
 });
 
 test("POST forwards label as the 4th arg", async () => {
-  addShowDate.mockResolvedValue({ id: "s5", production_id: "p1", show_date: "2026-08-03", show_time: null, label: "Tech rehearsal" });
-  const res = await POST(req({ date: "2026-08-03", time: "10:00", label: "Tech rehearsal" }), ctx("p1"));
+  addShowDate.mockResolvedValue({ id: "s5", production_id: P1, show_date: "2026-08-03", show_time: null, label: "Tech rehearsal" });
+  const res = await POST(req({ date: "2026-08-03", time: "10:00", label: "Tech rehearsal" }), ctx(P1));
   expect(res.status).toBe(201);
-  expect(addShowDate).toHaveBeenCalledWith("p1", "2026-08-03", "10:00", "Tech rehearsal");
+  expect(addShowDate).toHaveBeenCalledWith(P1, "2026-08-03", "10:00", "Tech rehearsal");
 });
 
 test("POST 400 on an empty date", async () => {
   const { ValidationError } = await import("@/lib/errors");
   addShowDate.mockRejectedValue(new ValidationError("Show date is required"));
-  const res = await POST(req({ date: "" }), ctx("p1"));
+  const res = await POST(req({ date: "" }), ctx(P1));
   expect(res.status).toBe(400);
 });
 
 test("POST 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await POST(req({ date: "2026-08-01" }), ctx("p1"));
+  const res = await POST(req({ date: "2026-08-01" }), ctx(P1));
   expect(res.status).toBe(404);
   expect(addShowDate).not.toHaveBeenCalled();
+});
+
+test("POST returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await POST(req({ date: "2026-08-01" }), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

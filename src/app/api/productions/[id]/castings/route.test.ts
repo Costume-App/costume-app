@@ -26,10 +26,12 @@ vi.mock("@/lib/data/castings", () => ({
 
 import { GET, POST } from "@/app/api/productions/[id]/castings/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, listRoles, listCasts, addCastMember, listCastings].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: P1 });
   listRoles.mockResolvedValue([
     { id: "r1", name: "Bert", is_ensemble: false },
     { id: "r2", name: "Villagers", is_ensemble: true },
@@ -50,10 +52,10 @@ test("POST adds a cast member (201)", async () => {
     performer: { id: "pf9", label: "Ava" },
     casting: { id: "c9", cast_id: "ct1", role_id: "r1", performer_id: "pf9", assignment: "primary" },
   });
-  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "Ava", assignment: "primary" }), ctx("p1"));
+  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "Ava", assignment: "primary" }), ctx(P1));
   expect(res.status).toBe(201);
   expect(addCastMember).toHaveBeenCalledWith({
-    productionId: "p1",
+    productionId: P1,
     castId: "ct1",
     roleId: "r1",
     roleIsEnsemble: false,
@@ -63,13 +65,13 @@ test("POST adds a cast member (201)", async () => {
 });
 
 test("POST 404 when the role is not in the production", async () => {
-  const res = await POST(postReq({ castId: "ct1", roleId: "rX", name: "Ava", assignment: "primary" }), ctx("p1"));
+  const res = await POST(postReq({ castId: "ct1", roleId: "rX", name: "Ava", assignment: "primary" }), ctx(P1));
   expect(res.status).toBe(404);
   expect(addCastMember).not.toHaveBeenCalled();
 });
 
 test("POST 404 when the cast is not in the production", async () => {
-  const res = await POST(postReq({ castId: "ctX", roleId: "r1", name: "Ava", assignment: "primary" }), ctx("p1"));
+  const res = await POST(postReq({ castId: "ctX", roleId: "r1", name: "Ava", assignment: "primary" }), ctx(P1));
   expect(res.status).toBe(404);
   expect(addCastMember).not.toHaveBeenCalled();
 });
@@ -77,14 +79,14 @@ test("POST 404 when the cast is not in the production", async () => {
 test("POST 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "Ava", assignment: "primary" }), ctx("p1"));
+  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "Ava", assignment: "primary" }), ctx(P1));
   expect(res.status).toBe(404);
 });
 
 test("POST 400 on empty name", async () => {
   const { ValidationError } = await import("@/lib/errors");
   addCastMember.mockRejectedValue(new ValidationError("Performer name is required"));
-  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "", assignment: "primary" }), ctx("p1"));
+  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "", assignment: "primary" }), ctx(P1));
   expect(res.status).toBe(400);
 });
 
@@ -93,10 +95,10 @@ test("POST with performerId reuses a performer on an ensemble role", async () =>
     performer: { id: "pf1", label: "Amy" },
     casting: { id: "c5", cast_id: "ct1", role_id: "r2", performer_id: "pf1", assignment: "ensemble" },
   });
-  const res = await POST(postReq({ castId: "ct1", roleId: "r2", performerId: "pf1", assignment: "ensemble" }), ctx("p1"));
+  const res = await POST(postReq({ castId: "ct1", roleId: "r2", performerId: "pf1", assignment: "ensemble" }), ctx(P1));
   expect(res.status).toBe(201);
   expect(addCastMember).toHaveBeenCalledWith({
-    productionId: "p1",
+    productionId: P1,
     castId: "ct1",
     roleId: "r2",
     roleIsEnsemble: true,
@@ -107,21 +109,33 @@ test("POST with performerId reuses a performer on an ensemble role", async () =>
 
 test("POST defaults a missing assignment to ensemble for ensemble roles", async () => {
   addCastMember.mockResolvedValue({ performer: {}, casting: {} });
-  await POST(postReq({ castId: "ct1", roleId: "r2", name: "Zed" }), ctx("p1"));
+  await POST(postReq({ castId: "ct1", roleId: "r2", name: "Zed" }), ctx(P1));
   expect(addCastMember).toHaveBeenCalledWith(expect.objectContaining({ assignment: "ensemble", name: "Zed" }));
 });
 
 test("GET lists the production's castings", async () => {
   listCastings.mockResolvedValue([{ id: "c1", assignment: "primary" }]);
-  const res = await GET(new Request("http://test"), ctx("p1"));
+  const res = await GET(new Request("http://test"), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ castings: [{ id: "c1", assignment: "primary" }] });
-  expect(listCastings).toHaveBeenCalledWith("p1");
+  expect(listCastings).toHaveBeenCalledWith(P1);
 });
 
 test("GET 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await GET(new Request("http://test"), ctx("p1"));
+  const res = await GET(new Request("http://test"), ctx(P1));
   expect(res.status).toBe(404);
+});
+
+test("POST returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await POST(postReq({ castId: "ct1", roleId: "r1", name: "Ava", assignment: "primary" }), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("GET returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await GET(new Request("http://test"), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

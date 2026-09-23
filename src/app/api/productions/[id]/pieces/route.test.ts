@@ -26,6 +26,8 @@ vi.mock("@/lib/data/billing", () => ({
 
 import { PUT } from "@/app/api/productions/[id]/pieces/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const put = (body: unknown) =>
   new Request("http://t", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -33,7 +35,7 @@ const put = (body: unknown) =>
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, assertCastingInProduction, listCostumeDesigns, listCostumePieces, upsertPieceSource, canAssignMakerToProduction].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: P1 });
   assertCastingInProduction.mockResolvedValue(undefined);
   listCostumeDesigns.mockResolvedValue([{ id: "d1" }]);
   canAssignMakerToProduction.mockResolvedValue({ allowed: true });
@@ -41,7 +43,7 @@ beforeEach(() => {
 
 test("PUT upserts a piece source (200)", async () => {
   upsertPieceSource.mockResolvedValue({ id: "pp1", source: "on_hand" });
-  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "on_hand" }), ctx("p1"));
+  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "on_hand" }), ctx(P1));
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalledWith(
     expect.objectContaining({ designId: "d1", castingId: "c1", source: "on_hand", sharedWithCastingId: null, sourceNote: null }),
@@ -49,14 +51,14 @@ test("PUT upserts a piece source (200)", async () => {
 });
 
 test("PUT 400 on unknown source", async () => {
-  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "borrow" }), ctx("p1"));
+  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "borrow" }), ctx(P1));
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
 });
 
 test("PUT 400 when design not in production", async () => {
   listCostumeDesigns.mockResolvedValue([{ id: "dX" }]);
-  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "make" }), ctx("p1"));
+  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "make" }), ctx(P1));
   expect(res.status).toBe(400);
 });
 
@@ -68,7 +70,7 @@ test("PUT forwards fabric + made fields", async () => {
       fabricType: "wool", fabricColor: "navy", fabricWidth: '60"',
       fabricSupplier: "Mood", fabricYardage: 2.5, fabricUnitCost: 10, made: true,
     }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalledWith(
@@ -83,7 +85,7 @@ test("PUT forwards fabric + made fields", async () => {
 test("PUT 400 on negative yardage", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", fabricYardage: -1 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -92,7 +94,7 @@ test("PUT 400 on negative yardage", async () => {
 test("PUT 400 on non-boolean made", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", made: "yes" }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -102,7 +104,7 @@ test("PUT forwards makerId to upsertPieceSource", async () => {
   upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make", maker_id: "m1" });
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", sourceNote: "assigned", makerId: "m1" }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalledWith(
@@ -113,7 +115,7 @@ test("PUT forwards makerId to upsertPieceSource", async () => {
 test("PUT 400 on non-string makerId", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", makerId: 42 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -123,7 +125,7 @@ test("PUT forwards purchasePrice", async () => {
   upsertPieceSource.mockResolvedValue({ id: "pp1", source: "purchase" });
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "purchase", purchasePrice: 45 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalledWith(
@@ -134,7 +136,7 @@ test("PUT forwards purchasePrice", async () => {
 test("PUT 400 on negative purchasePrice", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "purchase", purchasePrice: -5 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -144,7 +146,7 @@ test("PUT forwards skirtLengthIn", async () => {
   upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make" });
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", skirtLengthIn: 22 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalledWith(
@@ -155,7 +157,7 @@ test("PUT forwards skirtLengthIn", async () => {
 test("PUT 400 on skirtFullness of 0 (not just negative)", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "gathered", skirtFullness: 0 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -164,7 +166,7 @@ test("PUT 400 on skirtFullness of 0 (not just negative)", async () => {
 test("PUT 400 on negative skirtFullness", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "gathered", skirtFullness: -2 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -173,7 +175,7 @@ test("PUT 400 on negative skirtFullness", async () => {
 test("PUT 400 on skirtLengthIn of 0", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", skirtLengthIn: 0 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -182,7 +184,7 @@ test("PUT 400 on skirtLengthIn of 0", async () => {
 test("PUT 400 on negative skirtLengthIn", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", skirtLengthIn: -5 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -192,7 +194,7 @@ test("PUT forwards calculatedYardage", async () => {
   upsertPieceSource.mockResolvedValue({ id: "pp1", source: "make" });
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", calculatedYardage: 4.75 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalledWith(
@@ -203,7 +205,7 @@ test("PUT forwards calculatedYardage", async () => {
 test("PUT 400 on calculatedYardage of 0", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", calculatedYardage: 0 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -212,7 +214,7 @@ test("PUT 400 on calculatedYardage of 0", async () => {
 test("PUT 400 on negative calculatedYardage", async () => {
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", skirtConstruction: "full_circle", calculatedYardage: -1 }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(400);
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -222,7 +224,7 @@ test("PUT blocks assigning a maker beyond the cap with 402 needs_seat", async ()
   canAssignMakerToProduction.mockResolvedValue({ allowed: false, reason: "needs_seat" });
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", makerId: "m4" }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(402);
   expect((await res.json()).reason).toBe("needs_seat");
@@ -234,8 +236,14 @@ test("PUT allows assigning a maker within the cap", async () => {
   canAssignMakerToProduction.mockResolvedValue({ allowed: true });
   const res = await PUT(
     put({ designId: "d1", castingId: "c1", source: "make", makerId: "m1" }),
-    ctx("p1"),
+    ctx(P1),
   );
   expect(res.status).toBe(200);
   expect(upsertPieceSource).toHaveBeenCalled();
+});
+
+test("PUT returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await PUT(put({ designId: "d1", castingId: "c1", source: "on_hand" }), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

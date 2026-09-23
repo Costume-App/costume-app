@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOrgAdmin } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { createProductionShare, listSharesForProduction } from "@/lib/data/production-shares";
 import { sendEmail } from "@/lib/email";
@@ -13,7 +14,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await requireOrgAdmin();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const shares = await listSharesForProduction(id);
     return NextResponse.json({ shares });
@@ -25,7 +26,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function POST(request: Request, { params }: Ctx) {
   try {
     const { userId, orgId } = await requireOrgAdmin();
-    const { id } = await params;
+    const { id } = await idParams(params);
     const production = await assertProductionInOrg(orgId, id);
     if (!(await isPaidOrg(orgId))) throw new PlanLimitError("needs_paid_plan");
     const body = (await request.json().catch(() => ({}))) as { recipientEmail?: string };

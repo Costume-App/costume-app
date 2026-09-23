@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg, assertCastingInProduction } from "@/lib/data/production-access";
 import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces, upsertPieceSource } from "@/lib/data/costume-pieces";
@@ -14,7 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const designs = await listCostumeDesigns(id);
     const pieces = await listCostumePieces(designs.map((d) => d.id));
@@ -27,7 +28,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function PUT(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as {
       designId?: string;
@@ -61,7 +62,7 @@ export async function PUT(request: Request, { params }: Ctx) {
         throw new ValidationError(`${field} must be a number ≥ 0`);
       }
     };
-    // Fullness and skirt length are geometry inputs, not costs — 0 or negative
+    // Fullness and skirt length are geometry inputs, not costs: 0 or negative
     // has no meaning (a 0-fullness gather or 0" length) and would pass the ≥ 0
     // check above and hit no DB constraint before this fix.
     const checkPositive = (n: number | null | undefined, field: string) => {

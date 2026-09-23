@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { removeCasting } from "@/lib/data/castings";
 
@@ -11,7 +12,7 @@ type Ctx = { params: Promise<{ id: string; castingId: string }> };
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, castingId } = await params;
+    const { id, castingId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const { performerDeleted } = await removeCasting(id, castingId);
     return NextResponse.json({ ok: true, performerDeleted });

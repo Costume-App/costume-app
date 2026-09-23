@@ -22,10 +22,14 @@ vi.mock("@/lib/data/casts", () => ({
 
 import { PATCH, DELETE } from "@/app/api/productions/[id]/casts/[castId]/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+const CT1 = "22222222-2222-4222-8222-222222222222";
+const CT2 = "33333333-3333-4333-8333-333333333333";
+
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, listCasts, deleteCast, updateCast].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: P1 });
 });
 
 const ctx = (id: string, castId: string) => ({ params: Promise.resolve({ id, castId }) });
@@ -37,45 +41,69 @@ const patchReq = (body: unknown) =>
   });
 
 test("PATCH renames a cast (200)", async () => {
-  updateCast.mockResolvedValue({ id: "ct1", name: "Gold Cast" });
-  const res = await PATCH(patchReq({ name: "Gold Cast" }), ctx("p1", "ct1"));
+  updateCast.mockResolvedValue({ id: CT1, name: "Gold Cast" });
+  const res = await PATCH(patchReq({ name: "Gold Cast" }), ctx(P1, CT1));
   expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ cast: { id: "ct1", name: "Gold Cast" } });
-  expect(updateCast).toHaveBeenCalledWith("p1", "ct1", "Gold Cast", undefined);
+  expect(await res.json()).toEqual({ cast: { id: CT1, name: "Gold Cast" } });
+  expect(updateCast).toHaveBeenCalledWith(P1, CT1, "Gold Cast", undefined);
 });
 
 test("PATCH forwards a color when provided", async () => {
-  updateCast.mockResolvedValue({ id: "ct1", name: "Gold Cast", color: "gold" });
-  const res = await PATCH(patchReq({ name: "Gold Cast", color: "gold" }), ctx("p1", "ct1"));
+  updateCast.mockResolvedValue({ id: CT1, name: "Gold Cast", color: "gold" });
+  const res = await PATCH(patchReq({ name: "Gold Cast", color: "gold" }), ctx(P1, CT1));
   expect(res.status).toBe(200);
-  expect(updateCast).toHaveBeenCalledWith("p1", "ct1", "Gold Cast", "gold");
+  expect(updateCast).toHaveBeenCalledWith(P1, CT1, "Gold Cast", "gold");
 });
 
 test("PATCH 400 on empty name", async () => {
   const { ValidationError } = await import("@/lib/errors");
   updateCast.mockRejectedValue(new ValidationError("Cast name is required"));
-  const res = await PATCH(patchReq({ name: "" }), ctx("p1", "ct1"));
+  const res = await PATCH(patchReq({ name: "" }), ctx(P1, CT1));
   expect(res.status).toBe(400);
 });
 
 test("PATCH 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await PATCH(patchReq({ name: "X" }), ctx("p1", "ct1"));
+  const res = await PATCH(patchReq({ name: "X" }), ctx(P1, CT1));
   expect(res.status).toBe(404);
 });
 
 test("DELETE removes a cast when more than one exists", async () => {
-  listCasts.mockResolvedValue([{ id: "ct1" }, { id: "ct2" }]);
+  listCasts.mockResolvedValue([{ id: CT1 }, { id: CT2 }]);
   deleteCast.mockResolvedValue(undefined);
-  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "ct2"));
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, CT2));
   expect(res.status).toBe(200);
-  expect(deleteCast).toHaveBeenCalledWith("p1", "ct2");
+  expect(deleteCast).toHaveBeenCalledWith(P1, CT2);
 });
 
 test("DELETE 400 when it's the last cast", async () => {
-  listCasts.mockResolvedValue([{ id: "ct1" }]);
-  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "ct1"));
+  listCasts.mockResolvedValue([{ id: CT1 }]);
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, CT1));
   expect(res.status).toBe(400);
   expect(deleteCast).not.toHaveBeenCalled();
+});
+
+test("PATCH returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await PATCH(patchReq({ name: "X" }), ctx("not-a-uuid", CT1));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("PATCH returns 404 for a non-UUID cast id without touching data", async () => {
+  const res = await PATCH(patchReq({ name: "X" }), ctx(P1, "not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("DELETE returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("not-a-uuid", CT1));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("DELETE returns 404 for a non-UUID cast id without touching data", async () => {
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, "not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

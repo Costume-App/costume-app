@@ -44,9 +44,12 @@ import { DELETE } from "@/app/api/productions/[id]/shares/[shareId]/route";
 import { POST as RESEND } from "@/app/api/productions/[id]/shares/[shareId]/resend/route";
 import { POST as ACCEPT } from "@/app/api/shares/[token]/accept/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+const S1 = "22222222-2222-4222-8222-222222222222";
+
 beforeEach(() => {
   [getAuthContext, requireOrgAdmin, assertProductionInOrg, createProductionShare, listSharesForProduction, revokeShare, acceptProductionShare, getShareById, sendEmail, isEmailConfigured, canCreateProduction, consumeProductionUnlock, isPaidOrg].forEach((m) => m.mockReset());
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Cats" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Cats" });
   sendEmail.mockResolvedValue({ sent: true });
   isEmailConfigured.mockReturnValue(true);
   // Default: unlimited org so ACCEPT tests pass through the billing gate.
@@ -65,9 +68,9 @@ function postReq(body: unknown) {
 test("POST shares creates a share as an admin and returns the token", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   createProductionShare.mockResolvedValue({ id: "s1", token: "tok123" });
-  const res = await POST(postReq({}), idCtx("p1"));
+  const res = await POST(postReq({}), idCtx(P1));
   expect(res.status).toBe(201);
-  expect(createProductionShare).toHaveBeenCalledWith({ sourceProductionId: "p1", sourceOrgId: "orgA", userId: "u1", recipientEmail: null });
+  expect(createProductionShare).toHaveBeenCalledWith({ sourceProductionId: P1, sourceOrgId: "orgA", userId: "u1", recipientEmail: null });
   expect(await res.json()).toMatchObject({ token: "tok123" });
 });
 
@@ -75,7 +78,7 @@ test("POST shares emails the link best-effort and still 201 when email throws", 
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   createProductionShare.mockResolvedValue({ id: "s1", token: "tok123" });
   sendEmail.mockRejectedValue(new Error("no domain"));
-  const res = await POST(postReq({ recipientEmail: "x@y.com" }), idCtx("p1"));
+  const res = await POST(postReq({ recipientEmail: "x@y.com" }), idCtx(P1));
   expect(res.status).toBe(201);
   expect(createProductionShare).toHaveBeenCalledWith(expect.objectContaining({ recipientEmail: "x@y.com" }));
 });
@@ -83,7 +86,7 @@ test("POST shares emails the link best-effort and still 201 when email throws", 
 test("POST shares is rejected for a non-admin", async () => {
   const { AuthError } = await import("@/lib/auth-context");
   requireOrgAdmin.mockRejectedValue(new AuthError(403, "Admin access required"));
-  const res = await POST(postReq({}), idCtx("p1"));
+  const res = await POST(postReq({}), idCtx(P1));
   expect(res.status).toBe(403);
   expect(createProductionShare).not.toHaveBeenCalled();
 });
@@ -91,7 +94,7 @@ test("POST shares is rejected for a non-admin", async () => {
 test("GET shares lists shares for an admin", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   listSharesForProduction.mockResolvedValue([{ id: "s1" }]);
-  const res = await GET(new Request("http://test"), idCtx("p1"));
+  const res = await GET(new Request("http://test"), idCtx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ shares: [{ id: "s1" }] });
 });
@@ -99,9 +102,9 @@ test("GET shares lists shares for an admin", async () => {
 test("DELETE shares/[shareId] revokes as an admin", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   revokeShare.mockResolvedValue(undefined);
-  const res = await DELETE(new Request("http://test", { method: "DELETE" }), shareCtx("p1", "s1"));
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), shareCtx(P1, S1));
   expect(res.status).toBe(200);
-  expect(revokeShare).toHaveBeenCalledWith("p1", "s1");
+  expect(revokeShare).toHaveBeenCalledWith(P1, S1);
 });
 
 test("POST accept returns the new production id", async () => {
@@ -130,17 +133,17 @@ test("POST accept 401 when signed out", async () => {
 
 test("POST resend re-emails a sent, pending link as an admin", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
-  getShareById.mockResolvedValue({ id: "s1", token: "tok123", recipient_email: "x@y.com", status: "pending" });
-  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  getShareById.mockResolvedValue({ id: S1, token: "tok123", recipient_email: "x@y.com", status: "pending" });
+  const res = await RESEND(postReq({}), shareCtx(P1, S1));
   expect(res.status).toBe(200);
-  expect(getShareById).toHaveBeenCalledWith("p1", "s1");
+  expect(getShareById).toHaveBeenCalledWith(P1, S1);
   expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "x@y.com" }));
 });
 
 test("POST resend 400 when the link has no recipient email", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
-  getShareById.mockResolvedValue({ id: "s1", token: "tok123", recipient_email: null, status: "pending" });
-  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  getShareById.mockResolvedValue({ id: S1, token: "tok123", recipient_email: null, status: "pending" });
+  const res = await RESEND(postReq({}), shareCtx(P1, S1));
   expect(res.status).toBe(400);
   expect(sendEmail).not.toHaveBeenCalled();
 });
@@ -148,8 +151,8 @@ test("POST resend 400 when the link has no recipient email", async () => {
 test("POST resend 400 when email isn't configured", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   isEmailConfigured.mockReturnValue(false);
-  getShareById.mockResolvedValue({ id: "s1", token: "tok123", recipient_email: "x@y.com", status: "pending" });
-  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  getShareById.mockResolvedValue({ id: S1, token: "tok123", recipient_email: "x@y.com", status: "pending" });
+  const res = await RESEND(postReq({}), shareCtx(P1, S1));
   expect(res.status).toBe(400);
   expect(sendEmail).not.toHaveBeenCalled();
 });
@@ -157,7 +160,7 @@ test("POST resend 400 when email isn't configured", async () => {
 test("POST resend is rejected for a non-admin", async () => {
   const { AuthError } = await import("@/lib/auth-context");
   requireOrgAdmin.mockRejectedValue(new AuthError(403, "Admin access required"));
-  const res = await RESEND(postReq({}), shareCtx("p1", "s1"));
+  const res = await RESEND(postReq({}), shareCtx(P1, S1));
   expect(res.status).toBe(403);
   expect(getShareById).not.toHaveBeenCalled();
 });
@@ -165,7 +168,7 @@ test("POST resend is rejected for a non-admin", async () => {
 test("POST shares is blocked with 402 needs_paid_plan for an unpaid org", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   isPaidOrg.mockResolvedValue(false);
-  const res = await POST(postReq({}), idCtx("p1"));
+  const res = await POST(postReq({}), idCtx(P1));
   expect(res.status).toBe(402);
   expect((await res.json()).reason).toBe("needs_paid_plan");
   expect(createProductionShare).not.toHaveBeenCalled();
@@ -175,6 +178,48 @@ test("POST shares is allowed for a paid org", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
   isPaidOrg.mockResolvedValue(true);
   createProductionShare.mockResolvedValue({ id: "s1", token: "tok" });
-  const res = await POST(postReq({}), idCtx("p1"));
+  const res = await POST(postReq({}), idCtx(P1));
   expect(res.status).toBe(201);
+});
+
+test("POST shares returns 404 for a non-UUID production id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  const res = await POST(postReq({}), idCtx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("GET shares returns 404 for a non-UUID production id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  const res = await GET(new Request("http://test"), idCtx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("DELETE shares/[shareId] returns 404 for a non-UUID production id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), shareCtx("not-a-uuid", S1));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("DELETE shares/[shareId] returns 404 for a non-UUID share id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), shareCtx(P1, "not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("POST resend returns 404 for a non-UUID production id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  const res = await RESEND(postReq({}), shareCtx("not-a-uuid", S1));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("POST resend returns 404 for a non-UUID share id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "orgA" });
+  const res = await RESEND(postReq({}), shareCtx(P1, "not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

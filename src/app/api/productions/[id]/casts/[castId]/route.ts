@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { listCasts, deleteCast, updateCast } from "@/lib/data/casts";
 import { ValidationError } from "@/lib/errors";
@@ -10,7 +11,7 @@ type Ctx = { params: Promise<{ id: string; castId: string }> };
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, castId } = await params;
+    const { id, castId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as { name?: string; color?: string };
     const cast = await updateCast(
@@ -28,7 +29,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, castId } = await params;
+    const { id, castId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const casts = await listCasts(id);
     if (casts.length <= 1) {
