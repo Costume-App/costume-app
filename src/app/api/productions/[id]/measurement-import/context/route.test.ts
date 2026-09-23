@@ -17,24 +17,25 @@ import { NotFoundError } from "@/lib/errors";
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const existing = { performers: [], definitions: [] };
+const P1 = "11111111-1111-4111-8111-111111111111";
 
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, loadMeasurementImportContext].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "T" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "T" });
   loadMeasurementImportContext.mockResolvedValue(existing);
 });
 
 test("returns the existing data for the production", async () => {
-  const res = await GET(new Request("http://test"), ctx("p1"));
+  const res = await GET(new Request("http://test"), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ existing });
-  expect(assertProductionInOrg).toHaveBeenCalledWith("org_1", "p1");
+  expect(assertProductionInOrg).toHaveBeenCalledWith("org_1", P1);
 });
 
 test("404 when the production is not in the org", async () => {
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await GET(new Request("http://test"), ctx("p1"));
+  const res = await GET(new Request("http://test"), ctx(P1));
   expect(res.status).toBe(404);
   expect(loadMeasurementImportContext).not.toHaveBeenCalled();
 });
@@ -42,7 +43,13 @@ test("404 when the production is not in the org", async () => {
 test("401 when signed out", async () => {
   const { AuthError } = await import("@/lib/auth-context");
   getAuthContext.mockRejectedValue(new AuthError(401, "Not signed in"));
-  const res = await GET(new Request("http://test"), ctx("p1"));
+  const res = await GET(new Request("http://test"), ctx(P1));
   expect(res.status).toBe(401);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("GET returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await GET(new Request("http://test"), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
   expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

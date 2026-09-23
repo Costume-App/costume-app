@@ -26,6 +26,7 @@ import { ConflictError, NotFoundError } from "@/lib/errors";
 const CAST = "11111111-1111-4111-8111-111111111111";
 const ROLE = "22222222-2222-4222-8222-222222222222";
 const LEAD = "33333333-3333-4333-8333-333333333333";
+const PRODUCTION = "44444444-4444-4444-8444-444444444444";
 
 const existing = {
   casts: [{ id: CAST, name: "Main Cast", color: "slate", isDefault: true }],
@@ -46,7 +47,7 @@ const workspace = { casts: [], roles: [], performers: [], castings: [] };
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, loadImportContext, applyCastImport, loadWorkspaceSnapshot].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: PRODUCTION });
   loadImportContext.mockResolvedValue(existing);
   applyCastImport.mockResolvedValue({ casts: 0, roles: 0, performers: 1, castings: 1 });
   loadWorkspaceSnapshot.mockResolvedValue(workspace);
@@ -57,21 +58,21 @@ const req = (json: unknown) =>
   new Request("http://test", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(json) });
 
 test("applies a valid import and returns counts plus the fresh workspace", async () => {
-  const res = await POST(req(body("understudy")), ctx("p1"));
+  const res = await POST(req(body("understudy")), ctx(PRODUCTION));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ counts: { casts: 0, roles: 0, performers: 1, castings: 1 }, workspace });
-  expect(applyCastImport).toHaveBeenCalledWith("p1", body("understudy"), existing);
-  expect(loadWorkspaceSnapshot).toHaveBeenCalledWith("p1");
+  expect(applyCastImport).toHaveBeenCalledWith(PRODUCTION, body("understudy"), existing);
+  expect(loadWorkspaceSnapshot).toHaveBeenCalledWith(PRODUCTION);
 });
 
 test("404 when the production isn't in the org", async () => {
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  expect((await POST(req(body("understudy")), ctx("p1"))).status).toBe(404);
+  expect((await POST(req(body("understudy")), ctx(PRODUCTION))).status).toBe(404);
   expect(applyCastImport).not.toHaveBeenCalled();
 });
 
 test("400 with the first conflict's message when fresh data conflicts", async () => {
-  const res = await POST(req(body("primary")), ctx("p1"));
+  const res = await POST(req(body("primary")), ctx(PRODUCTION));
   expect(res.status).toBe(400);
   expect((await res.json()).error).toBe(
     "Annie already has a primary in this cast — make this person an understudy or remove them.",
@@ -86,13 +87,19 @@ test("400 when there is nothing new to import", async () => {
     castings: [...existing.castings],
   });
   const empty = { casts: [], roles: [], performers: [], castings: [] };
-  const res = await POST(req(empty), ctx("p1"));
+  const res = await POST(req(empty), ctx(PRODUCTION));
   expect(res.status).toBe(400);
   expect((await res.json()).error).toBe("Nothing new to import.");
 });
 
 test("400 for a malformed body, 409 when the database says the data changed", async () => {
-  expect((await POST(req({ casts: "nope" }), ctx("p1"))).status).toBe(400);
+  expect((await POST(req({ casts: "nope" }), ctx(PRODUCTION))).status).toBe(400);
   applyCastImport.mockRejectedValue(new ConflictError("The cast list changed while you were importing. Reload to see the latest."));
-  expect((await POST(req(body("understudy")), ctx("p1"))).status).toBe(409);
+  expect((await POST(req(body("understudy")), ctx(PRODUCTION))).status).toBe(409);
+});
+
+test("POST returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await POST(req(body("understudy")), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { loadCostumeCreationsData } from "@/lib/data/costume-creations";
 import { buildMakeWorklist } from "@/lib/tailor-summary";
@@ -13,7 +14,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function POST(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     const production = await assertProductionInOrg(orgId, id);
     if (!isAiConfigured()) {
       return NextResponse.json({ error: "AI estimates are not configured." }, { status: 501 });

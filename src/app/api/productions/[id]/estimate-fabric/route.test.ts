@@ -41,6 +41,7 @@ beforeEach(() => {
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const req = () => new Request("http://test", { method: "POST" });
+const P1 = "11111111-1111-4111-8111-111111111111";
 
 const piece = (over: Partial<PieceRow> = {}): PieceRow => ({
   costume_design_id: "d1",
@@ -77,7 +78,7 @@ const dataWith = (initialPieces: PieceRow[], fabricWidths: { id: string; value: 
 
 test("estimates only make-items missing a yardage and persists each via upsertPieceSource", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   loadCostumeCreationsData.mockResolvedValue(dataWith([]));
   estimateFabricYardage.mockResolvedValue(new Map([["c1:d1", 3.5]]));
@@ -85,7 +86,7 @@ test("estimates only make-items missing a yardage and persists each via upsertPi
   const refreshed = [piece({ fabric_yardage: 3.5 })];
   listCostumePieces.mockResolvedValue(refreshed);
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ pieces: refreshed, estimated: 1 });
 
@@ -120,7 +121,7 @@ test("estimates only make-items missing a yardage and persists each via upsertPi
 
 test("preserves an existing piece's other fabric fields when filling its yardage", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   loadCostumeCreationsData.mockResolvedValue(
     dataWith([
@@ -140,7 +141,7 @@ test("preserves an existing piece's other fabric fields when filling its yardage
   upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 4 }));
   listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 4 })]);
 
-  await POST(req(), ctx("p1"));
+  await POST(req(), ctx(P1));
 
   expect(estimateFabricYardage).toHaveBeenCalledWith([
     {
@@ -173,12 +174,12 @@ test("preserves an existing piece's other fabric fields when filling its yardage
 
 test("returns estimated:0 without calling the AI when nothing is missing", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   const initial = [piece({ fabric_yardage: 2 })];
   loadCostumeCreationsData.mockResolvedValue(dataWith(initial));
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ pieces: initial, estimated: 0 });
   expect(estimateFabricYardage).not.toHaveBeenCalled();
@@ -188,12 +189,12 @@ test("returns estimated:0 without calling the AI when nothing is missing", async
 
 test("skips a piece whose skirt construction is set, even with no yardage yet (owned by the calculator)", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   const initial = [piece({ skirt_construction: "full_circle", fabric_yardage: null })];
   loadCostumeCreationsData.mockResolvedValue(dataWith(initial));
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ pieces: initial, estimated: 0 });
   expect(estimateFabricYardage).not.toHaveBeenCalled();
@@ -203,7 +204,7 @@ test("skips a piece whose skirt construction is set, even with no yardage yet (o
 
 test("threads skirt fields through the write-back so an estimated piece's own skirt_fullness isn't nulled", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   // No skirt_construction (so it is not calculator-owned and reaches the AI), but a
   // stray skirt_fullness value already on the row — this must survive the AI's write.
@@ -214,7 +215,7 @@ test("threads skirt fields through the write-back so an estimated piece's own sk
   upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 4, skirt_fullness: 3 }));
   listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 4, skirt_fullness: 3 })]);
 
-  await POST(req(), ctx("p1"));
+  await POST(req(), ctx(P1));
 
   // Exact-object match, not objectContaining: this test's whole purpose is "the
   // write-back doesn't drop a field", and objectContaining is the one matcher
@@ -243,7 +244,7 @@ test("threads skirt fields through the write-back so an estimated piece's own sk
 
 test("an AI estimate preserves an existing calculated yardage without setting one", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   // A piece with no *current* skirt_construction (so it reaches the AI path)
   // but a leftover calculated_yardage from before the construction was cleared,
@@ -257,7 +258,7 @@ test("an AI estimate preserves an existing calculated yardage without setting on
   upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 6, calculated_yardage: 4.75 }));
   listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 6, calculated_yardage: 4.75 })]);
 
-  await POST(req(), ctx("p1"));
+  await POST(req(), ctx(P1));
 
   expect(upsertPieceSource).toHaveBeenCalledTimes(1);
   for (const call of upsertPieceSource.mock.calls) {
@@ -270,13 +271,13 @@ test("an AI estimate preserves an existing calculated yardage without setting on
 
 test("does not persist keys the model omits", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   loadCostumeCreationsData.mockResolvedValue(dataWith([]));
   estimateFabricYardage.mockResolvedValue(new Map());
   listCostumePieces.mockResolvedValue([]);
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ pieces: [], estimated: 0 });
   expect(upsertPieceSource).not.toHaveBeenCalled();
@@ -284,10 +285,10 @@ test("does not persist keys the model omits", async () => {
 
 test("501 when AI is not configured", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(false);
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(501);
   expect(loadCostumeCreationsData).not.toHaveBeenCalled();
   expect(estimateFabricYardage).not.toHaveBeenCalled();
@@ -295,7 +296,7 @@ test("501 when AI is not configured", async () => {
 
 test("uses the org default width as the fallback for a piece with no width", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   loadCostumeCreationsData.mockResolvedValue(
     dataWith([], [{ id: "w1", value: '54"', isDefault: true }]),
@@ -304,7 +305,7 @@ test("uses the org default width as the fallback for a piece with no width", asy
   upsertPieceSource.mockResolvedValue(piece({ fabric_yardage: 3.5 }));
   listCostumePieces.mockResolvedValue([piece({ fabric_yardage: 3.5 })]);
 
-  await POST(req(), ctx("p1"));
+  await POST(req(), ctx(P1));
 
   expect(estimateFabricYardage).toHaveBeenCalledWith([
     expect.objectContaining({ key: "c1:d1", garment: "Cloak", fabricWidth: '54"' }),
@@ -316,6 +317,14 @@ test("404 when production not in org", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(404);
+});
+
+test("POST returns 404 for a non-UUID production id without touching data", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  const res = await POST(req(), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+  expect(estimateFabricYardage).not.toHaveBeenCalled();
 });

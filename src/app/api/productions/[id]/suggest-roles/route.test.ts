@@ -26,14 +26,15 @@ beforeEach(() => {
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const req = () => new Request("http://test", { method: "POST" });
+const P1 = "11111111-1111-4111-8111-111111111111";
 
 test("POST returns AI-suggested roles using the production's own title", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   suggestRolesForTitle.mockResolvedValue(["Pippin", "Leading Player"]);
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ title: "Pippin", roles: ["Pippin", "Leading Player"] });
   expect(suggestRolesForTitle).toHaveBeenCalledWith("Pippin");
@@ -41,10 +42,10 @@ test("POST returns AI-suggested roles using the production's own title", async (
 
 test("POST 501 when AI is not configured", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1", title: "Pippin" });
+  assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(false);
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(501);
   expect(suggestRolesForTitle).not.toHaveBeenCalled();
 });
@@ -54,6 +55,14 @@ test("POST 404 when production not in org", async () => {
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
 
-  const res = await POST(req(), ctx("p1"));
+  const res = await POST(req(), ctx(P1));
   expect(res.status).toBe(404);
+});
+
+test("POST returns 404 for a non-UUID production id without touching data", async () => {
+  getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  const res = await POST(req(), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+  expect(suggestRolesForTitle).not.toHaveBeenCalled();
 });

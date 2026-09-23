@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { ConflictError } from "@/lib/errors";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { loadDuplicateGroups, combinePerformers } from "@/lib/data/performer-duplicates";
@@ -20,7 +21,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function POST(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const requested = parseCombineBody(await request.json());
 
