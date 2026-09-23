@@ -39,3 +39,6 @@ next-env.d.ts
 # Meeting transcripts (kept locally, not versioned)
 docs/*.odt
 .playwright-cli/
+
+# Training video footage, audio, and builds (regenerable from scripts/)
+recordings/
