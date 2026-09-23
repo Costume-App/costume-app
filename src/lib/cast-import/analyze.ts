@@ -138,7 +138,7 @@ export function analyzeImport(payload: ApplyPayload, existing: ExistingData): Im
       if (current && current !== performer) {
         conflicts.push({
           kind: "existing_primary",
-          message: `${role.name} already has a primary in this cast — make this person an understudy or remove them.`,
+          message: `${role.name} already has a primary in this cast. Make this person an understudy or remove them.`,
           castingKeys: [c.key],
           roleKey: c.roleKey,
         });

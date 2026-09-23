@@ -106,7 +106,7 @@ test("400 for input problems, 422 unreadable, 502 service failure", async () => 
   expect(unreadable.status).toBe(422);
   expect((await unreadable.json()).error).toBe("No cast list found in that.");
 
-  parseCastList.mockRejectedValueOnce(new CastListServiceError("Couldn't read the cast list right now — try again."));
+  parseCastList.mockRejectedValueOnce(new CastListServiceError("Couldn't read the cast list right now. Try again."));
   expect((await POST(req(textForm("x")), ctx(PRODUCTION))).status).toBe(502);
 });
 

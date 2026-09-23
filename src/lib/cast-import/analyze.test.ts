@@ -78,7 +78,7 @@ test("a new primary where the role already has a different primary is a conflict
   expect(result.conflicts).toEqual([
     {
       kind: "existing_primary",
-      message: "Annie already has a primary in this cast — make this person an understudy or remove them.",
+      message: "Annie already has a primary in this cast. Make this person an understudy or remove them.",
       castingKeys: ["k0"],
       roleKey: "r0",
     },

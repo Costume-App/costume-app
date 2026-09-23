@@ -21,7 +21,7 @@ export async function POST(_request: Request, { params }: Ctx) {
     }
 
     const data = await loadCostumeCreationsData(orgId, production);
-    // Whole-production worklist (no maker filter) — estimate every missing yardage.
+    // Whole-production worklist (no maker filter): estimate every missing yardage.
     const worklist = buildMakeWorklist(
       data.roles,
       data.designs,
@@ -45,7 +45,7 @@ export async function POST(_request: Request, { params }: Ctx) {
         for (const item of garment.items) {
           if (item.fabric.yardage != null) continue;
           // Skirts with a construction set are owned by the deterministic
-          // calculator (src/lib/fabric/skirt-yardage.ts) — the AI must not
+          // calculator (src/lib/fabric/skirt-yardage.ts): the AI must not
           // second-guess arithmetic, and would overwrite a blank yardage the
           // user will fill by picking a construction.
           if (pieceByKey.get(pieceKey(item.castingId, item.designId))?.skirt_construction) continue;
@@ -90,7 +90,7 @@ export async function POST(_request: Request, { params }: Ctx) {
         skirtConstruction: existing?.skirt_construction ?? null,
         skirtFullness: existing?.skirt_fullness ?? null,
         skirtLengthIn: existing?.skirt_length_in ?? null,
-        // Preserve only — never set. This column means the skirt calculator
+        // Preserve only, never set. This column means the skirt calculator
         // produced the value; the AI is not the skirt calculator, and a piece
         // it estimates has no construction, so there is nothing of its own to
         // seed here.

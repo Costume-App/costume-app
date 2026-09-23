@@ -75,7 +75,7 @@ test("400 with the first conflict's message when fresh data conflicts", async ()
   const res = await POST(req(body("primary")), ctx(PRODUCTION));
   expect(res.status).toBe(400);
   expect((await res.json()).error).toBe(
-    "Annie already has a primary in this cast — make this person an understudy or remove them.",
+    "Annie already has a primary in this cast. Make this person an understudy or remove them.",
   );
   expect(applyCastImport).not.toHaveBeenCalled();
 });

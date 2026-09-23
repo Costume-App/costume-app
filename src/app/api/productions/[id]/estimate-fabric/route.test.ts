@@ -207,7 +207,7 @@ test("threads skirt fields through the write-back so an estimated piece's own sk
   assertProductionInOrg.mockResolvedValue({ id: P1, title: "Pippin" });
   isAiConfigured.mockReturnValue(true);
   // No skirt_construction (so it is not calculator-owned and reaches the AI), but a
-  // stray skirt_fullness value already on the row — this must survive the AI's write.
+  // stray skirt_fullness value already on the row. This must survive the AI's write.
   loadCostumeCreationsData.mockResolvedValue(
     dataWith([piece({ skirt_fullness: 3, fabric_yardage: null })]),
   );
@@ -248,7 +248,7 @@ test("an AI estimate preserves an existing calculated yardage without setting on
   isAiConfigured.mockReturnValue(true);
   // A piece with no *current* skirt_construction (so it reaches the AI path)
   // but a leftover calculated_yardage from before the construction was cleared,
-  // and no fabric_yardage yet. The AI fills fabric_yardage with its own 6 —
+  // and no fabric_yardage yet. The AI fills fabric_yardage with its own 6:
   // it must not claim authorship by writing that 6 into calculated_yardage too;
   // the column must still read the calculator's original 4.75.
   loadCostumeCreationsData.mockResolvedValue(
