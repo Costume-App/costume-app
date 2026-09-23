@@ -66,25 +66,27 @@ export default async function MeasurementPage({
       tag: c.assignment === "understudy" ? "Understudy" : c.assignment === "ensemble" ? "Ensemble" : null,
     }));
 
+  const switcher = {
+    productionId: id,
+    currentId: performerId,
+    performers: performers.map((p) => ({
+      id: p.id,
+      label: p.label,
+      createdAt: p.created_at,
+      filled: filled[p.id] ?? 0,
+    })),
+    roleOrder,
+    total: definitions.length,
+    fromSummary: backToSummary,
+  };
+
   const initial: Record<string, number | string> = {};
   for (const m of measurements) initial[m.measurement_key] = m.value_text ?? m.value_numeric ?? "";
 
   return (
     <main className="mx-auto max-w-lg p-6">
       <PendingSavesProvider key={performerId}>
-        <PerformerSwitcher
-          productionId={id}
-          currentId={performerId}
-          performers={performers.map((p) => ({
-            id: p.id,
-            label: p.label,
-            createdAt: p.created_at,
-            filled: filled[p.id] ?? 0,
-          }))}
-          roleOrder={roleOrder}
-          total={definitions.length}
-          fromSummary={backToSummary}
-        />
+        <PerformerSwitcher {...switcher} />
         <Link
           href={backToSummary ? `/productions/${id}/summary` : `/productions/${id}`}
           className="link-muted text-sm"
@@ -110,6 +112,7 @@ export default async function MeasurementPage({
         </div>
         <MeasurementForm performerId={performerId} definitions={definitions} initialValues={initial} />
         <PerformerNotes performerId={performerId} notes={performer?.notes ?? null} />
+        <PerformerSwitcher {...switcher} placement="bottom" />
       </PendingSavesProvider>
     </main>
   );

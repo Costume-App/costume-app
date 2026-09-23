@@ -104,7 +104,7 @@ export default function GuidePage() {
             <BodyDiagram />
           </div>
           <P>
-            <B>Measuring a group.</B> The bar at the top of a performer&apos;s page has{" "}
+            <B>Measuring a group.</B> The bars at the top and bottom of a performer&apos;s page have{" "}
             <B>Prev</B> and <B>Next</B> buttons, so you can move from one person to the next without
             going back to the cast list. Tap the name in the middle to jump straight to anyone, and to
             see how many measurements each person has so far. From there you can choose the order:{" "}
