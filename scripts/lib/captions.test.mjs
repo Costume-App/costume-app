@@ -16,7 +16,10 @@ describe("packCues", () => {
     const long = "This sentence is deliberately long so that it cannot possibly fit inside a single caption cue of two lines";
     const cues = packCues([{ words: words(long, 0) }]);
     expect(cues.length).toBeGreaterThan(1);
-    for (const c of cues) expect(c.text.length).toBeLessThanOrEqual(CAPTION.LINE_CHARS * CAPTION.MAX_LINES);
+    for (const c of cues) {
+      expect(c.text.length).toBeLessThanOrEqual(CAPTION.LINE_CHARS * CAPTION.MAX_LINES);
+      expect(wrapLines(c.text).length).toBeLessThanOrEqual(CAPTION.MAX_LINES);
+    }
   });
   it("lingers briefly but never overlaps the next cue", () => {
     const cues = packCues([{ words: words("One two.", 0) }, { words: words("Three four.", 0.7) }]);
@@ -24,6 +27,14 @@ describe("packCues", () => {
   });
   it("skips sentences without word timings", () => {
     expect(packCues([{ words: [] }])).toEqual([]);
+  });
+  it("enforces two-line limit on three-word sentence with long words", () => {
+    const threeWords = words("a".repeat(30) + " " + "b".repeat(30) + " " + "c".repeat(20), 0, 1);
+    const cues = packCues([{ words: threeWords }]);
+    expect(cues.length).toBeGreaterThanOrEqual(2);
+    for (const c of cues) {
+      expect(wrapLines(c.text).length).toBeLessThanOrEqual(CAPTION.MAX_LINES);
+    }
   });
 });
 
@@ -35,6 +46,10 @@ describe("wrapLines", () => {
     const lines = wrapLines("Create your first production and add the showings for it", 42);
     expect(lines).toHaveLength(2);
     for (const l of lines) expect(l.length).toBeLessThanOrEqual(42);
+  });
+  it("keeps overlong word unsplit on its own line", () => {
+    const lines = wrapLines("short " + "x".repeat(54), 42);
+    expect(lines).toEqual(["short", "x".repeat(54)]);
   });
 });
 

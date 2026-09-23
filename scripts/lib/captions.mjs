@@ -5,8 +5,8 @@
 export const CAPTION = Object.freeze({ LINE_CHARS: 42, MAX_LINES: 2, MIN_CUE_S: 1.0, LINGER_S: 0.3 });
 
 export function packCues(sentences) {
+  const fits = (text) => wrapLines(text).length <= CAPTION.MAX_LINES;
   const cues = [];
-  const limit = CAPTION.LINE_CHARS * CAPTION.MAX_LINES;
   for (const s of sentences) {
     let cur = [];
     const flush = () => {
@@ -16,7 +16,7 @@ export function packCues(sentences) {
     };
     for (const w of s.words ?? []) {
       const next = [...cur, w].map((x) => x.text).join(" ");
-      if (cur.length && next.length > limit) flush();
+      if (cur.length && !fits(next)) flush();
       cur.push(w);
     }
     flush();
@@ -40,7 +40,7 @@ export function wrapLines(text, width = CAPTION.LINE_CHARS) {
     if (a.length <= width && b.length <= width && (best === -1 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
   }
   if (best !== -1) return [text.slice(0, best), text.slice(best + 1)];
-  // No balanced split fits: greedy fill.
+  // No balanced split fits: greedy fill. A single word longer than width stays unsplit on its own line.
   const lines = [];
   let line = "";
   for (const word of text.split(" ")) {
