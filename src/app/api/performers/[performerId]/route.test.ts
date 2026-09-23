@@ -123,3 +123,10 @@ test("PATCH with a JSON null body is 400, not 500", async () => {
   expect(updatePerformer).not.toHaveBeenCalled();
   expect(updatePerformerNotes).not.toHaveBeenCalled();
 });
+
+test.each([5, true, {}, ["hat"]])("PATCH with notes of the wrong type (%j) is 400 and clears nothing", async (notes) => {
+  const res = await PATCH(patchReq({ label: "Jane Banks", notes }), ctx("pf1"));
+  expect(res.status).toBe(400);
+  expect(updatePerformer).not.toHaveBeenCalled();
+  expect(updatePerformerNotes).not.toHaveBeenCalled();
+});

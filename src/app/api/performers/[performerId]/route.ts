@@ -43,6 +43,10 @@ export async function PATCH(request: Request, { params }: Ctx) {
     // alongside an invalid notes value (or vice versa) must reject whole, not write the
     // first field and 400 on the second.
     if (hasLabel) validatePerformerLabel(label);
+    // Only a string or null edits notes. Any other type is a malformed request, not a clear.
+    if (hasNotes && notes !== null && typeof notes !== "string") {
+      throw new ValidationError("Notes must be text");
+    }
     if (hasNotes) validatePerformerNotes(typeof notes === "string" ? notes : null);
 
     let performer: Performer | undefined;
