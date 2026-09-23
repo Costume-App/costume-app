@@ -1,7 +1,7 @@
 # Training Videos (Ava narration) Design
 
 Date: 2026-09-22
-Status: design approved in chat by Chris 2026-09-22; spec awaiting review.
+Status: design and spec approved by Chris 2026-09-22. Plan: `docs/superpowers/plans/2026-09-22-training-videos-pipeline.md` (pipeline plus video 1).
 
 ## Goal
 
@@ -59,65 +59,93 @@ adapted.
 
 ### Ported from ListingStack
 
-- `lib/record-core.mjs`: fresh authed Playwright context per section,
-  1920x1080 viewport at `deviceScaleFactor: 2` (sharp zooms), raw take per
-  section, beat and zoom-target logging.
+- `lib/record-core.mjs` (desktop subset): fresh authed Playwright context
+  per section (Clerk ticket redeemed off camera), 1920x1080 `recordVideo`,
+  beat markers from `point()`, on-camera navigation helpers.
 - `lib/cursor-overlay.mjs`: injected on-camera cursor.
-- `lib/beats.mjs`, `lib/cuts.mjs`, `lib/ffmpeg-cmd.mjs`: beat timing,
-  bounded footage stretch (0.6x to 1.25x), ffmpeg command construction.
-- `lib/training-video-manifest.mjs` plus `generate-training-video-manifest.mjs`.
-- `record-training-video.mjs`, `build-narrated-video.mjs`,
-  `list-vo-sentences.mjs`, `check-beat-annotations.mjs`.
-- `lib/demo-target-guard.mjs`: refuses to seed or mutate any org other than
-  the demo org.
+- `lib/training.mjs`: walkthrough loading and validation, take paths.
+- `build-synced-video.mjs` becomes `build-training-video.mjs`; its per-beat
+  time-warp is extracted into a pure, tested `lib/sync-plan.mjs`.
+- `record-training-video.mjs`, `list-vo-sentences.mjs`,
+  `check-beat-annotations.mjs`.
+- Not ported: `beats.mjs`, `cuts.mjs`, `ffmpeg-cmd.mjs` (those serve the
+  ListingStack marketing demo, not the training library), mobile capture, and
+  the Qwen/Whisper audio gates (Ava is deterministic and edge-tts returns word
+  timings directly).
+
+Correction found while planning (2026-09-22): Playwright's `recordVideo`
+caps frames at the CSS viewport size regardless of `deviceScaleFactor`
+(documented in the ListingStack record-core), so recording at 2x does not by
+itself make zooms sharp. Measured screenshot capture at 1920x1080 @2x: 12 fps
+PNG, 20 fps JPEG on a trivial page, too slow for smooth cursor motion.
+Second finding: most app pages cap content at `max-w-2xl` (672 CSS px), a
+thin column in a 1920-wide frame. Every take therefore applies a constant
+CSS `zoom: 1.5` to the document (layout as if 1280x720, rendered crisply at
+1920x1080). It never changes during a take, unlike the rejected per-beat
+in-page zoom. Fallback if it breaks Clerk popovers or click targeting: a
+1280x720 viewport upscaled to 1080p.
+
+Resolution for zoom sharpness: record motion with normal 1080p `recordVideo`, and have each zoom
+beat capture a 2x still (3840x2160) while the page holds still; the zoom's
+ease-in, hold, and ease-out are all rendered from that still, so every zoomed
+frame is sharp.
 
 ### New
 
 - `generate-training-vo.py` (run with `~/.venvs/edge-tts/bin/python`):
   renders `docs/training-videos/scripts/<slug>.md` paragraph by paragraph to
-  `recordings/training/vo/<slug>/<section>/pNN.mp3` (converted to 24 kHz mono
-  wav) plus `pNN.words.json` from edge-tts WordBoundary events. Content-hash
+  `recordings/training/vo/<slug>/<section>/pNN.wav` (24 kHz mono, loudness
+  normalized) plus a per-section `sentences.json` carrying sentence and word
+  timings from edge-tts WordBoundary events, and a per-video `manifest.json`. Content-hash
   cache per section: the hash covers the normalized paragraph text AND the
   voice, rate, and pitch, but a voice/rate/pitch change only prints a notice
   and never silently re-renders approved audio (`--force` or deleting the
   section dir re-renders). Text normalization (em-dashes to commas, etc.)
   happens on model input only. Retries on network failure, since edge-tts
   calls a Microsoft endpoint.
-- Zoom beats: a beat may carry `zoom: { selector, scale, sentence }`. The
-  recorder logs the target's bounding box at that moment; the builder applies
-  an eased crop/scale (in 400 ms, hold, out 400 ms) over that sentence's time
-  range, computed after the stretch. Scale defaults to 1.6, clamped so the
-  crop never leaves the frame.
-- Captions: `build-captions.mjs` turns word-boundary JSON into WebVTT cues
+- Zoom beats: `h.zoom(page, target, { s, scale, holdMs })` parks the cursor,
+  captures a 2x JPEG still, holds the page still for `holdMs`, and writes a
+  marker with the target box and still path. The builder maps that raw window
+  through the section's time-warp and overlays a zoompan clip rendered from
+  the still (ease in 400 ms, hold, ease out 400 ms). Scale defaults to 1.6;
+  the zoom rectangle is clamped so it never leaves the frame.
+- Captions: `lib/captions.mjs` (called by the builder) turns word timings into WebVTT cues
   (max two lines, about 42 characters per line, break at sentence ends),
   shifted by each paragraph's placement and the section stretch. Output
   `<slug>.vtt` beside the MP4.
-- Title card: `lib/render-title-card.py` renders a 3 second 1920x1080 card
-  (Fraunces title, Hanken subtitle, muslin background, Curtain Crimson
-  `#c62828` rule) as the first segment. Font files (Fraunces, Hanken Grotesk, both OFL)
-  are committed under `scripts/lib/assets/`, not read from system fonts.
-- `seed-demo-org.mjs`: creates or refreshes "Demo Theatre Co." (dev Clerk org
-  plus comped plan) with one fictional production: named cast, roles,
-  measurements, designs, pieces with photos, suppliers, House Inventory items.
+- Title card: `lib/title-card.mjs` renders a 1920x1080 PNG with Playwright
+  from an HTML template (Fraunces title, Hanken Grotesk subtitle via Google
+  Fonts, muslin background, Curtain Crimson `#c62828` rule), held 3 seconds at
+  the start and end of each video. No Python and no committed font files.
+- `bootstrap-demo-org.mjs` (run once): creates the dev Clerk demo user and
+  "Demo Theatre Co." org, inserts the organizations row, comps it in
+  `org_subscriptions`, and writes the ids to `scripts/lib/demo-org.json`.
+- `seed-demo-org.mjs`: signs in as the demo user in an unrecorded headless
+  browser and builds the fixtures through the app's own API routes (so
+  computed values are what the product computes), after deleting the demo
+  org's previous productions. The first plan seeds what video 1 needs: an
+  active production (showings, roles including an ensemble, fictional cast,
+  measurements) and an inactive past one. Designs, pieces with photos,
+  suppliers, and House Inventory items are added by the plans for videos 2 to 6.
   Fixtures exercise real product behavior (computed yardage, real AI-estimate
   flow outputs stored as the app stores them, not hand-typed results).
   Idempotent, guarded by the target guard, and all fixture photos and
   generator code live in the repo.
-- Per-section `prep(page, h)` resets: every section that mutates state
+- Per-section `prep(api)` resets (run off camera through the demo API): every section that mutates state
   declares an off-camera reset run before each take, checked against other
   videos' dependents.
 
 ## Data flow
 
 ```
-scripts/<slug>.md ──> generate-training-vo.py ──> vo/<slug>/<section>/pNN.wav + words.json
+scripts/<slug>.md ──> generate-training-vo.py ──> vo/<slug>/<section>/pNN.wav + sentences.json
 seed-demo-org.mjs ──> demo org in shared Supabase + dev Clerk
-walkthroughs/<slug>.mjs ──> record-training-video.mjs ──> raw/<slug>/<section>.webm + beats.json
+walkthroughs/<slug>.mjs ──> record-training-video.mjs ──> raw/<slug>/<section>/*.webm + markers.json + zoom stills
                                       │
-                 build-narrated-video.mjs (stretch, cursor beats, zoom beats,
-                 title card, stitch) + build-captions.mjs
+                 build-training-video.mjs (time-warp, zoom overlays,
+                 title card, stitch, captions)
                                       │
-                 recordings/training/out/<slug>.mp4 + <slug>.vtt
+                 recordings/training/out/<slug>.mp4 + <slug>.vtt + <slug>.sync.json
                                       │
                  QC (frame sampling across every section) ──> Chris approves
                                       │
@@ -148,14 +176,17 @@ walkthroughs/<slug>.mjs ──> record-training-video.mjs ──> raw/<slug>/<se
   than recording a broken frame.
 - TTS: failed render retries 3 times with backoff, then fails loudly naming the
   paragraph; a render whose duration is implausible for its word count fails.
-- Builder refuses a section whose required stretch is outside 0.6x to 1.25x
-  and reports the gap so the script or choreography is fixed, not the clamp.
+- Builder clamps playback speed to 0.62x to 1.8x per beat span (the proven
+  ListingStack values); beyond that it freezes the frame, caps dead air after a
+  section's last sentence at 5 s, and prints per-section fit so a bad span is
+  fixed in the script or choreography. QC flags any freeze of 6 s or more that
+  is not a zoom hold or title card.
 
 ## Testing and QC
 
-- Vitest unit tests on the pure parts: beats, cuts, ffmpeg command building,
-  zoom crop math (clamping, easing ranges), caption cue building and time
-  shifting, target guard, manifest.
+- Vitest unit tests on the pure parts: walkthrough validation, the sync
+  planner, zoom geometry and the zoompan expression, caption cue packing,
+  the demo-org guard, fixtures, the title-card template, and freeze parsing.
 - Beat sentence indices come from `list-vo-sentences.mjs` output, never
   counted by hand; `check-beat-annotations.mjs` enforces it.
 - QC per built video: sample frames across every section (not just starts)
