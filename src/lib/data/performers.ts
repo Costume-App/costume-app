@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ValidationError, NotFoundError, PG_INVALID_TEXT_REPRESENTATION } from "@/lib/errors";
+import { ValidationError, NotFoundError, PG_FOREIGN_KEY_VIOLATION, PG_INVALID_TEXT_REPRESENTATION } from "@/lib/errors";
 
 export interface Performer {
   id: string;
@@ -225,6 +225,8 @@ export async function upsertMeasurement(input: {
     )
     .select()
     .single();
+  // measurement_key must name a definition; an unknown key is bad input, not a server fault.
+  if (error?.code === PG_FOREIGN_KEY_VIOLATION) throw new ValidationError("Unknown measurement");
   if (error) throw new Error(error.message);
   return data as PerformerMeasurement;
 }

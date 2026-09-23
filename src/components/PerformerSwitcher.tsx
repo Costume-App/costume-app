@@ -97,7 +97,7 @@ export function PerformerSwitcher({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="btn-ghost shrink-0 !px-3 disabled:opacity-50"
+          className="btn-ghost shrink-0 !px-3"
           disabled={!prev || navigating}
           onClick={() => prev && go(prev)}
           aria-label="Previous performer"

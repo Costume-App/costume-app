@@ -42,3 +42,6 @@ export class PlanLimitError extends Error {
 
 // Postgres "invalid input syntax" (e.g. a malformed UUID in a lookup) — callers treat it as not found.
 export const PG_INVALID_TEXT_REPRESENTATION = "22P02";
+
+// Postgres foreign_key_violation: the row points at something that does not exist.
+export const PG_FOREIGN_KEY_VIOLATION = "23503";

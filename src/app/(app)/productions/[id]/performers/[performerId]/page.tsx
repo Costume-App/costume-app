@@ -5,7 +5,7 @@ import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/producti
 import { NotFoundError } from "@/lib/errors";
 import { pageIdParams } from "@/lib/route-params";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
-import { getMeasurementsForPerformers, listPerformers } from "@/lib/data/performers";
+import { getFilledMeasurementCounts, getMeasurements, listPerformers } from "@/lib/data/performers";
 import { listRoles } from "@/lib/data/roles";
 import { listCasts } from "@/lib/data/casts";
 import { listCastings } from "@/lib/data/castings";
@@ -34,23 +34,16 @@ export default async function MeasurementPage({
     throw err;
   }
 
-  const [definitions, performers, roles, casts, castings] = await Promise.all([
+  const [definitions, measurements, performers, roles, casts, castings] = await Promise.all([
     listMeasurementDefinitions(),
+    getMeasurements(performerId),
     listPerformers(id),
     listRoles(id),
     listCasts(id),
     listCastings(id),
   ]);
-  // Everyone's rows at once: this performer's values, plus the filled counts the switcher shows.
-  const allMeasurements = await getMeasurementsForPerformers(performers.map((p) => p.id));
-  const measurements = allMeasurements.filter((m) => m.performer_id === performerId);
-  const definitionKeys = new Set(definitions.map((d) => d.key));
-  const filled = new Map<string, number>();
-  for (const m of allMeasurements) {
-    if (!definitionKeys.has(m.measurement_key)) continue;
-    if (m.value_numeric == null && (m.value_text ?? "").trim() === "") continue;
-    filled.set(m.performer_id, (filled.get(m.performer_id) ?? 0) + 1);
-  }
+  // Same counts the Cast tab shows, for the switcher's "3/22" labels and skip rule.
+  const filled = await getFilledMeasurementCounts(performers.map((p) => p.id));
   // Performer ids down the Cast tab: roles in order, each role's castings in cast order.
   const castRank = new Map(casts.map((c, i) => [c.id, i]));
   const roleOrder = roles.flatMap((r) =>
@@ -86,7 +79,7 @@ export default async function MeasurementPage({
             id: p.id,
             label: p.label,
             createdAt: p.created_at,
-            filled: filled.get(p.id) ?? 0,
+            filled: filled[p.id] ?? 0,
           }))}
           roleOrder={roleOrder}
           total={definitions.length}

@@ -149,6 +149,13 @@ test("upsertMeasurement rejects a non-finite value", async () => {
   ).rejects.toBeInstanceOf(ValidationError);
 });
 
+test("upsertMeasurement treats an unknown measurement key as a validation error", async () => {
+  upsertSingle.mockResolvedValue({ data: null, error: { code: "23503", message: "violates foreign key constraint" } });
+  await expect(
+    upsertMeasurement({ performerId: "pf1", measurementKey: "__proto__", valueNumeric: 3, unit: "in" }),
+  ).rejects.toBeInstanceOf(ValidationError);
+});
+
 test("upsertMeasurement stores a trimmed text value and clears the numeric value", async () => {
   upsertSingle.mockResolvedValue({
     data: { performer_id: "pf1", measurement_key: "shirt_size", value_numeric: null, value_text: "L", unit: "" },
