@@ -164,7 +164,7 @@ export function analyzeImport(payload: ApplyPayload, existing: ExistingData): Im
     if (keys.length > 1) {
       conflicts.push({
         kind: "duplicate_primary",
-        message: `Only one person can be primary for ${roleInfo.get(roleKey)!.name} in each cast — pick one.`,
+        message: `Only one person can be primary for ${roleInfo.get(roleKey)!.name} in each cast. Pick one.`,
         castingKeys: keys,
         roleKey,
       });
