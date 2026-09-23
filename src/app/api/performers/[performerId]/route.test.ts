@@ -1,4 +1,5 @@
 import { expect, test, vi, beforeEach } from "vitest";
+import { ValidationError } from "@/lib/errors";
 
 const getAuthContext = vi.fn();
 vi.mock("@/lib/auth-context", async () => {
@@ -13,15 +14,38 @@ vi.mock("@/lib/data/production-access", () => ({
 
 const deletePerformer = vi.fn();
 const updatePerformer = vi.fn();
+const updatePerformerNotes = vi.fn();
+const MAX_PERFORMER_NAME = 100;
+const MAX_PERFORMER_NOTES = 4000;
 vi.mock("@/lib/data/performers", () => ({
   deletePerformer: (...a: unknown[]) => deletePerformer(...a),
   updatePerformer: (...a: unknown[]) => updatePerformer(...a),
+  updatePerformerNotes: (...a: unknown[]) => updatePerformerNotes(...a),
+  // Mirrors the real validators (same rules as updatePerformer/updatePerformerNotes) without
+  // pulling in the real module's supabaseAdmin import.
+  validatePerformerLabel: (label: string) => {
+    const trimmed = label.trim();
+    if (!trimmed) throw new ValidationError("Name is required");
+    if (trimmed.length > MAX_PERFORMER_NAME) {
+      throw new ValidationError(`Name must be ${MAX_PERFORMER_NAME} characters or fewer`);
+    }
+    return trimmed;
+  },
+  validatePerformerNotes: (notes: string | null) => {
+    const trimmed = (notes ?? "").trim();
+    if (trimmed.length > MAX_PERFORMER_NOTES) {
+      throw new ValidationError(`Notes must be ${MAX_PERFORMER_NOTES} characters or fewer`);
+    }
+    return trimmed;
+  },
 }));
 
 import { DELETE, PATCH } from "@/app/api/performers/[performerId]/route";
 
 beforeEach(() => {
-  [getAuthContext, assertPerformerInOrg, deletePerformer, updatePerformer].forEach((m) => m.mockReset());
+  [getAuthContext, assertPerformerInOrg, deletePerformer, updatePerformer, updatePerformerNotes].forEach((m) =>
+    m.mockReset()
+  );
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   assertPerformerInOrg.mockResolvedValue(undefined);
 });
@@ -56,4 +80,53 @@ test("PATCH 404 when performer not in org", async () => {
   const res = await PATCH(patchReq({ label: "X" }), ctx("pf1"));
   expect(res.status).toBe(404);
   expect(updatePerformer).not.toHaveBeenCalled();
+});
+
+test("PATCH with notes updates notes only", async () => {
+  updatePerformerNotes.mockResolvedValue({ id: "pf1", label: "Jane Banks", notes: "hat" });
+  const res = await PATCH(patchReq({ notes: "hat" }), ctx("pf1"));
+  expect(res.status).toBe(200);
+  expect(updatePerformerNotes).toHaveBeenCalledWith("pf1", "hat");
+  expect(updatePerformer).not.toHaveBeenCalled();
+});
+
+test("PATCH with notes null clears them", async () => {
+  updatePerformerNotes.mockResolvedValue({ id: "pf1", label: "Jane Banks", notes: null });
+  const res = await PATCH(patchReq({ notes: null }), ctx("pf1"));
+  expect(res.status).toBe(200);
+  expect(updatePerformerNotes).toHaveBeenCalledWith("pf1", null);
+});
+
+test("PATCH with label and notes updates both, label first, and returns the final performer", async () => {
+  updatePerformer.mockResolvedValue({ id: "pf1", label: "Jane Banks", notes: "old" });
+  updatePerformerNotes.mockResolvedValue({ id: "pf1", label: "Jane Banks", notes: "hat" });
+  const res = await PATCH(patchReq({ label: "Jane Banks", notes: "hat" }), ctx("pf1"));
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ performer: { id: "pf1", label: "Jane Banks", notes: "hat" } });
+  expect(updatePerformer).toHaveBeenCalledWith("pf1", "Jane Banks");
+  expect(updatePerformerNotes).toHaveBeenCalledWith("pf1", "hat");
+  const labelOrder = updatePerformer.mock.invocationCallOrder[0];
+  const notesOrder = updatePerformerNotes.mock.invocationCallOrder[0];
+  expect(labelOrder).toBeLessThan(notesOrder);
+});
+
+test("PATCH with a valid label and over-long notes rejects whole, before writing the label", async () => {
+  const res = await PATCH(patchReq({ label: "Jane Banks", notes: "a".repeat(4001) }), ctx("pf1"));
+  expect(res.status).toBe(400);
+  expect(updatePerformer).not.toHaveBeenCalled();
+  expect(updatePerformerNotes).not.toHaveBeenCalled();
+});
+
+test("PATCH with a JSON null body is 400, not 500", async () => {
+  const res = await PATCH(patchReq(null), ctx("pf1"));
+  expect(res.status).toBe(400);
+  expect(updatePerformer).not.toHaveBeenCalled();
+  expect(updatePerformerNotes).not.toHaveBeenCalled();
+});
+
+test.each([5, true, {}, ["hat"]])("PATCH with notes of the wrong type (%j) is 400 and clears nothing", async (notes) => {
+  const res = await PATCH(patchReq({ label: "Jane Banks", notes }), ctx("pf1"));
+  expect(res.status).toBe(400);
+  expect(updatePerformer).not.toHaveBeenCalled();
+  expect(updatePerformerNotes).not.toHaveBeenCalled();
 });

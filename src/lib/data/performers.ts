@@ -21,6 +21,16 @@ export interface PerformerMeasurement {
 
 export const MAX_PERFORMER_NAME = 100;
 
+// Shared with the PATCH route so it can validate a label before writing anything.
+export function validatePerformerLabel(label: string): string {
+  const trimmed = label.trim();
+  if (!trimmed) throw new ValidationError("Name is required");
+  if (trimmed.length > MAX_PERFORMER_NAME) {
+    throw new ValidationError(`Name must be ${MAX_PERFORMER_NAME} characters or fewer`);
+  }
+  return trimmed;
+}
+
 export async function listPerformers(productionId: string): Promise<Performer[]> {
   const { data, error } = await supabaseAdmin
     .from("performers")
@@ -50,14 +60,35 @@ export async function createPerformer(input: {
 }
 
 export async function updatePerformer(id: string, label: string): Promise<Performer> {
-  const trimmed = label.trim();
-  if (!trimmed) throw new ValidationError("Name is required");
-  if (trimmed.length > MAX_PERFORMER_NAME) {
-    throw new ValidationError(`Name must be ${MAX_PERFORMER_NAME} characters or fewer`);
-  }
+  const trimmed = validatePerformerLabel(label);
   const { data, error } = await supabaseAdmin
     .from("performers")
     .update({ label: trimmed })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NotFoundError("Performer not found");
+  return data as Performer;
+}
+
+export const MAX_PERFORMER_NOTES = 4000;
+
+// Shared with the PATCH route so it can validate notes before writing anything.
+export function validatePerformerNotes(notes: string | null): string {
+  const trimmed = (notes ?? "").trim();
+  if (trimmed.length > MAX_PERFORMER_NOTES) {
+    throw new ValidationError(`Notes must be ${MAX_PERFORMER_NOTES} characters or fewer`);
+  }
+  return trimmed;
+}
+
+// Free-text notes shown on the performer's measurement page. Empty text clears them.
+export async function updatePerformerNotes(id: string, notes: string | null): Promise<Performer> {
+  const trimmed = validatePerformerNotes(notes);
+  const { data, error } = await supabaseAdmin
+    .from("performers")
+    .update({ notes: trimmed || null })
     .eq("id", id)
     .select()
     .maybeSingle();
@@ -100,20 +131,34 @@ export async function getMeasurements(performerId: string): Promise<PerformerMea
   return (data ?? []) as PerformerMeasurement[];
 }
 
-// All measurement rows for the given performers (one query).
+const MEASUREMENT_ROWS_PAGE_SIZE = 1000;
+
+// All measurement rows for the given performers, paginated: PostgREST silently caps a single
+// select at its max-rows setting, and callers (the measurement import context among them) need
+// every row, not just the first page.
 export async function getMeasurementsForPerformers(
   performerIds: string[],
 ): Promise<PerformerMeasurement[]> {
   if (performerIds.length === 0) return [];
-  const { data, error } = await supabaseAdmin
-    .from("performer_measurements")
-    .select("*")
-    .in("performer_id", performerIds);
-  if (error) throw new Error(error.message);
-  return (data ?? []) as PerformerMeasurement[];
+  const rows: PerformerMeasurement[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabaseAdmin
+      .from("performer_measurements")
+      .select("*")
+      .in("performer_id", performerIds)
+      .order("id")
+      .range(from, from + MEASUREMENT_ROWS_PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []) as PerformerMeasurement[];
+    rows.push(...page);
+    if (page.length < MEASUREMENT_ROWS_PAGE_SIZE) break;
+    from += MEASUREMENT_ROWS_PAGE_SIZE;
+  }
+  return rows;
 }
 
-const FILLED_COUNTS_PAGE_SIZE = 1000;
+const FILLED_COUNTS_PAGE_SIZE = MEASUREMENT_ROWS_PAGE_SIZE;
 
 // How many measurement fields each performer has filled in, keyed by performer id.
 // Each (performer_id, measurement_key) row is unique, so a row count == filled-field count.

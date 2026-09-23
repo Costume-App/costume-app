@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CAST_COLORS,
   castColorHex,
@@ -14,6 +15,8 @@ import { usePersistentState } from "@/lib/use-persistent-state";
 import { sortRoles, ROLE_SORT_OPTIONS, type RoleSortMode } from "@/lib/role-sort";
 import { RoleSuggestionBanner, type RoleSuggestion } from "@/components/RoleSuggestionBanner";
 import { CastImportPanel } from "@/components/cast-import/CastImportPanel";
+import { MeasurementImportPanel } from "@/components/measurement-import/MeasurementImportPanel";
+import type { ImportResult } from "@/lib/measurement-import/types";
 import { describeCounts } from "@/lib/cast-import/counts";
 import type { ImportCounts, WorkspaceSnapshot } from "@/lib/cast-import/types";
 import type { CostumeDesign } from "@/lib/data/costume-designs";
@@ -97,6 +100,8 @@ export function ProductionWorkspace({
   const sortedRoles = sortRoles(roles, sortMode, { castings, performers, selectedCastId });
 
   const [showImport, setShowImport] = useState(false);
+  const [showMeasurementImport, setShowMeasurementImport] = useState(false);
+  const router = useRouter();
   const [importNote, setImportNote] = useState<string | null>(null);
   const [showCombine, setShowCombine] = useState(false);
   // Same-name performers, kept live from workspace state so the notice follows renames,
@@ -126,6 +131,19 @@ export function ProductionWorkspace({
     if (!workspace.casts.some((c) => c.id === selectedCastId)) setSelectedCastId(workspace.casts[0]?.id ?? "");
     setShowCombine(false);
     setImportNote(describeCombineCounts(counts));
+  }
+
+  // A finished measurement import may have added performers and changed every measurement status
+  // badge, which comes from server props, so refresh the page data as well as the list.
+  function onMeasurementImported(fresh: { id: string; name: string }[], result: ImportResult) {
+    setPerformers(fresh);
+    setShowMeasurementImport(false);
+    const parts: string[] = [];
+    if (result.measurementsWritten > 0) parts.push(`${result.measurementsWritten} measurement${result.measurementsWritten === 1 ? "" : "s"}`);
+    if (result.performersCreated > 0) parts.push(`${result.performersCreated} new performer${result.performersCreated === 1 ? "" : "s"}`);
+    if (result.notesAppended > 0) parts.push(`notes for ${result.notesAppended}`);
+    setImportNote(parts.length > 0 ? `Imported ${parts.join(", ")}.` : "Nothing imported.");
+    router.refresh();
   }
 
   async function addRole(e: React.FormEvent) {
@@ -346,6 +364,7 @@ export function ProductionWorkspace({
             type="button"
             onClick={() => {
               setShowImport(false);
+              setShowMeasurementImport(false);
               setShowCombine(true);
             }}
             className="link-red"
@@ -372,6 +391,13 @@ export function ProductionWorkspace({
           onClose={() => setShowImport(false)}
         />
       )}
+      {showMeasurementImport && (
+        <MeasurementImportPanel
+          productionId={productionId}
+          onImported={onMeasurementImported}
+          onClose={() => setShowMeasurementImport(false)}
+        />
+      )}
 
       {roles.length === 0 ? (
         <>
@@ -393,6 +419,7 @@ export function ProductionWorkspace({
                   type="button"
                   onClick={() => {
                     setShowCombine(false);
+                    setShowMeasurementImport(false);
                     setShowImport(true);
                   }}
                   className="link-red"
@@ -416,11 +443,25 @@ export function ProductionWorkspace({
                   type="button"
                   onClick={() => {
                     setShowCombine(false);
+                    setShowMeasurementImport(false);
                     setShowImport(true);
                   }}
                   className="link-muted text-sm"
                 >
                   Import cast list
+                </button>
+              )}
+              {!showMeasurementImport && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCombine(false);
+                    setShowImport(false);
+                    setShowMeasurementImport(true);
+                  }}
+                  className="link-muted text-sm"
+                >
+                  Import measurement forms
                 </button>
               )}
               <label className="flex shrink-0 items-center gap-1.5 text-sm muted">
