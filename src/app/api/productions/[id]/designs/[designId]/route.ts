@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg, assertDesignInProduction } from "@/lib/data/production-access";
 import { updateCostumeDesign, deleteCostumeDesign, setCostumeDesignNotes } from "@/lib/data/costume-designs";
 import { listDesignImagePaths } from "@/lib/data/storage-paths";
@@ -11,7 +12,7 @@ type Ctx = { params: Promise<{ id: string; designId: string }> };
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, designId } = await params;
+    const { id, designId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as { name?: string; notes?: string };
     if (typeof body.notes === "string") {
@@ -28,7 +29,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, designId } = await params;
+    const { id, designId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertDesignInProduction(id, designId); // assert ownership before touching storage
     await removeImages(await listDesignImagePaths(designId));

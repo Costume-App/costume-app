@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { ValidationError } from "@/lib/errors";
 import { assertProductionInOrg, assertRoleInProduction } from "@/lib/data/production-access";
 import { listRoleImages, addRoleImage, countRoleImages } from "@/lib/data/role-images";
@@ -13,7 +14,7 @@ const MAX_PER_ROLE = 6;
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, roleId } = await params;
+    const { id, roleId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertRoleInProduction(id, roleId);
     const images = await listRoleImages(roleId);
@@ -29,7 +30,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function POST(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, roleId } = await params;
+    const { id, roleId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertRoleInProduction(id, roleId);
     if ((await countRoleImages(roleId)) >= MAX_PER_ROLE) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { listCostumeDesigns, createCostumeDesign } from "@/lib/data/costume-designs";
 import { listRoles } from "@/lib/data/roles";
@@ -12,7 +13,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const designs = await listCostumeDesigns(id);
     return NextResponse.json({ designs });
@@ -24,7 +25,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function POST(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as { roleId?: string; name?: string; inventoryItemId?: string };
     if (typeof body.roleId !== "string" || !body.roleId) throw new ValidationError("roleId is required");

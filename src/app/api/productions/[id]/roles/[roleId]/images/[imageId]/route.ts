@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg, assertRoleInProduction } from "@/lib/data/production-access";
 import { deleteRoleImage } from "@/lib/data/role-images";
 import { removeRoleImages } from "@/lib/storage";
@@ -10,7 +11,7 @@ type Ctx = { params: Promise<{ id: string; roleId: string; imageId: string }> };
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, roleId, imageId } = await params;
+    const { id, roleId, imageId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertRoleInProduction(id, roleId);
     const path = await deleteRoleImage(roleId, imageId);

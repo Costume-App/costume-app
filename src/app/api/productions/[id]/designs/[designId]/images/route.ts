@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { ValidationError } from "@/lib/errors";
 import { assertProductionInOrg, assertDesignInProduction } from "@/lib/data/production-access";
 import { listCostumeDesignImages, addCostumeDesignImage, countCostumeDesignImages } from "@/lib/data/costume-design-images";
@@ -13,7 +14,7 @@ const MAX_PER_PIECE = 6;
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, designId } = await params;
+    const { id, designId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertDesignInProduction(id, designId);
     const images = await listCostumeDesignImages(designId);
@@ -29,7 +30,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function POST(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, designId } = await params;
+    const { id, designId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertDesignInProduction(id, designId);
     if ((await countCostumeDesignImages(designId)) >= MAX_PER_PIECE) {

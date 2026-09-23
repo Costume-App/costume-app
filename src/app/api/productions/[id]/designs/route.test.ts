@@ -24,6 +24,8 @@ vi.mock("@/lib/data/inventory-items", () => ({
 
 import { GET, POST } from "@/app/api/productions/[id]/designs/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 const post = (body: unknown) =>
   new Request("http://t", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -31,28 +33,28 @@ const post = (body: unknown) =>
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, listCostumeDesigns, createCostumeDesign, listRoles, getInventoryItem].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: P1 });
   listRoles.mockResolvedValue([{ id: "r1" }]);
 });
 
 test("GET lists designs (200)", async () => {
   listCostumeDesigns.mockResolvedValue([{ id: "d1" }]);
-  const res = await GET(new Request("http://t"), ctx("p1"));
+  const res = await GET(new Request("http://t"), ctx(P1));
   expect(res.status).toBe(200);
   expect(await res.json()).toEqual({ designs: [{ id: "d1" }] });
 });
 
 test("POST creates a design (201)", async () => {
   createCostumeDesign.mockResolvedValue({ id: "d1", name: "Jacket" });
-  const res = await POST(post({ roleId: "r1", name: "Jacket" }), ctx("p1"));
+  const res = await POST(post({ roleId: "r1", name: "Jacket" }), ctx(P1));
   expect(res.status).toBe(201);
-  expect(createCostumeDesign).toHaveBeenCalledWith(expect.objectContaining({ productionId: "p1", roleId: "r1", name: "Jacket" }));
+  expect(createCostumeDesign).toHaveBeenCalledWith(expect.objectContaining({ productionId: P1, roleId: "r1", name: "Jacket" }));
 });
 
 test("POST from inventory returns the design enriched with inventory_location", async () => {
   getInventoryItem.mockResolvedValue({ id: "i1", name: "Top hat", location: "Bin A" });
   createCostumeDesign.mockResolvedValue({ id: "d2", name: "Top hat", inventory_item_id: "i1" });
-  const res = await POST(post({ roleId: "r1", inventoryItemId: "i1" }), ctx("p1"));
+  const res = await POST(post({ roleId: "r1", inventoryItemId: "i1" }), ctx(P1));
   expect(res.status).toBe(201);
   expect(await res.json()).toEqual({
     design: { id: "d2", name: "Top hat", inventory_item_id: "i1", inventory_location: "Bin A" },
@@ -62,13 +64,25 @@ test("POST from inventory returns the design enriched with inventory_location", 
 test("POST 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await POST(post({ roleId: "r1", name: "X" }), ctx("p1"));
+  const res = await POST(post({ roleId: "r1", name: "X" }), ctx(P1));
   expect(res.status).toBe(404);
 });
 
 test("POST 404 when role not in production", async () => {
   listRoles.mockResolvedValue([{ id: "rX" }]);
-  const res = await POST(post({ roleId: "r1", name: "Jacket" }), ctx("p1"));
+  const res = await POST(post({ roleId: "r1", name: "Jacket" }), ctx(P1));
   expect(res.status).toBe(404);
   expect(createCostumeDesign).not.toHaveBeenCalled();
+});
+
+test("GET returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await GET(new Request("http://t"), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("POST returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await POST(post({ roleId: "r1", name: "Jacket" }), ctx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });

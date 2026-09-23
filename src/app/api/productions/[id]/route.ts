@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { assertProductionInOrg } from "@/lib/data/production-access";
 import { deleteProduction, updateProduction, setProductionActive, setProductionNotes, setCostumesDue } from "@/lib/data/productions";
 import { listProductionImagePaths } from "@/lib/data/storage-paths";
@@ -11,7 +12,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await removeImages(await listProductionImagePaths(id));
     await deleteProduction(orgId, id);
@@ -24,7 +25,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as { title?: string; isActive?: boolean; notes?: string; costumesDueDate?: string | null };
     if (typeof body.isActive === "boolean") {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { ValidationError } from "@/lib/errors";
 import { assertProductionInOrg, assertRoleInProduction } from "@/lib/data/production-access";
 import { deleteRole, setRoleNotes, updateRole, setRoleEnsemble } from "@/lib/data/roles";
@@ -12,7 +13,7 @@ type Ctx = { params: Promise<{ id: string; roleId: string }> };
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, roleId } = await params;
+    const { id, roleId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     await assertRoleInProduction(id, roleId); // assert ownership before touching storage
     await removeImages(await listRoleImagePaths(roleId));
@@ -26,7 +27,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { id, roleId } = await params;
+    const { id, roleId } = await idParams(params);
     await assertProductionInOrg(orgId, id);
     const body = (await request.json()) as { name?: string; notes?: string; isEnsemble?: boolean };
     if (typeof body.isEnsemble === "boolean") {

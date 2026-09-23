@@ -36,12 +36,15 @@ vi.mock("@/lib/storage", () => ({
 
 import { DELETE, PATCH } from "@/app/api/productions/[id]/roles/[roleId]/route";
 
+const P1 = "11111111-1111-4111-8111-111111111111";
+const R1 = "22222222-2222-4222-8222-222222222222";
+
 beforeEach(() => {
   [getAuthContext, assertProductionInOrg, assertRoleInProduction, deleteRole, setRoleNotes, updateRole, setRoleEnsemble, listRoleImagePaths, removeImages].forEach((m) => m.mockReset());
   getAuthContext.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  assertProductionInOrg.mockResolvedValue({ id: "p1" });
+  assertProductionInOrg.mockResolvedValue({ id: P1 });
   assertRoleInProduction.mockResolvedValue(undefined);
-  listRoleImagePaths.mockResolvedValue(["p1/r1/a.jpg"]);
+  listRoleImagePaths.mockResolvedValue([`${P1}/${R1}/a.jpg`]);
   removeImages.mockResolvedValue(undefined);
 });
 
@@ -55,24 +58,24 @@ const patchReq = (body: unknown) =>
 
 test("DELETE removes a role (200)", async () => {
   deleteRole.mockResolvedValue(undefined);
-  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, R1));
   expect(res.status).toBe(200);
-  expect(assertRoleInProduction).toHaveBeenCalledWith("p1", "r1");
-  expect(listRoleImagePaths).toHaveBeenCalledWith("r1");
-  expect(removeImages).toHaveBeenCalledWith(["p1/r1/a.jpg"]);
-  expect(deleteRole).toHaveBeenCalledWith("p1", "r1");
+  expect(assertRoleInProduction).toHaveBeenCalledWith(P1, R1);
+  expect(listRoleImagePaths).toHaveBeenCalledWith(R1);
+  expect(removeImages).toHaveBeenCalledWith([`${P1}/${R1}/a.jpg`]);
+  expect(deleteRole).toHaveBeenCalledWith(P1, R1);
 });
 
 test("DELETE removes storage objects before deleting the role row", async () => {
   deleteRole.mockResolvedValue(undefined);
-  await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
+  await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, R1));
   expect(removeImages.mock.invocationCallOrder[0]).toBeLessThan(deleteRole.mock.invocationCallOrder[0]);
 });
 
-test("DELETE 404 when the role is not in that production (cross-production/cross-org) — storage untouched", async () => {
+test("DELETE 404 when the role is not in that production (cross-production/cross-org), storage untouched", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertRoleInProduction.mockRejectedValue(new NotFoundError("Role not found in this production"));
-  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("p1", "r1"));
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, R1));
   expect(res.status).toBe(404);
   expect(listRoleImagePaths).not.toHaveBeenCalled();
   expect(removeImages).not.toHaveBeenCalled();
@@ -80,28 +83,28 @@ test("DELETE 404 when the role is not in that production (cross-production/cross
 });
 
 test("PATCH with a name renames the role via updateRole (200)", async () => {
-  updateRole.mockResolvedValue({ id: "r1", name: "Bert" });
-  const res = await PATCH(patchReq({ name: "Bert" }), ctx("p1", "r1"));
+  updateRole.mockResolvedValue({ id: R1, name: "Bert" });
+  const res = await PATCH(patchReq({ name: "Bert" }), ctx(P1, R1));
   expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ role: { id: "r1", name: "Bert" } });
-  expect(updateRole).toHaveBeenCalledWith("p1", "r1", "Bert");
+  expect(await res.json()).toEqual({ role: { id: R1, name: "Bert" } });
+  expect(updateRole).toHaveBeenCalledWith(P1, R1, "Bert");
   expect(setRoleNotes).not.toHaveBeenCalled();
 });
 
 test("PATCH saves role notes (200)", async () => {
-  setRoleNotes.mockResolvedValue({ id: "r1", notes: "blue dress" });
-  const res = await PATCH(patchReq({ notes: "blue dress" }), ctx("p1", "r1"));
+  setRoleNotes.mockResolvedValue({ id: R1, notes: "blue dress" });
+  const res = await PATCH(patchReq({ notes: "blue dress" }), ctx(P1, R1));
   expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ role: { id: "r1", notes: "blue dress" } });
-  expect(setRoleNotes).toHaveBeenCalledWith("p1", "r1", "blue dress");
+  expect(await res.json()).toEqual({ role: { id: R1, notes: "blue dress" } });
+  expect(setRoleNotes).toHaveBeenCalledWith(P1, R1, "blue dress");
 });
 
 test("PATCH with isEnsemble flips the role via setRoleEnsemble (200)", async () => {
-  setRoleEnsemble.mockResolvedValue({ id: "r1", name: "Villagers", is_ensemble: true });
-  const res = await PATCH(patchReq({ isEnsemble: true }), ctx("p1", "r1"));
+  setRoleEnsemble.mockResolvedValue({ id: R1, name: "Villagers", is_ensemble: true });
+  const res = await PATCH(patchReq({ isEnsemble: true }), ctx(P1, R1));
   expect(res.status).toBe(200);
-  expect(await res.json()).toEqual({ role: { id: "r1", name: "Villagers", is_ensemble: true } });
-  expect(setRoleEnsemble).toHaveBeenCalledWith("p1", "r1", true);
+  expect(await res.json()).toEqual({ role: { id: R1, name: "Villagers", is_ensemble: true } });
+  expect(setRoleEnsemble).toHaveBeenCalledWith(P1, R1, true);
   expect(updateRole).not.toHaveBeenCalled();
   expect(setRoleNotes).not.toHaveBeenCalled();
 });
@@ -109,20 +112,44 @@ test("PATCH with isEnsemble flips the role via setRoleEnsemble (200)", async () 
 test("PATCH 404 when production not in org", async () => {
   const { NotFoundError } = await import("@/lib/errors");
   assertProductionInOrg.mockRejectedValue(new NotFoundError("Production not found"));
-  const res = await PATCH(patchReq({ notes: "x" }), ctx("p1", "r1"));
+  const res = await PATCH(patchReq({ notes: "x" }), ctx(P1, R1));
   expect(res.status).toBe(404);
   expect(setRoleNotes).not.toHaveBeenCalled();
 });
 
 test("PATCH with a non-boolean isEnsemble is a 400 and never clears notes", async () => {
-  const res = await PATCH(patchReq({ isEnsemble: "yes" }), ctx("p1", "r1"));
+  const res = await PATCH(patchReq({ isEnsemble: "yes" }), ctx(P1, R1));
   expect(res.status).toBe(400);
   expect(setRoleNotes).not.toHaveBeenCalled();
   expect(setRoleEnsemble).not.toHaveBeenCalled();
 });
 
 test("PATCH with no recognised field is a 400 and never clears notes", async () => {
-  const res = await PATCH(patchReq({}), ctx("p1", "r1"));
+  const res = await PATCH(patchReq({}), ctx(P1, R1));
   expect(res.status).toBe(400);
   expect(setRoleNotes).not.toHaveBeenCalled();
+});
+
+test("DELETE returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx("not-a-uuid", R1));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("DELETE returns 404 for a non-UUID role id without touching data", async () => {
+  const res = await DELETE(new Request("http://test", { method: "DELETE" }), ctx(P1, "not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("PATCH returns 404 for a non-UUID production id without touching data", async () => {
+  const res = await PATCH(patchReq({ notes: "x" }), ctx("not-a-uuid", R1));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
+});
+
+test("PATCH returns 404 for a non-UUID role id without touching data", async () => {
+  const res = await PATCH(patchReq({ notes: "x" }), ctx(P1, "not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(assertProductionInOrg).not.toHaveBeenCalled();
 });
