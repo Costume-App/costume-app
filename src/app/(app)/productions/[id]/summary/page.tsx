@@ -5,6 +5,7 @@ import { assertProductionInOrg } from "@/lib/data/production-access";
 import { loadCostumeCreationsData } from "@/lib/data/costume-creations";
 import { todayIso } from "@/lib/countdown";
 import { NotFoundError } from "@/lib/errors";
+import { pageIdParams } from "@/lib/route-params";
 import { TailorSummary } from "@/components/TailorSummary";
 import { isAiConfigured } from "@/lib/ai/estimate-fabric";
 
@@ -14,7 +15,7 @@ export default async function TailorSummaryPage({
   params: Promise<{ id: string }>;
 }) {
   const { orgId } = await getAuthContext();
-  const { id } = await params;
+  const { id } = await pageIdParams(params);
 
   let production;
   try {

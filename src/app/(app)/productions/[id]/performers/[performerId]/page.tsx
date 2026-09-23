@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-context";
 import { assertProductionInOrg, assertPerformerInOrg } from "@/lib/data/production-access";
+import { NotFoundError } from "@/lib/errors";
+import { pageIdParams } from "@/lib/route-params";
 import { listMeasurementDefinitions } from "@/lib/data/measurement-definitions";
 import { getMeasurements, listPerformers } from "@/lib/data/performers";
 import { listRoles } from "@/lib/data/roles";
@@ -17,11 +20,17 @@ export default async function MeasurementPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { orgId } = await getAuthContext();
-  const { id, performerId } = await params;
+  const { id, performerId } = await pageIdParams(params);
   const { from } = await searchParams;
   const backToSummary = from === "summary";
-  const production = await assertProductionInOrg(orgId, id);
-  await assertPerformerInOrg(orgId, performerId);
+  let production;
+  try {
+    production = await assertProductionInOrg(orgId, id);
+    await assertPerformerInOrg(orgId, performerId);
+  } catch (err) {
+    if (err instanceof NotFoundError) notFound();
+    throw err;
+  }
 
   const [definitions, measurements, performers, roles, casts, castings] = await Promise.all([
     listMeasurementDefinitions(),

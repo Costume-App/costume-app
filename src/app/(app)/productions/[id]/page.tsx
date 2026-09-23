@@ -12,6 +12,7 @@ import { listCostumeDesigns } from "@/lib/data/costume-designs";
 import { listCostumePieces } from "@/lib/data/costume-pieces";
 import { listMakers } from "@/lib/data/makers";
 import { NotFoundError } from "@/lib/errors";
+import { pageIdParams } from "@/lib/route-params";
 import { todayIso } from "@/lib/countdown";
 import { ProductionWorkspace } from "@/components/ProductionWorkspace";
 import { listShowDates } from "@/lib/data/show-dates";
@@ -34,7 +35,7 @@ export default async function ProductionDetailPage({
   const { orgId } = await getAuthContext();
   const { orgRole } = await auth();
   const isAdmin = orgRole === "org:admin";
-  const { id } = await params;
+  const { id } = await pageIdParams(params);
 
   let production;
   try {
