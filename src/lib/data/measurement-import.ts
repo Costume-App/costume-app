@@ -29,7 +29,11 @@ export async function loadMeasurementImportContext(productionId: string): Promis
   };
 }
 
-// Write a reviewed import in one transaction via import_measurement_forms (migration 0038).
+function notesTooLongMessage(label: string): string {
+  return `${label}'s notes would be too long after this import. Shorten their notes or untick the notes block.`;
+}
+
+// Write a reviewed import in one transaction via import_measurement_forms (migrations 0038, 0039).
 // `existing` must be freshly loaded by the caller: the review may be stale, and a "new" performer
 // whose name now matches an existing one would recreate the duplicate rows migration 0036 exists
 // to clean up, so that case is refused here instead of created. Two forms in the same payload
@@ -62,9 +66,7 @@ export async function applyMeasurementImport(
         const existingLength = existingNotes ? existingNotes.length : 0;
         const resultLength = existingLength > 0 ? existingLength + 2 + appendTrimmed.length : appendTrimmed.length;
         if (resultLength > MAX_PERFORMER_NOTES) {
-          throw new ValidationError(
-            `${label}'s notes would be too long after this import. Shorten their notes or untick the notes block.`,
-          );
+          throw new ValidationError(notesTooLongMessage(label));
         }
       }
     }
@@ -92,6 +94,8 @@ export async function applyMeasurementImport(
   });
   if (error) {
     if (error.code === "P0002") throw new ConflictError(STALE_IMPORT_MESSAGE);
+    // 0039 re-checks the notes cap under the row lock, for a parallel import that passed the check above.
+    if (error.code === "22001") throw new ValidationError(notesTooLongMessage(error.details || "A performer"));
     throw new Error(error.message);
   }
   const counts = (data ?? {}) as { performers?: number; measurements?: number; notes?: number };

@@ -176,3 +176,15 @@ test("maps the RPC's P0002 to ConflictError and other errors to Error", async ()
   rpc.mockResolvedValue({ data: null, error: { code: "XX000", message: "boom" } });
   await expect(applyMeasurementImport("prod1", payload, existing)).rejects.toThrow("boom");
 });
+
+test("maps the RPC's 22001 (notes over the cap, checked under the row lock) to the notes ValidationError", async () => {
+  const payload: ApplyPayload = {
+    forms: [{ performer: { kind: "existing", performerId: P1 }, measurements: [], notesAppend: "more" }],
+  };
+  rpc.mockResolvedValue({ data: null, error: { code: "22001", message: "notes too long", details: "Ada Finch" } });
+  const err = await applyMeasurementImport("prod1", payload, existing).catch((e: unknown) => e);
+  expect(err).toBeInstanceOf(ValidationError);
+  expect((err as Error).message).toBe(
+    "Ada Finch's notes would be too long after this import. Shorten their notes or untick the notes block.",
+  );
+});
