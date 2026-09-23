@@ -16,13 +16,13 @@ Shows that have wrapped or gone inactive do not disappear, they tuck under "Show
 
 > point: the "Show past & inactive" link, then click to expand it
 
-Below your shows, quick links take you to House Inventory, the User Guide, and a form to send feedback, so help is never more than a tap away.
+Below your shows, quick links take you to House Inventory, the User Guide, and a form to send feedback, so help is never more than a click away.
 
 > point: the "House Inventory" card, then "User Guide," then the feedback card
 
 ## Create a production (`create-production`)
 
-To start a new show, tap "+ New Production" and give it a Show title. We will call this one Twelfth Night.
+To start a new show, click "+ New Production" and give it a Show title. We will call this one Twelfth Night.
 
 Next, let's add a few showings. Each one gets a date, an optional time, and an optional label, like Opening Night or Matinee.
 
@@ -48,4 +48,4 @@ Small icons on the collapsed row hint at what is already done: a note taken, a p
 
 ## Wrap up (`wrap-up`)
 
-That covers the basics of getting around Measure My Costume: your Productions page, creating a new show, and touring its workspace. In the next video, we will add roles to a production, cast performers into them, and start recording measurements. If you ever get stuck, the User Guide is one tap away from the Productions page. Thanks for watching, and see you in the next video.
+That covers the basics of getting around Measure My Costume: your Productions page, creating a new show, and touring its workspace. In the next video, we will add roles to a production and cast performers into them. If you ever get stuck, the User Guide is one click away from the Productions page. Thanks for watching, and see you in the next video.
