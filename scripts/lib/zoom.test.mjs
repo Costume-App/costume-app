@@ -53,4 +53,44 @@ describe("zoompanFilter", () => {
     expect(f).toContain(":fps=30");
     expect(f).not.toMatch(/\bNaN\b|undefined/);
   });
+
+  it("pans correctly to off-center target at peak zoom", () => {
+    const rect = zoomRect({ x: 1400, y: 150, width: 100, height: 60 }, 1.6, 1920, 1080);
+    const f = zoompanFilter({
+      rect, scale: 1.6, frames: 90, easeFrames: 12,
+      vw: 1920, vh: 1080, outW: 1920, outH: 1080, fps: 30,
+    });
+
+    const xMatch = f.match(/x='([^']+)'/);
+    const yMatch = f.match(/y='([^']+)'/);
+    expect(xMatch).not.toBeNull();
+    expect(yMatch).not.toBeNull();
+
+    const xExpr = xMatch[1];
+    const yExpr = yMatch[1];
+
+    const evalExpr = (expr) => {
+      const iw = 3840;
+      const ih = 2160;
+      const zoom = 1.6;
+      const on = 45;
+      const max = Math.max;
+      const min = Math.min;
+      const lt = (a, b) => a < b ? 1 : 0;
+      const result = new Function("iw", "ih", "zoom", "on", "max", "min", "lt", `return ${expr}`)(
+        iw, ih, zoom, on, max, min, lt
+      );
+      return result;
+    };
+
+    const x = evalExpr(xExpr);
+    const y = evalExpr(yExpr);
+    const cropCenterX = (x + 3840 / 1.6 / 2) / 3840;
+    const cropCenterY = (y + 2160 / 1.6 / 2) / 2160;
+    const rectCenterX = (rect.x + rect.w / 2) / 1920;
+    const rectCenterY = (rect.y + rect.h / 2) / 1080;
+
+    expect(cropCenterX).toBeCloseTo(rectCenterX, 3);
+    expect(cropCenterY).toBeCloseTo(rectCenterY, 3);
+  });
 });
