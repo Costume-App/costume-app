@@ -43,19 +43,7 @@ export function zoompanFilter({ rect, scale, frames, easeFrames, vw, vh, outW, o
   const fy = +((rect.y + rect.h / 2) / vh).toFixed(6);
   const inP = `(on/${A})`;
   const outP = `((${N}-on)/${A})`;
-  // Nested if(lt(...),...,if(lt(...),...)) silently evaluates to the base
-  // (unzoomed) case on this ffmpeg build: a single if() with a lt()/gte()
-  // condition animates correctly, but wrapping a second if() inside the
-  // else branch makes the whole zoom expression evaluate as if z were
-  // always 1, with no warning or error at any verbosity. Confirmed with
-  // ffmpeg 8.1.2 by comparing single-if and nested-if zoompan runs frame
-  // by frame. Multiplying by 0/1 flags from lt()/gte() avoids nesting.
-  const easeIn = `${inP}*${inP}*(3-2*${inP})`;
-  const easeOut = `${outP}*${outP}*(3-2*${outP})`;
-  const inFlag = `lt(on,${A})`;
-  const outFlag = `gte(on,${N - A})`;
-  const holdFlag = `(1-${inFlag})*(1-${outFlag})`;
-  const e = `(${easeIn})*${inFlag}+${holdFlag}+(${easeOut})*${outFlag}`;
+  const e = `if(lt(on,${A}),${inP}*${inP}*(3-2*${inP}),if(lt(on,${N - A}),1,${outP}*${outP}*(3-2*${outP})))`;
   const z = `1+${S1}*(${e})`;
   const p = `((zoom-1)/${S1})`;
   const x = `max(0,min(iw-iw/zoom,iw*(0.5+${p}*(${fx}-0.5))-iw/zoom/2))`;
