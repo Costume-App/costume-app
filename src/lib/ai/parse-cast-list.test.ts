@@ -79,18 +79,18 @@ test("no usable entries, invalid JSON, refusals and max_tokens are unreadable (4
   create.mockResolvedValue(reply({ casts: [], entries: [] }));
   await expect(parseCastList(content)).rejects.toThrow(CastListUnreadableError);
   create.mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: "not json" }] });
-  await expect(parseCastList(content)).rejects.toThrow("No cast list found in that — check it's the right file, or paste the names.");
+  await expect(parseCastList(content)).rejects.toThrow("No cast list found in that. Check it's the right file, or paste the names.");
   create.mockResolvedValue({ stop_reason: "refusal", content: [] });
   await expect(parseCastList(content)).rejects.toThrow(CastListUnreadableError);
   create.mockResolvedValue({ stop_reason: "max_tokens", content: [{ type: "text", text: "{\"entries\": [" }] });
-  await expect(parseCastList(content)).rejects.toThrow("That cast list is too long to read in one go — split it into smaller parts.");
+  await expect(parseCastList(content)).rejects.toThrow("That cast list is too long to read in one go. Split it into smaller parts.");
 });
 
 test("a 400 from the API (e.g. a corrupt PDF) is unreadable; other API failures are service errors", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   const BadRequest = (Anthropic as unknown as { BadRequestError: new (m: string) => Error }).BadRequestError;
   create.mockRejectedValue(new BadRequest("Could not process PDF"));
-  await expect(parseCastList(content)).rejects.toThrow("Couldn't read that file — try pasting the text instead.");
+  await expect(parseCastList(content)).rejects.toThrow("Couldn't read that file. Try pasting the text instead.");
   expect(console.error).toHaveBeenCalledWith("Cast list AI request rejected:", expect.any(Error));
   create.mockRejectedValue(new Error("socket hang up"));
   await expect(parseCastList(content)).rejects.toThrow(CastListServiceError);

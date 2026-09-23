@@ -23,7 +23,7 @@ export async function POST(request: Request, { params }: Ctx) {
     // sendEmail silently no-ops without a key, so guard explicitly here: the user
     // clicked "Resend" and expects to know whether it actually went out.
     if (!isEmailConfigured()) {
-      throw new ValidationError("Email isn't set up yet, copy the link to share it instead.");
+      throw new ValidationError("Email isn't set up yet. Copy the link to share it instead.");
     }
     const link = `${new URL(request.url).origin}/share/${share.token}`;
     await sendEmail({ to: share.recipient_email, ...shareInviteEmail(production.title, link) });

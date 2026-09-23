@@ -139,6 +139,20 @@ test("DELETE suppliers/[id] is rejected for a non-admin", async () => {
   expect(deleteFabricSupplier).not.toHaveBeenCalled();
 });
 
+test("PATCH suppliers/[id] returns 404 for a non-UUID id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  const res = await PATCHSupplier(patchReq({ isDefault: true }), idCtx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(updateFabricSupplier).not.toHaveBeenCalled();
+});
+
+test("PATCH widths/[id] returns 404 for a non-UUID id without touching data", async () => {
+  requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
+  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx("not-a-uuid"));
+  expect(res.status).toBe(404);
+  expect(updateFabricWidth).not.toHaveBeenCalled();
+});
+
 test("POST suppliers passes a url through to createFabricSupplier", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   createFabricSupplier.mockResolvedValue({ id: "s9" });

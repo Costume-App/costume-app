@@ -6,9 +6,9 @@ import { ACCEPTED_EXTENSIONS, MAX_FILE_BYTES } from "@/lib/cast-import/limits";
 import { toApplyPayload } from "@/lib/cast-import/payload";
 import type { Draft, ExistingData, ImportCounts, WorkspaceSnapshot } from "@/lib/cast-import/types";
 
-const READ_FAILED = "Couldn't read the cast list right now — try again.";
-const IMPORT_FAILED = "Couldn't import the cast list — try again.";
-const IMPORT_MAYBE_DONE = "The import may have finished — reload the page to check before trying again.";
+const READ_FAILED = "Couldn't read the cast list right now. Try again.";
+const IMPORT_FAILED = "Couldn't import the cast list. Try again.";
+const IMPORT_MAYBE_DONE = "The import may have finished. Reload the page to check before trying again.";
 const UNSUPPORTED_TYPE = "Upload a PDF, Word (.docx), Excel (.xlsx), CSV, text, PNG or JPG file.";
 
 // Import a cast list: paste or upload → AI reads it → review → one-transaction import.
@@ -94,7 +94,7 @@ export function CastImportPanel({
         onImported(data.workspace, data.counts); // the parent closes this panel
         return;
       }
-      // A 5xx may mean the transaction committed before the response failed — don't invite a
+      // A 5xx may mean the transaction committed before the response failed. Don't invite a
       // duplicating retry. 4xx is a clean rejection (validation/conflict/not-found): safe to retry.
       setError(res.status >= 500 ? IMPORT_MAYBE_DONE : data.error ?? IMPORT_FAILED);
     } catch {
@@ -137,7 +137,7 @@ export function CastImportPanel({
             }}
             disabled={busy || file !== null}
             aria-label="Cast list text"
-            placeholder="Paste the cast list — copied from a spreadsheet, document or email"
+            placeholder="Paste the cast list, copied from a spreadsheet, document or email"
           />
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <label className="btn-ghost cursor-pointer">
