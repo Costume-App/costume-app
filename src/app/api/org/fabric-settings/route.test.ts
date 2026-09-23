@@ -39,6 +39,9 @@ beforeEach(() => {
   [getAuthContext, requireOrgAdmin, ensureOrganization, listFabricWidths, listFabricSuppliers, createFabricWidth, createFabricSupplier, updateFabricSupplier, updateFabricWidth, deleteFabricSupplier, deleteFabricWidth].forEach((m) => m.mockReset());
 });
 
+const S1 = "11111111-1111-4111-8111-111111111111";
+const W1 = "22222222-2222-4222-8222-222222222222";
+
 const jsonReq = (body: unknown) =>
   new Request("http://test", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const patchReq = (body: unknown) =>
@@ -98,24 +101,24 @@ test("POST suppliers is rejected for a non-admin", async () => {
 
 test("PATCH suppliers/[id] applies isDefault + parsed price as an admin", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  updateFabricSupplier.mockResolvedValue({ id: "s1", name: "Mood", price_per_yard: 4, is_default: true });
-  const res = await PATCHSupplier(patchReq({ isDefault: true, pricePerYard: "4" }), idCtx("s1"));
+  updateFabricSupplier.mockResolvedValue({ id: S1, name: "Mood", price_per_yard: 4, is_default: true });
+  const res = await PATCHSupplier(patchReq({ isDefault: true, pricePerYard: "4" }), idCtx(S1));
   expect(res.status).toBe(200);
-  expect(updateFabricSupplier).toHaveBeenCalledWith("org_1", "s1", { isDefault: true, pricePerYard: 4 });
+  expect(updateFabricSupplier).toHaveBeenCalledWith("org_1", S1, { isDefault: true, pricePerYard: 4 });
 });
 
 test("PATCH widths/[id] sets the default width as an admin", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  updateFabricWidth.mockResolvedValue({ id: "w1", value: '54\"', is_default: true });
-  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx("w1"));
+  updateFabricWidth.mockResolvedValue({ id: W1, value: '54\"', is_default: true });
+  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx(W1));
   expect(res.status).toBe(200);
-  expect(updateFabricWidth).toHaveBeenCalledWith("org_1", "w1", { isDefault: true });
+  expect(updateFabricWidth).toHaveBeenCalledWith("org_1", W1, { isDefault: true });
 });
 
 test("PATCH widths/[id] is rejected for a non-admin", async () => {
   const { AuthError } = await import("@/lib/auth-context");
   requireOrgAdmin.mockRejectedValue(new AuthError(403, "Admin access required"));
-  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx("w1"));
+  const res = await PATCHWidth(patchReq({ isDefault: true }), idCtx(W1));
   expect(res.status).toBe(403);
   expect(updateFabricWidth).not.toHaveBeenCalled();
 });
@@ -123,15 +126,15 @@ test("PATCH widths/[id] is rejected for a non-admin", async () => {
 test("DELETE widths/[id] removes the width as an admin", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
   deleteFabricWidth.mockResolvedValue(undefined);
-  const res = await DELETEWidth(new Request("http://test", { method: "DELETE" }), idCtx("w1"));
+  const res = await DELETEWidth(new Request("http://test", { method: "DELETE" }), idCtx(W1));
   expect(res.status).toBe(200);
-  expect(deleteFabricWidth).toHaveBeenCalledWith("org_1", "w1");
+  expect(deleteFabricWidth).toHaveBeenCalledWith("org_1", W1);
 });
 
 test("DELETE suppliers/[id] is rejected for a non-admin", async () => {
   const { AuthError } = await import("@/lib/auth-context");
   requireOrgAdmin.mockRejectedValue(new AuthError(403, "Admin access required"));
-  const res = await DELETESupplier(new Request("http://test", { method: "DELETE" }), idCtx("s1"));
+  const res = await DELETESupplier(new Request("http://test", { method: "DELETE" }), idCtx(S1));
   expect(res.status).toBe(403);
   expect(deleteFabricSupplier).not.toHaveBeenCalled();
 });
@@ -145,7 +148,7 @@ test("POST suppliers passes a url through to createFabricSupplier", async () => 
 
 test("PATCH suppliers/[id] passes a url through to updateFabricSupplier", async () => {
   requireOrgAdmin.mockResolvedValue({ userId: "u1", orgId: "org_1" });
-  updateFabricSupplier.mockResolvedValue({ id: "s1" });
-  await PATCHSupplier(patchReq({ url: "moodfabrics.com" }), idCtx("s1"));
-  expect(updateFabricSupplier).toHaveBeenCalledWith("org_1", "s1", { url: "moodfabrics.com" });
+  updateFabricSupplier.mockResolvedValue({ id: S1 });
+  await PATCHSupplier(patchReq({ url: "moodfabrics.com" }), idCtx(S1));
+  expect(updateFabricSupplier).toHaveBeenCalledWith("org_1", S1, { url: "moodfabrics.com" });
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { ValidationError } from "@/lib/errors";
 import { getInventoryItem } from "@/lib/data/inventory-items";
 import {
@@ -17,7 +18,7 @@ const MAX_PER_ITEM = 6;
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { itemId } = await params;
+    const { itemId } = await idParams(params);
     await getInventoryItem(orgId, itemId);
     const images = await listInventoryItemImages(itemId);
     const urls = await signImageUrls(images.map((i) => i.storage_path));
@@ -32,7 +33,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function POST(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { itemId } = await params;
+    const { itemId } = await idParams(params);
     await getInventoryItem(orgId, itemId);
     if ((await countInventoryItemImages(itemId)) >= MAX_PER_ITEM) {
       throw new ValidationError(`Up to ${MAX_PER_ITEM} photos per item`);

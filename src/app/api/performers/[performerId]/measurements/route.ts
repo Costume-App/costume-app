@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { getMeasurements, upsertMeasurement } from "@/lib/data/performers";
 import { assertPerformerInOrg } from "@/lib/data/production-access";
 
@@ -9,7 +10,7 @@ type Ctx = { params: Promise<{ performerId: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { performerId } = await params;
+    const { performerId } = await idParams(params);
     await assertPerformerInOrg(orgId, performerId);
     const measurements = await getMeasurements(performerId);
     return NextResponse.json({ measurements });
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function PUT(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { performerId } = await params;
+    const { performerId } = await idParams(params);
     await assertPerformerInOrg(orgId, performerId);
     const body = (await request.json()) as {
       measurementKey?: string;

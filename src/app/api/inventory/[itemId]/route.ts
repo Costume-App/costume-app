@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { getInventoryItem, updateInventoryItem, deleteInventoryItem } from "@/lib/data/inventory-items";
 import { listInventoryItemImages } from "@/lib/data/inventory-item-images";
 import { removeImages } from "@/lib/storage";
@@ -10,7 +11,7 @@ type Ctx = { params: Promise<{ itemId: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { itemId } = await params;
+    const { itemId } = await idParams(params);
     const item = await getInventoryItem(orgId, itemId);
     return NextResponse.json({ item });
   } catch (err) {
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: Ctx) {
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { itemId } = await params;
+    const { itemId } = await idParams(params);
     const body = (await request.json()) as {
       name?: string; category?: string | null; size?: string | null; quantity?: number; location?: string | null; notes?: string | null;
     };
@@ -45,7 +46,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { itemId } = await params;
+    const { itemId } = await idParams(params);
     await getInventoryItem(orgId, itemId); // assert ownership before touching storage
     const images = await listInventoryItemImages(itemId);
     await removeImages(images.map((i) => i.storage_path));

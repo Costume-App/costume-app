@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOrgAdmin } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { updateFabricSupplier, deleteFabricSupplier } from "@/lib/data/fabric-settings";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -14,7 +15,7 @@ function parsePrice(v: unknown): number | null {
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await requireOrgAdmin();
-    const { id } = await params;
+    const { id } = await idParams(params);
     const body = (await request.json()) as { name?: string; pricePerYard?: unknown; isDefault?: boolean; url?: string };
     const patch: { name?: string; pricePerYard?: number | null; isDefault?: boolean; url?: string } = {};
     if (typeof body.name === "string") patch.name = body.name;
@@ -31,7 +32,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await requireOrgAdmin();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await deleteFabricSupplier(orgId, id);
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import {
   deletePerformer,
   updatePerformer,
@@ -17,7 +18,7 @@ type Ctx = { params: Promise<{ performerId: string }> };
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { performerId } = await params;
+    const { performerId } = await idParams(params);
     await assertPerformerInOrg(orgId, performerId);
     await deletePerformer(performerId);
     return NextResponse.json({ ok: true });
@@ -29,7 +30,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await getAuthContext();
-    const { performerId } = await params;
+    const { performerId } = await idParams(params);
     await assertPerformerInOrg(orgId, performerId);
     const body: unknown = await request.json();
     if (typeof body !== "object" || body === null) {

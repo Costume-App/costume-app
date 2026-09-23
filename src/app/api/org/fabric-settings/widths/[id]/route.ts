@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOrgAdmin } from "@/lib/auth-context";
 import { errorResponse } from "@/lib/api";
+import { idParams } from "@/lib/route-params";
 import { updateFabricWidth, deleteFabricWidth } from "@/lib/data/fabric-settings";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -8,7 +9,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { orgId } = await requireOrgAdmin();
-    const { id } = await params;
+    const { id } = await idParams(params);
     const body = (await request.json()) as { value?: string; isDefault?: boolean };
     const patch: { value?: string; isDefault?: boolean } = {};
     if (typeof body.value === "string") patch.value = body.value;
@@ -23,7 +24,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 export async function DELETE(_request: Request, { params }: Ctx) {
   try {
     const { orgId } = await requireOrgAdmin();
-    const { id } = await params;
+    const { id } = await idParams(params);
     await deleteFabricWidth(orgId, id);
     return NextResponse.json({ ok: true });
   } catch (err) {
