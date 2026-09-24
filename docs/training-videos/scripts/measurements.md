@@ -44,7 +44,7 @@ You can enter a number the way you would write it by hand. Waist, twenty six and
 
 On an iPad with an Apple Pencil, you can write straight into any box, and the iPad turns your handwriting into text. If the app cannot read a value, a red dot appears, and you simply write it again.
 
-> point at a field; optionally type an unreadable value and zoom the red dot, then fix it
+> type "abc" into Waist, Tab; zoom the red "Couldn't read that number" dot; then correct it to "26 1/2"
 
 ## Move between performers (`switcher`)
 
@@ -62,7 +62,7 @@ Already have forms filled in on paper? Back on the production, choose "Import me
 
 > click: "Import measurement forms", "Choose photos" (file chooser handled by the recorder)
 
-The app reads every photo with AI and matches it to a performer by name. Before anything is saved, you check each value next to what is already saved, marked new, changed, or unchanged, and untick anything you do not want.
+The app reads every photo with AI and matches it to a performer by name. Before anything is saved, you check each value next to what is already saved, marked new, changed, or the same, and untick anything you do not want.
 
 > hold through "Reading 1 of 1…"; point at the matched performer Rosa Diaz, the "new" badges, the "26.5" row
 
