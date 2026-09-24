@@ -36,11 +36,16 @@ Verify by re-running `_probe` and extracting the frame at each marker's `t`. The
   - The curl omits `expires_in_seconds`, so Clerk's default of 30 days applies, and the README's "short-lived" is false. Add `"expires_in_seconds":300`.
   - The file is created at umask permissions and only then chmodded. Run `umask 077` first.
   - It depends on an exported `$CLERK_SECRET_KEY`, which the global rule forbids, and it never checks for `sk_test_`. Replace it with a `node -e` that imports `loadEnvLocalIntoProcess` and `mintSignInTicket` from `scripts/lib` and writes the token to the mode-600 file.
-- **M5** `docs/training-videos/README.md`:
-  - The status table says "built, awaiting Chris". Chris approved video 1 on 2026-09-23.
-  - The pipeline list has no step 0 for the one-time bootstrap (`node scripts/bootstrap-demo-org.mjs`).
-  - It does not mention `npx playwright install chromium`.
-  - It gives no way to create the `~/.venvs/edge-tts` venv. `boundary="WordBoundary"` needs edge-tts 7 or later, so pin it (for example a `scripts/requirements-training.txt`). This is the regeneration rule applied to the toolchain.
+- **M5** Partly done 2026-09-23 on feat/training-video-2 (Task 5): the status
+  table now says "approved by Chris" for video 1 and carries a row for
+  roles-and-cast; the pipeline list has a step 0 for the one-time bootstrap
+  (`node scripts/bootstrap-demo-org.mjs` and `npx playwright install
+  chromium`); the "server for steps 4 and 5" line now gives the port-3000
+  scratch-server recipe instead of assuming port 6100 is free. Still open:
+  the README gives no way to create the `~/.venvs/edge-tts` venv.
+  `boundary="WordBoundary"` needs edge-tts 7 or later, so pin it (for example
+  a `scripts/requirements-training.txt`). This is the regeneration rule
+  applied to the toolchain.
 - **M6** `generate-training-vo.py:167,183`: `sentences.json` is regenerated only when the audio re-renders, so a change to `split_sentences` or `assign_words` leaves stale sentence splits that the cache reports as fresh. This is the global staleness-hash rule. Either include a `SENTENCES_VERSION` constant in the cache entry, or store the raw boundaries per paragraph so sentences.json can be rebuilt without TTS.
 - **M7** `generate-training-vo.py:84-93`: a token/boundary count mismatch only prints a warning and spreads timing by characters. Sentence starts drive beat alignment, so that shifts beats as well as captions. Write a `"timing": "spread"` flag into sentences.json and have the builder list the affected paragraphs. (Video 1 is clean: no paragraph shows the all-contiguous signature of the fallback.)
 - **M8** `build-training-video.mjs:96,125`: each section file is cut with `-t r.actual`, but its real length is quantized to frames and is never padded if it comes out short. Audio placement adds up the unquantized `r.actual`. Measured drift on video 1 is -0.026 s, which is harmless, but it grows with the section count and nothing checks it. Round `r.actual` to `Math.round(actual * FPS) / FPS` for both `-t` and `cursor`, or ffprobe each section file and advance `cursor` by its real duration.
