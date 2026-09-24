@@ -16,7 +16,7 @@
 - Output: 1920x1080, 30 fps, H.264 + AAC MP4, plus a WebVTT file beside it.
 - Record and seed only against a production build YOU started: `npm run build`, then `PORT=3000 npm start` with `DEMO_BASE_URL=http://localhost:3000` on every seeder/recorder command. Before starting, `lsof -i :3000` must show nothing; if it is taken, pick another free port and use it everywhere. Never touch port 6100, never kill anything by name. Stop your own server by port when done, after confirming the listener is yours.
 - Record only as the demo user in the demo org (`scripts/lib/demo-org.json`). Dev and prod share ONE Supabase database. Nothing touches any org except the demo org, and nothing touches any production in it except "Twelfth Night".
-- Blocking rules for every implementer: **no `any`** (lint errors on it), **NO EM-DASHES anywhere** (code, comments, docs, narration, commit messages), and **grep every file you wrote (not the diff) before committing**: `grep -rn $'—' <files>` must print nothing.
+- Blocking rules for every implementer: **no `any`** (lint errors on it), **NO EM-DASHES anywhere** (code, comments, docs, narration, commit messages), and **grep every file you wrote (not the diff) before committing**: `grep -rn $'\u2014' <files>` must print nothing.
 - Beat sentence indices (`s:`) come from `node scripts/list-vo-sentences.mjs --video measurements` output, never counted by hand. After any script edit, regenerate VO first, then re-derive every `s:`.
 - Clerk popovers (UserButton, OrgSwitcher) never open on camera.
 - Every UI string in the script and every selector is the exact on-screen text, confirmed in code and on the live page (`playwright-cli`), not taken from this plan. This plan quotes strings read from the code on 2026-09-24; re-check them.
@@ -59,7 +59,7 @@
 ```bash
 npx vitest run && echo VITEST_OK
 npx eslint scripts && echo ESLINT_OK
-grep -rn $'—' scripts/lib/demo-productions.mjs scripts/lib/demo-productions.test.mjs scripts/lib/walkthroughs/roles-and-cast.mjs
+grep -rn $'\u2014' scripts/lib/demo-productions.mjs scripts/lib/demo-productions.test.mjs scripts/lib/walkthroughs/roles-and-cast.mjs
 git add scripts/lib/demo-productions.mjs scripts/lib/demo-productions.test.mjs scripts/lib/walkthroughs/roles-and-cast.mjs
 git commit -m "refactor(training): measurements in resetTwelfthNight, shared video 2 end state" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 ```
