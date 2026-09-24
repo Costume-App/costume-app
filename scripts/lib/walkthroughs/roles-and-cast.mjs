@@ -6,32 +6,22 @@
 // retakes alone. "ai-roles" films a live Haiku call through the app's own
 // route, whose output varies; later sections start from TWELFTH_ROLES
 // instead, so their retakes never depend on the model's answer.
-import { TWELFTH, TWELFTH_ROLES, ensureTwelfthNight, resetTwelfthNight } from "../demo-productions.mjs";
+import {
+  TWELFTH, TWELFTH_ROLES, ensureTwelfthNight, resetTwelfthNight,
+  TWELFTH_EXTRA_ROLE, TWELFTH_ENSEMBLE, TWELFTH_ROLES_AFTER_ADD,
+  TWELFTH_CAST_AFTER_CASTING, TWELFTH_CAST_WITH_DUPLICATE,
+  TWELFTH_CAST_STATE,
+} from "../demo-productions.mjs";
 
-const EXTRA_ROLE = "Sea Captain";
-const ENSEMBLE = "Musicians";
-const ROLES_AFTER_ADD = { roles: [...TWELFTH_ROLES, EXTRA_ROLE], ensembleRoles: [ENSEMBLE] };
-const CAST_AFTER_CASTING = [
-  { role: "Viola", name: "Maya Brooks" },
-  { role: "Olivia", name: "Maya Brooks", assignment: "understudy", reuse: true },
-];
-const CAST_AFTER_ENSEMBLE = [
-  ...CAST_AFTER_CASTING,
-  { role: ENSEMBLE, name: "Theo Park" },
-  { role: ENSEMBLE, name: "Rosa Diaz" },
-];
+// video 3 (Measurements) shares this end state via TWELFTH_CAST_STATE, so
+// these are aliases onto demo-productions.mjs's constants rather than this
+// video's own definitions; the two videos cannot drift apart.
+const EXTRA_ROLE = TWELFTH_EXTRA_ROLE;
+const ENSEMBLE = TWELFTH_ENSEMBLE;
+const ROLES_AFTER_ADD = TWELFTH_ROLES_AFTER_ADD;
+const CAST_AFTER_CASTING = TWELFTH_CAST_AFTER_CASTING;
 // The deliberate duplicate: two separate performer rows named Jordan Lee.
-const CAST_WITH_DUPLICATE = [
-  ...CAST_AFTER_ENSEMBLE,
-  { role: "Sebastian", name: "Jordan Lee" },
-  { role: ENSEMBLE, name: "Jordan Lee" },
-];
-// What the viewer is left with after "Combine selected": one Jordan Lee in both roles.
-const CAST_AFTER_COMBINE = [
-  ...CAST_AFTER_ENSEMBLE,
-  { role: "Sebastian", name: "Jordan Lee" },
-  { role: ENSEMBLE, name: "Jordan Lee", reuse: true },
-];
+const CAST_WITH_DUPLICATE = TWELFTH_CAST_WITH_DUPLICATE;
 
 // Set by each prep so openRecord's fallback goto is the real URL (the id
 // changes on every reset). The row click is what is filmed.
@@ -353,7 +343,7 @@ export const WALKTHROUGH = {
       id: "wrap-up",
       heading: "Wrap up",
       targetSeconds: 16,
-      prep: async (api) => remember(await resetTwelfthNight(api, { ...ROLES_AFTER_ADD, castings: CAST_AFTER_COMBINE })),
+      prep: async (api) => remember(await resetTwelfthNight(api, TWELFTH_CAST_STATE)),
       run: async (page, h) => {
         await openTwelfth(page, h, 0);
         await h.hold(page, 1000);

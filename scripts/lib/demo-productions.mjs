@@ -2,7 +2,7 @@
 // through the app's API as the demo user (lib/demo-api.mjs asserts that),
 // and touches only productions titled here. "Twelfth Night" is the show
 // video 1 creates on camera and video 2 fills with roles and cast.
-import { showDate } from "./demo-fixtures.mjs";
+import { MEASUREMENT_UNITS, showDate } from "./demo-fixtures.mjs";
 
 export const TWELFTH = "Twelfth Night";
 // What getting-started's "create-production" types on camera, so a state a
@@ -15,6 +15,58 @@ export const TWELFTH_ROLES = Object.freeze([
   "Viola", "Sebastian", "Orsino", "Olivia", "Malvolio", "Maria",
   "Sir Toby Belch", "Sir Andrew Aguecheek", "Feste", "Antonio",
 ]);
+
+// Video 2 ("Roles and Cast") adds this role and this ensemble by hand, then
+// casts a handful of performers across its later sections. Exported so
+// video 2's own earlier-section states and video 3's starting state share
+// one definition and cannot drift apart.
+export const TWELFTH_EXTRA_ROLE = "Sea Captain";
+export const TWELFTH_ENSEMBLE = "Musicians";
+export const TWELFTH_ROLES_AFTER_ADD = Object.freeze({
+  roles: [...TWELFTH_ROLES, TWELFTH_EXTRA_ROLE],
+  ensembleRoles: [TWELFTH_ENSEMBLE],
+});
+export const TWELFTH_CAST_AFTER_CASTING = Object.freeze([
+  { role: "Viola", name: "Maya Brooks" },
+  { role: "Olivia", name: "Maya Brooks", assignment: "understudy", reuse: true },
+]);
+export const TWELFTH_CAST_AFTER_ENSEMBLE = Object.freeze([
+  ...TWELFTH_CAST_AFTER_CASTING,
+  { role: TWELFTH_ENSEMBLE, name: "Theo Park" },
+  { role: TWELFTH_ENSEMBLE, name: "Rosa Diaz" },
+]);
+// The deliberate duplicate: two separate performer rows named Jordan Lee.
+export const TWELFTH_CAST_WITH_DUPLICATE = Object.freeze([
+  ...TWELFTH_CAST_AFTER_ENSEMBLE,
+  { role: "Sebastian", name: "Jordan Lee" },
+  { role: TWELFTH_ENSEMBLE, name: "Jordan Lee" },
+]);
+// What the viewer is left with after "Combine selected": one Jordan Lee in
+// both roles. Video 2's final state and video 3's starting state.
+const CAST_AFTER_COMBINE = Object.freeze([
+  ...TWELFTH_CAST_AFTER_ENSEMBLE,
+  { role: "Sebastian", name: "Jordan Lee" },
+  { role: TWELFTH_ENSEMBLE, name: "Jordan Lee", reuse: true },
+]);
+export const TWELFTH_CAST_STATE = Object.freeze({
+  roles: TWELFTH_ROLES_AFTER_ADD.roles,
+  ensembleRoles: TWELFTH_ROLES_AFTER_ADD.ensembleRoles,
+  castings: CAST_AFTER_COMBINE,
+});
+
+// Numeric measurement keys carry a unit from MEASUREMENT_UNITS; these three
+// are free text instead (garment sizes, not body measurements) and carry no
+// unit.
+const TEXT_KEYS = new Set(["shirt_size", "pant_size", "shoe_size"]);
+
+function measurementBody(key, value) {
+  if (typeof value === "string") {
+    if (!TEXT_KEYS.has(key)) throw new Error(`resetTwelfthNight: unknown measurement key "${key}"`);
+    return { measurementKey: key, valueText: value, unit: "" };
+  }
+  if (!(key in MEASUREMENT_UNITS)) throw new Error(`resetTwelfthNight: unknown measurement key "${key}"`);
+  return { measurementKey: key, valueNumeric: value, unit: MEASUREMENT_UNITS[key] };
+}
 
 export async function deleteByTitle(api, title) {
   const { productions } = await api.get("/api/productions");
@@ -36,7 +88,7 @@ export async function ensureTwelfthNight(api) {
   return productions.find((p) => p.title === TWELFTH) ?? (await createTwelfthNight(api));
 }
 
-export async function resetTwelfthNight(api, { roles = [], ensembleRoles = [], castings = [] } = {}) {
+export async function resetTwelfthNight(api, { roles = [], ensembleRoles = [], castings = [], measurements = {} } = {}) {
   await deleteByTitle(api, TWELFTH);
   const production = await createTwelfthNight(api);
   const base = `/api/productions/${production.id}`;
@@ -69,6 +121,19 @@ export async function resetTwelfthNight(api, { roles = [], ensembleRoles = [], c
       });
       if (!c.reuse) performerIds.set(c.name, performer.id);
     }
+  }
+  // Validate every entry (known performer name created above, known key)
+  // and build every PUT body before sending the first PUT.
+  const puts = [];
+  for (const [name, values] of Object.entries(measurements)) {
+    const performerId = performerIds.get(name);
+    if (!performerId) throw new Error(`resetTwelfthNight: no performer "${name}" to measure`);
+    for (const [key, value] of Object.entries(values)) {
+      puts.push([performerId, measurementBody(key, value)]);
+    }
+  }
+  for (const [performerId, body] of puts) {
+    await api.put(`/api/performers/${performerId}/measurements`, body);
   }
   return { production, roleIds, performerIds };
 }
