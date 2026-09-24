@@ -10,35 +10,8 @@
 // preps converge on exactly one "Twelfth Night" existing (creating it through
 // the demo API, with the same showing data the on-camera section types, if it
 // is not already there from an earlier section's take in this same pass).
-const TWELFTH = "Twelfth Night";
-
-async function deleteByTitle(api, title) {
-  const { productions } = await api.get("/api/productions");
-  for (const p of productions.filter((x) => x.title === title)) await api.del(`/api/productions/${p.id}`);
-}
-
-// The showing date "create-production" types on camera: 10 days out from
-// whenever this pass records, so the new show sorts ahead of "A Midsummer
-// Night's Dream" (seeded 42 days out, see scripts/lib/demo-fixtures.mjs)
-// under the Productions page's soonest-upcoming-first ordering, matching the
-// approved script's "listed at the top." Shared with the off-camera preps so
-// a state a viewer never watched get created (workspace-tour, wrap-up) still
-// matches what create-production actually typed.
-function twelfthNightShowingDate(offsetDays = 10) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-async function ensureTwelfthNight(api) {
-  const { productions } = await api.get("/api/productions");
-  if (productions.some((p) => p.title === TWELFTH)) return;
-  await api.post("/api/productions", {
-    title: TWELFTH,
-    showings: [{ date: twelfthNightShowingDate(), time: "19:30", label: "Opening Night" }],
-  });
-}
+import { TWELFTH, TWELFTH_SHOWING, deleteByTitle, ensureTwelfthNight } from "../demo-productions.mjs";
+import { showDate } from "../demo-fixtures.mjs";
 
 // Set by workspace-tour's prep, right before its recorded take starts, so
 // openRecord's fallback goto is a real production URL rather than a guess.
@@ -116,8 +89,15 @@ export const WALKTHROUGH = {
         await h.type(page, 'input[placeholder="Mary Poppins"]', TWELFTH);
         await h.hold(page, 500);
 
+        // The showing date: 10 days out from whenever this pass records, so the
+        // new show sorts ahead of "A Midsummer Night's Dream" (seeded 42 days
+        // out, see scripts/lib/demo-fixtures.mjs) under the Productions page's
+        // soonest-upcoming-first ordering, matching the approved script's
+        // "listed at the top." Shared with the off-camera preps so a state a
+        // viewer never watched get created (workspace-tour, wrap-up) still
+        // matches what create-production actually typed.
         const dateInput = page.getByLabel("Showing date");
-        await dateInput.fill(twelfthNightShowingDate());
+        await dateInput.fill(showDate(TWELFTH_SHOWING.offsetDays));
         const timeInput = page.getByLabel("Showing time (optional)");
         await timeInput.fill("19:30");
         await h.hold(page, 500);

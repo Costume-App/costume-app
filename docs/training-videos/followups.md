@@ -49,7 +49,7 @@ Verify by re-running `_probe` and extracting the frame at each marker's `t`. The
 - **M11** `build-training-video.mjs:121` vs `:75`: `sync.json` `beat` is the index among the prepared markers, while zoom work files and stills use the recorder's `beat`. QC file names follow a third counter (`qc-training-video.mjs:39-41`). Emit the recorder's `m.beat` in the sidecar so beat images, zoom stills and markers.json share one number.
 - **M12** Done 2026-09-23. `record-core.mjs:207-224` (`zoom()`): the zoom marker `at` is taken before the cursor glide and still capture, while `point()` marks after the glide. So the builder's zoom window (`b.t + 0.15`) starts while the live cursor is still moving, and at the overlay's first frame the cursor jumps to its parked position in the still. Record `stillAt` in `zoom` info and start the window there. This belongs with the point() fix below.
 - **M13** Seeder role map (Task 7 deferred): `validateFixtures` should reject a role name that repeats within a production and a performer name that repeats within a production. The videos 2-6 fixtures will grow, and today the collision fails silently.
-- **M14** `twelfthNightShowingDate` (getting-started.mjs:27-32) duplicates `showDate` from `demo-fixtures.mjs`. Use `showDate(10)`.
+- **M14** Done 2026-09-23. `twelfthNightShowingDate` (getting-started.mjs:27-32) duplicates `showDate` from `demo-fixtures.mjs`. Use `showDate(10)`.
 - **M15** Stale ported comments:
   - `list-vo-sentences.mjs:11,16` names `build-synced-video.mjs` and `plan.md N12`.
   - `check-beat-annotations.mjs:11,14,21` names `build-synced-video`, `plan.md N4` and `gotoContactCard` (all ListingStack).
