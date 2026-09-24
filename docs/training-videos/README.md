@@ -64,6 +64,16 @@ in a real browser tab):
 
 Never print the token or the secret key to a terminal transcript.
 
+## Frame-lag calibration
+
+Beat marks are rebased with `FRAME_LAG_S` (`scripts/lib/markers.mjs`), the
+measured delay between a painted cursor move and the recorded frame that
+shows it. Re-measure after a Playwright upgrade or on a different machine:
+record `--video _probe --section lag` three times, run
+`node scripts/measure-frame-lag.mjs --video _probe --section lag` after each,
+and add `lagConstant` over all samples to the current value. A correct
+constant makes every measured lag `<= 0`.
+
 ## Video status
 
 | Video | Status | Date |

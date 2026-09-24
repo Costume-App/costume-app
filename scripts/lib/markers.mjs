@@ -8,6 +8,7 @@
 // _probe "lag" section (see docs/training-videos/README.md), never guessed.
 // Adding it here, and only here, shifts every beat and every zoom still
 // window by the same amount, so point beats and zoom beats stay consistent.
+// Measured 2026-09-23: 30 samples over 3 takes, lag -0.124 to -0.083 s.
 export const FRAME_LAG_S = 0;
 
 export function rebaseMarkers(markers, clipT0, lagS = FRAME_LAG_S) {

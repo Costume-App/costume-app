@@ -6,6 +6,8 @@ Start the video 2 plan with item 1.
 
 ## 1. Beat mark lag (do first, before video 2)
 
+Done 2026-09-23 on feat/training-video-2: FRAME_LAG_S = 0 s, measured with scripts/measure-frame-lag.mjs (see README) over 30 samples across 3 clean calibration takes (lag -0.124s to -0.083s, spread 0.041s), then confirmed on a fourth proof take (10 samples, all <= 0, none below -0.2). The `_probe` `lag` section's target `b` was swapped from the draft's "+ New Production" button (crimson background reads almost identically to the amber cursor dot in signalstats' V channel, diff 0.19 against threshold 6) to the header's "Inventory" nav link (plain text over the muslin-paper page background). The double-point workaround in getting-started.mjs stays until video 1 is next re-recorded.
+
 Symptom in video 1: the wrap-up beat froze on a frame with the cursor still
 gliding; worked around with an unmarked `point()` before the marked one in
 `scripts/lib/walkthroughs/getting-started.mjs`. Remove that workaround once
@@ -28,7 +30,7 @@ Verify by re-running `_probe` and extracting the frame at each marker's `t`. The
 ## 2. Minor findings
 
 - **M1** `bootstrap-demo-org.mjs:44,46`: use `insert` rather than `upsert`. The rows are new by construction, and an insert can never overwrite a shared-DB row, even if the id assumption were ever wrong. Related deferred minor: user-create followed by a failed org-create leaves an orphaned dev Clerk user. Log `user.id` before the org call so it can be deleted by hand.
-- **M2** `record-core.mjs:229-232` (`gotoAuthed`): after `assertSignedIn`, read `window.Clerk.user.id` and `window.Clerk.organization.id` and call `assertDemoSession`. That makes the on-camera writes (write-path #7) directly guarded, not just guarded through inherited storageState. It is one evaluate call.
+- **M2** Done 2026-09-23. `record-core.mjs:229-232` (`gotoAuthed`): after `assertSignedIn`, read `window.Clerk.user.id` and `window.Clerk.organization.id` and call `assertDemoSession`. That makes the on-camera writes (write-path #7) directly guarded, not just guarded through inherited storageState. It is one evaluate call.
 - **M3** `qc-training-video.mjs:19-28`: `slug` comes from argv unvalidated and is passed to `rmSync(qcDir(slug), { recursive: true })`. Today it is protected only because the sidecar read on line 25 happens first and fails for traversal paths. Validate with `/^_?[a-z0-9-]+$/` the way `loadWalkthrough` does.
 - **M4** `docs/training-videos/README.md:28-38`, manual ticket recipe:
   - The curl omits `expires_in_seconds`, so Clerk's default of 30 days applies, and the README's "short-lived" is false. Add `"expires_in_seconds":300`.
@@ -45,7 +47,7 @@ Verify by re-running `_probe` and extracting the frame at each marker's `t`. The
 - **M9** `build-training-video.mjs:116`: `absSentences` shifts `words` to absolute time but leaves `start`/`end` section-relative. `packCues` reads only words today, so the output is correct. Shift both so the next consumer does not inherit a mixed-timeline object.
 - **M10** `build-training-video.mjs:45-47`: a script section that exists in `manifest.json` but not in the walkthrough has its narration dropped silently. Warn on unused manifest keys.
 - **M11** `build-training-video.mjs:121` vs `:75`: `sync.json` `beat` is the index among the prepared markers, while zoom work files and stills use the recorder's `beat`. QC file names follow a third counter (`qc-training-video.mjs:39-41`). Emit the recorder's `m.beat` in the sidecar so beat images, zoom stills and markers.json share one number.
-- **M12** `record-core.mjs:207-224` (`zoom()`): the zoom marker `at` is taken before the cursor glide and still capture, while `point()` marks after the glide. So the builder's zoom window (`b.t + 0.15`) starts while the live cursor is still moving, and at the overlay's first frame the cursor jumps to its parked position in the still. Record `stillAt` in `zoom` info and start the window there. This belongs with the point() fix below.
+- **M12** Done 2026-09-23. `record-core.mjs:207-224` (`zoom()`): the zoom marker `at` is taken before the cursor glide and still capture, while `point()` marks after the glide. So the builder's zoom window (`b.t + 0.15`) starts while the live cursor is still moving, and at the overlay's first frame the cursor jumps to its parked position in the still. Record `stillAt` in `zoom` info and start the window there. This belongs with the point() fix below.
 - **M13** Seeder role map (Task 7 deferred): `validateFixtures` should reject a role name that repeats within a production and a performer name that repeats within a production. The videos 2-6 fixtures will grow, and today the collision fails silently.
 - **M14** `twelfthNightShowingDate` (getting-started.mjs:27-32) duplicates `showDate` from `demo-fixtures.mjs`. Use `showDate(10)`.
 - **M15** Stale ported comments:
