@@ -15,6 +15,31 @@ Pipeline, in order, for one video `<slug>`:
 Server for steps 4 and 5: `npm run build && npm start` (port 6100). Never `next dev`.
 Outputs land in `recordings/training/` (gitignored).
 
+## DEMO_BASE_URL
+
+Both the seeder and the recorder read the server origin from `DEMO_BASE_URL`,
+defaulting to `http://localhost:6100`. Both scripts refuse to run against a
+server that is not serving THIS repo's fresh production build: they read
+`.next/BUILD_ID` and require a 200 from
+`${DEMO_BASE_URL}/_next/static/<BUILD_ID>/_buildManifest.js`. A `next dev`
+process, or a `next start` still running an older build, fails that check
+with a clear error naming the base and the build id, not a silent recording
+of the wrong UI.
+
+Port 6100 is the shared local default (see `~/projects/PORTS.md`) and may
+already be held by someone else's dev server. Recordings for video 1 used a
+scratch production server on port 3000 instead:
+
+```bash
+npm run build && DEMO_BASE_URL=http://localhost:3000 PORT=3000 npm start
+DEMO_BASE_URL=http://localhost:3000 node scripts/seed-demo-org.mjs
+DEMO_BASE_URL=http://localhost:3000 node scripts/record-training-video.mjs --video <slug>
+```
+
+Set `DEMO_BASE_URL` to whatever port the scratch server actually uses; the
+important part is that it points at a `npm start` you started yourself
+against a build you just made, never at a port you do not own.
+
 ## Manual sign-in check
 
 To sign in as the demo user by hand (outside the recorder, for a spot check

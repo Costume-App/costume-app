@@ -126,10 +126,22 @@ export function createRecorder({ browser, base, demo, outRoot }) {
     await ctx.addInitScript(CURSOR_INIT_SCRIPT);
     markers = [];
     const page = await ctx.newPage();
+    // Spec: "Recorder aborts a take on any uncaught page error." point() and
+    // zoom() stay best-effort for a missed SELECTOR (see their own
+    // comments), but a page error is the app itself throwing, never
+    // cosmetic, so it must not ship silently in a freeze-framed take.
+    const pageErrors = [];
+    page.on("pageerror", (err) => pageErrors.push(err));
     // context.recordVideo's timeline starts at page creation.
     const clipT0 = Date.now();
     try {
       await fn(page);
+      if (pageErrors.length > 0) {
+        throw new Error(
+          `record(${id}): ${pageErrors.length} uncaught page error(s) during the take: ` +
+          pageErrors.map((e) => e.message).join("; ")
+        );
+      }
     } finally {
       await ctx.close(); // flushes the video file
     }

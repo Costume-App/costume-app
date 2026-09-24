@@ -8,11 +8,16 @@
 // as the demo user in the demo org (see lib/demo-api.mjs).
 import { chromium } from "playwright";
 import { loadDemoOrg, loadEnvLocalIntoProcess } from "./lib/demo-org.mjs";
+import { readBuildId, assertServerServingBuild } from "./lib/build-check.mjs";
 import { withDemoApi } from "./lib/demo-api.mjs";
 import { DEMO_PRODUCTIONS, MEASUREMENT_UNITS, showDate, validateFixtures } from "./lib/demo-fixtures.mjs";
 
 loadEnvLocalIntoProcess();
 const BASE = process.env.DEMO_BASE_URL ?? "http://localhost:6100";
+// Same guard as record-training-video.mjs: the seeder writes through the
+// app's own API against BASE, so BASE must be this repo's production build,
+// never `next dev` and never a stale `next start`.
+await assertServerServingBuild(BASE, readBuildId());
 const demo = loadDemoOrg();
 validateFixtures(DEMO_PRODUCTIONS);
 

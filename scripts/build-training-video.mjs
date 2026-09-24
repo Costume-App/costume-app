@@ -18,6 +18,7 @@ import {
 import { ZOOM, zoomRect, zoomWindow, zoompanFilter } from "./lib/zoom.mjs";
 import { packCues, toWebVTT } from "./lib/captions.mjs";
 import { renderTitleCard } from "./lib/title-card.mjs";
+import { missedBeats } from "./lib/missed-beats.mjs";
 
 const W = ZOOM.VIEW_W;
 const H = ZOOM.VIEW_H;
@@ -26,9 +27,10 @@ const FPS = ZOOM.FPS;
 const args = process.argv.slice(2);
 const slug = args[args.indexOf("--video") + 1];
 if (!args.includes("--video") || !slug) {
-  console.error("Usage: node scripts/build-training-video.mjs --video <slug>");
+  console.error("Usage: node scripts/build-training-video.mjs --video <slug> [--allow-missed-beats]");
   process.exit(1);
 }
+const allowMissedBeats = args.includes("--allow-missed-beats");
 
 const walkthrough = await loadWalkthrough(slug);
 const vo = voDir(slug);
@@ -50,14 +52,44 @@ const rows = walkthrough.sections.map((s, i) => {
   const room = duration(clip) - SYNC.HEAD_TRIM_S;
   const { paraAt, narrEnd, outDur } = narrationLayout(paragraphs, { first: i === 0 });
   const sentPath = `${vo}/${s.id}/sentences.json`;
-  const sentences = flattenSentences(paragraphs, paraAt, existsSync(sentPath) ? JSON.parse(readFileSync(sentPath, "utf8")) : null);
+  const hasSentences = existsSync(sentPath);
+  if (!hasSentences) {
+    console.warn(`  ${slug}/${s.id}: no sentences.json, captions for this section will be empty`);
+  }
+  const sentences = flattenSentences(paragraphs, paraAt, hasSentences ? JSON.parse(readFileSync(sentPath, "utf8")) : null);
   const markersPath = `${takeDir}/markers.json`;
   if (!existsSync(markersPath)) throw new Error(`${slug}/${s.id}: no markers.json, re-record the section`);
   const rawBeats = JSON.parse(readFileSync(markersPath, "utf8")).beats ?? [];
   const markers = prepareMarkers(rawBeats, room);
+  // prepareMarkers (lib/sync-plan.mjs) drops any beat inside the head/tail
+  // trim with no log of its own, staying pure. Reported here by comparing
+  // beat numbers before/after, rather than changing sync-plan's return
+  // shape or its existing tests.
+  const keptBeats = new Set(markers.map((m) => m.beat));
+  for (const b of rawBeats) {
+    if (!keptBeats.has(b.beat)) {
+      console.warn(`  ${slug}/${s.id}: beat ${b.beat} dropped by head/tail trim (t=${b.t})`);
+    }
+  }
   const { segs, actual, pause } = finalizeSection(planSegments({ markers, sentences, room, outDur }), narrEnd, outDur);
   return { id: s.id, clip, takeDir, paragraphs, paraAt, narrEnd, sentences, rawBeats, markers, segs, actual, pause };
 });
+
+// Refuse to ship a section that recorded a missed beat (record-core.mjs's
+// point()/zoom() mark a selector miss as ok:false instead of aborting, so a
+// wrong freeze-frame would otherwise build silently). --allow-missed-beats
+// overrides for a deliberate partial build.
+const missed = missedBeats(rows);
+if (missed.length > 0) {
+  const list = missed.map((m) => `${m.section} beat ${m.beat}`).join(", ");
+  if (!allowMissedBeats) {
+    throw new Error(
+      `Refusing to build ${slug}: missed beat(s) (recorder recorded ok:false): ${list}. ` +
+      `Re-record the affected section(s), or override with --allow-missed-beats.`
+    );
+  }
+  console.warn(`  ${slug}: building with ${missed.length} missed beat(s) (--allow-missed-beats): ${list}`);
+}
 
 // Zoom clips, section-relative windows.
 for (const r of rows) {

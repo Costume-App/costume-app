@@ -22,9 +22,10 @@
 //     frame.
 //   - Every section is padded to its targetSeconds by holding on the final
 //     screen, so the stitched cut is never shorter than the narration needs.
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { chromium } from "playwright";
 import { assertDevClerkKey, assertLocalBase, loadDemoOrg, loadEnvLocalIntoProcess } from "./lib/demo-org.mjs";
+import { assertServerServingBuild } from "./lib/build-check.mjs";
 import { withDemoApi } from "./lib/demo-api.mjs";
 import { createRecorder } from "./lib/record-core.mjs";
 import { loadWalkthrough, rawDir } from "./lib/training.mjs";
@@ -46,11 +47,13 @@ if (!videoSlug) {
 /** Fails fast when the server behind BASE is `next dev` rather than a
  * production build: a dev server recompiles on the fly and can flash a
  * compiling/error overlay mid-take, and its timing does not match what a
- * viewer will get from the shipped build. There is no reliable way to ask a
- * running server "were you started with next start", so this proves the
- * PROCESS'S OWN INPUT is a production build: `.next/BUILD_ID` must exist and
- * be newer than every file under `src/`. A build that predates a source edit
- * is stale, not proof of production. */
+ * viewer will get from the shipped build. This proves the PROCESS'S OWN
+ * INPUT is a production build: `.next/BUILD_ID` must exist and be newer than
+ * every file under `src/`. A build that predates a source edit is stale, not
+ * proof of production. Returns the build id for the separate
+ * assertServerServingBuild check below, which proves the server ANSWERING
+ * BASE is actually serving this exact build (this function alone cannot: a
+ * fresh BUILD_ID on disk and a `next dev` on the same port can coexist). */
 function assertProductionBuildFresh() {
   const buildIdPath = ".next/BUILD_ID";
   if (!existsSync(buildIdPath)) {
@@ -80,11 +83,13 @@ function assertProductionBuildFresh() {
       `Run: npm run build`
     );
   }
+  return readFileSync(buildIdPath, "utf8").trim();
 }
 
 assertLocalBase(BASE);
 assertDevClerkKey(process.env.CLERK_SECRET_KEY);
-assertProductionBuildFresh();
+const buildId = assertProductionBuildFresh();
+await assertServerServingBuild(BASE, buildId);
 const demo = loadDemoOrg();
 
 const walkthrough = await loadWalkthrough(videoSlug);
