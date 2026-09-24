@@ -8,6 +8,8 @@
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { CURSOR_INIT_SCRIPT } from "./cursor-overlay.mjs";
 import { signInDemo } from "./demo-api.mjs";
+import { assertDemoSession } from "./demo-org.mjs";
+import { rebaseMarkers } from "./markers.mjs";
 import { ZOOM } from "./zoom.mjs";
 
 // Desktop: 1920x1080, no device emulation, Playwright's native
@@ -80,6 +82,17 @@ export async function assertSignedIn(page, path, { timeoutMs = 15000 } = {}) {
   }
 }
 
+/** Resolves after the browser has painted at least one frame since the
+ * call: the first rAF runs before the next paint, the second only after it.
+ * Marking a beat after this ties the mark to a painted frame instead of to
+ * the input dispatch. Best-effort: a navigation mid-evaluate rejects, and a
+ * lost wait must never cost a take. */
+async function afterPaint(page) {
+  await page
+    .evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+    .catch(() => {});
+}
+
 /** Creates the per-take recording toolkit. `browser` is a launched Playwright
  * browser; `base` the server origin; `demo` the loaded demo-org descriptor
  * (see demo-org.mjs); `outRoot` where raw takes land (one subdir per
@@ -125,6 +138,8 @@ export function createRecorder({ browser, base, demo, outRoot }) {
     await ctx.addInitScript(PAGE_ZOOM_INIT);
     await ctx.addInitScript(CURSOR_INIT_SCRIPT);
     markers = [];
+    // context.recordVideo's timeline starts inside newPage(), so the clock origin is taken just before it. The capture latency that remains is FRAME_LAG_S (markers.mjs).
+    const clipT0 = Date.now();
     const page = await ctx.newPage();
     // Spec: "Recorder aborts a take on any uncaught page error." point() and
     // zoom() stay best-effort for a missed SELECTOR (see their own
@@ -132,8 +147,6 @@ export function createRecorder({ browser, base, demo, outRoot }) {
     // cosmetic, so it must not ship silently in a freeze-framed take.
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err));
-    // context.recordVideo's timeline starts at page creation.
-    const clipT0 = Date.now();
     try {
       await fn(page);
       if (pageErrors.length > 0) {
@@ -146,13 +159,7 @@ export function createRecorder({ browser, base, demo, outRoot }) {
       await ctx.close(); // flushes the video file
     }
     writeFileSync(`${dir}/markers.json`, JSON.stringify({
-      beats: markers.map((m) => ({
-        beat: m.beat,
-        t: +((m.at - clipT0) / 1000).toFixed(3),
-        ok: m.ok,
-        s: m.s,
-        ...(m.zoom ? { zoom: m.zoom } : {}),
-      })),
+      beats: rebaseMarkers(markers, clipT0),
     }, null, 2) + "\n");
     console.log(`recorded ${id} (${markers.length} beat marker(s))`);
   }
@@ -169,9 +176,10 @@ export function createRecorder({ browser, base, demo, outRoot }) {
    * never clicks. BEST-EFFORT by design: this is cosmetic positioning, so a
    * missing/covered element logs a grep-able warning and the take keeps
    * rolling, a bad point() selector must never cost a section. */
-  async function point(page, target, { timeoutMs = 4000, s = null, mark = true } = {}) {
+  async function point(page, target, { timeoutMs = 4000, s = null, mark = true, steps = 12 } = {}) {
     const beat = markers.length;
     let ok = true;
+    let pos = null;
     try {
       const el = (typeof target === "string" ? page.locator(target) : target).first();
       await el.waitFor({ state: "visible", timeout: timeoutMs });
@@ -193,8 +201,11 @@ export function createRecorder({ browser, base, demo, outRoot }) {
         if (!box) throw new Error("no bounding box after scroll");
       }
       // Glide rather than teleport: the synthetic cursor tracks mousemove, so
-      // stepping it reads as a hand moving to the control.
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
+      // stepping it reads as a hand moving to the control. steps: 1 teleports, which only the frame-lag calibration uses.
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      await page.mouse.move(x, y, { steps });
+      pos = { x: Math.round(x), y: Math.round(y) };
     } catch (err) {
       ok = false;
       console.warn(`  point(): cursor not parked, ${err.message.split("\n")[0]}`);
@@ -208,7 +219,10 @@ export function createRecorder({ browser, base, demo, outRoot }) {
     // `mark: false` parks the cursor WITHOUT claiming a beat, for a second
     // cursor stop that belongs to the same narration sentence as the one
     // before it.
-    if (mark) markers.push({ beat, at: Date.now(), ok, s });
+    if (mark) {
+      await afterPaint(page);
+      markers.push({ beat, at: Date.now(), ok, s, ...(pos ? { pos } : {}) });
+    }
   }
 
   /** Zoom beat: park the cursor on the target, capture a sharp 2x still while
@@ -224,11 +238,13 @@ export function createRecorder({ browser, base, demo, outRoot }) {
       const el = (typeof target === "string" ? page.locator(target) : target).first();
       await point(page, el, { mark: false, timeoutMs });
       await page.waitForTimeout(250); // cursor glide settles
+      await afterPaint(page);
+      const stillAt = Date.now();
       const box = await el.boundingBox({ timeout: timeoutMs });
       if (!box) throw new Error("no bounding box");
       const still = `zoom-${String(beat).padStart(2, "0")}.jpg`;
       await page.screenshot({ path: `${currentDir}/${still}`, type: "jpeg", quality: 92, scale: "device" });
-      info = { box, scale, holdS: holdMs / 1000, still };
+      info = { box, scale, holdS: holdMs / 1000, still, stillAt };
     } catch (err) {
       console.warn(`  zoom(): no zoom captured, ${err.message.split("\n")[0]}`);
     }
@@ -241,6 +257,12 @@ export function createRecorder({ browser, base, demo, outRoot }) {
   async function gotoAuthed(page, path, opts = {}) {
     await page.goto(`${base}${path}`);
     await assertSignedIn(page, path, opts);
+    await page.waitForFunction(() => Boolean(window.Clerk?.loaded && window.Clerk.user), null, { timeout: 15000 });
+    const session = await page.evaluate(() => ({
+      userId: window.Clerk.user?.id ?? null,
+      orgId: window.Clerk.organization?.id ?? null,
+    }));
+    assertDemoSession(session, demo);
   }
 
   /** Deliberate, on-camera navigation to another area of the app, the

@@ -15,7 +15,7 @@ import { loadWalkthrough, sectionClipPath, voDir, workDir, outDir, mmss } from "
 import {
   SYNC, narrationLayout, flattenSentences, prepareMarkers, planSegments, finalizeSection, rawToOut,
 } from "./lib/sync-plan.mjs";
-import { ZOOM, zoomRect, zoomWindow, zoompanFilter } from "./lib/zoom.mjs";
+import { ZOOM, zoomRect, zoomWindow, zoompanFilter, zoomRawWindow } from "./lib/zoom.mjs";
 import { packCues, toWebVTT } from "./lib/captions.mjs";
 import { renderTitleCard } from "./lib/title-card.mjs";
 import { missedBeats } from "./lib/missed-beats.mjs";
@@ -96,8 +96,9 @@ for (const r of rows) {
   r.zooms = [];
   r.rawBeats.forEach((b) => {
     if (!b.zoom) return;
-    const o0 = rawToOut(r.segs, b.t + 0.15);
-    const o1 = rawToOut(r.segs, b.t + b.zoom.holdS - 0.1);
+    const { r0, r1 } = zoomRawWindow(b);
+    const o0 = rawToOut(r.segs, r0);
+    const o1 = rawToOut(r.segs, r1);
     const win = zoomWindow(o0, o1);
     if (!win) {
       console.warn(`  ${r.id}: zoom at beat ${b.beat} skipped (window ${o0} to ${o1} too short or trimmed)`);
