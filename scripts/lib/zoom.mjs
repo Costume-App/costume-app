@@ -50,3 +50,15 @@ export function zoompanFilter({ rect, scale, frames, easeFrames, vw, vh, outW, o
   const y = `max(0,min(ih-ih/zoom,ih*(0.5+${p}*(${fy}-0.5))-ih/zoom/2))`;
   return `zoompan=z='${z}':x='${x}':y='${y}':d=${N}:s=${outW}x${outH}:fps=${fps}`;
 }
+
+/** Raw-clip window of a zoom beat's still hold. The zoom marker's own `t`
+ * is taken BEFORE the cursor glides to the target (so the beat aligns to
+ * the glide's start), but the page only holds still from the moment the
+ * still was captured, `stillT`, for `holdS` after it. Starting the overlay
+ * at `t + 0.15` made the live cursor jump to its parked position in the
+ * still at the overlay's first frame (followups M12). Takes recorded before
+ * stillT existed keep their old window, so video 1's raws still build. */
+export function zoomRawWindow(b) {
+  if (Number.isFinite(b.zoom.stillT)) return { r0: b.zoom.stillT, r1: b.zoom.stillT + b.zoom.holdS };
+  return { r0: b.t + 0.15, r1: b.t + b.zoom.holdS - 0.1 };
+}

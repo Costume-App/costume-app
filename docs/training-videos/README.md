@@ -4,6 +4,7 @@ Spec: `docs/superpowers/specs/2026-09-22-training-videos-design.md`.
 
 Pipeline, in order, for one video `<slug>`:
 
+0. One-time: `node scripts/bootstrap-demo-org.mjs` and `npx playwright install chromium`.
 1. Script: `docs/training-videos/scripts/<slug>.md` (Chris approves before recording).
 2. Narration: `~/.venvs/edge-tts/bin/python scripts/generate-training-vo.py --video <slug>`
 3. Sentence indices for `s:` annotations: `node scripts/list-vo-sentences.mjs --video <slug>`
@@ -12,7 +13,10 @@ Pipeline, in order, for one video `<slug>`:
 6. Build: `node scripts/build-training-video.mjs --video <slug>`
 7. QC: `node scripts/qc-training-video.mjs --video <slug>`, then look at every image it writes.
 
-Server for steps 4 and 5: `npm run build && npm start` (port 6100). Never `next dev`.
+Server for steps 4 and 5: port 6100 is the shared local default, but it is
+often held by someone else's dev server. If so, run a scratch production
+server on a port you own instead, for example port 3000, and point both
+scripts at it with `DEMO_BASE_URL` (see below). Never `next dev`.
 Outputs land in `recordings/training/` (gitignored).
 
 ## DEMO_BASE_URL
@@ -64,8 +68,19 @@ in a real browser tab):
 
 Never print the token or the secret key to a terminal transcript.
 
+## Frame-lag calibration
+
+Beat marks are rebased with `FRAME_LAG_S` (`scripts/lib/markers.mjs`), the
+measured delay between a painted cursor move and the recorded frame that
+shows it. Re-measure after a Playwright upgrade or on a different machine:
+record `--video _probe --section lag` three times, run
+`node scripts/measure-frame-lag.mjs --video _probe --section lag` after each,
+and add `lagConstant` over all samples to the current value. A correct
+constant makes every measured lag `<= 0`.
+
 ## Video status
 
 | Video | Status | Date |
 |-------|--------|------|
-| getting-started | built, awaiting Chris | 2026-09-23 |
+| getting-started | approved by Chris | 2026-09-23 |
+| roles-and-cast | approved by Chris | 2026-09-24 |

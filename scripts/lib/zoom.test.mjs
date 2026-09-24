@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ZOOM, zoomRect, zoomWindow, zoomAt, zoompanFilter } from "./zoom.mjs";
+import { ZOOM, zoomRect, zoomWindow, zoomAt, zoompanFilter, zoomRawWindow } from "./zoom.mjs";
 
 describe("zoomRect", () => {
   it("centers on the target box", () => {
@@ -92,5 +92,14 @@ describe("zoompanFilter", () => {
 
     expect(cropCenterX).toBeCloseTo(rectCenterX, 3);
     expect(cropCenterY).toBeCloseTo(rectCenterY, 3);
+  });
+});
+
+describe("zoomRawWindow", () => {
+  it("starts at the still when stillT is recorded and runs holdS", () => {
+    expect(zoomRawWindow({ t: 5, zoom: { holdS: 2.6, stillT: 5.9 } })).toEqual({ r0: 5.9, r1: 5.9 + 2.6 });
+  });
+  it("falls back to the legacy marker-relative window for older takes", () => {
+    expect(zoomRawWindow({ t: 5, zoom: { holdS: 2.6 } })).toEqual({ r0: 5 + 0.15, r1: 5 + 2.6 - 0.1 });
   });
 });
