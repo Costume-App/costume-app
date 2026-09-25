@@ -141,6 +141,26 @@ describe("resetTwelfthNight", () => {
     })).rejects.toThrow(/unknown measurement key "foo"/);
     expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
   });
+
+  it("rejects an inherited Object property as a measurement key", async () => {
+    const api = fakeApi([]);
+    await expect(resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { toString: 1 } },
+    })).rejects.toThrow(/unknown measurement key "toString"/);
+    expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
+  });
+
+  it("names a numeric key given a string instead of calling it unknown", async () => {
+    const api = fakeApi([]);
+    await expect(resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { waist: "26 1/2" } },
+    })).rejects.toThrow(/measurement "waist" needs a number/);
+    expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
+  });
 });
 
 describe("TWELFTH_CAST_STATE", () => {

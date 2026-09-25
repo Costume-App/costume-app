@@ -60,11 +60,13 @@ export const TWELFTH_CAST_STATE = Object.freeze({
 const TEXT_KEYS = new Set(["shirt_size", "pant_size", "shoe_size"]);
 
 function measurementBody(key, value) {
-  if (typeof value === "string") {
-    if (!TEXT_KEYS.has(key)) throw new Error(`resetTwelfthNight: unknown measurement key "${key}"`);
+  if (TEXT_KEYS.has(key)) {
+    if (typeof value !== "string") throw new Error(`resetTwelfthNight: measurement "${key}" needs text`);
     return { measurementKey: key, valueText: value, unit: "" };
   }
-  if (!(key in MEASUREMENT_UNITS)) throw new Error(`resetTwelfthNight: unknown measurement key "${key}"`);
+  // Object.hasOwn, not `in`: `in` also accepts inherited keys like "toString".
+  if (!Object.hasOwn(MEASUREMENT_UNITS, key)) throw new Error(`resetTwelfthNight: unknown measurement key "${key}"`);
+  if (typeof value !== "number") throw new Error(`resetTwelfthNight: measurement "${key}" needs a number`);
   return { measurementKey: key, valueNumeric: value, unit: MEASUREMENT_UNITS[key] };
 }
 
