@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { TWELFTH, TWELFTH_ENSEMBLE, TWELFTH_CAST_STATE, resetTwelfthNight } from "../demo-productions.mjs";
 import { MEASUREMENT_UNITS } from "../demo-fixtures.mjs";
 import { ROSA_FORM } from "../demo-measurement-form.mjs";
+import { escapeRe, roleRow, roleCard } from "../role-rows.mjs";
 
 const FORM_IMAGE = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
@@ -71,14 +72,6 @@ const remember = ({ production, performerIds }) => {
   const maya = performerIds.get("Maya Brooks");
   if (maya) mayaPath = `${twelfthPath}/performers/${maya}`;
 };
-
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-// Same role-row anchoring as roles-and-cast.mjs: RoleCard's row button name
-// starts with the open/closed triangle.
-const roleNameRe = (name) => new RegExp(`^[▸▾]\\s*${escapeRe(name)}\\b`);
-const roleCard = (page, name) =>
-  page.locator("main li").filter({ has: page.getByRole("button", { name: roleNameRe(name) }) }).first();
-const roleRow = (page, name) => roleCard(page, name).getByRole("button", { name: roleNameRe(name) }).first();
 
 // MeasurementForm renders each numeric field as <label> text + <input>, so the
 // input's accessible name is the whole label text ("Waist (in) Around the

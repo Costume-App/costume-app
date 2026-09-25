@@ -12,6 +12,7 @@ import {
   TWELFTH_CAST_AFTER_CASTING, TWELFTH_CAST_WITH_DUPLICATE,
   TWELFTH_CAST_STATE,
 } from "../demo-productions.mjs";
+import { roleCard, roleNameRe, roleRow } from "../role-rows.mjs";
 
 // video 3 (Measurements) shares this end state via TWELFTH_CAST_STATE, so
 // these are aliases onto demo-productions.mjs's constants rather than this
@@ -27,30 +28,6 @@ const CAST_WITH_DUPLICATE = TWELFTH_CAST_WITH_DUPLICATE;
 // changes on every reset). The row click is what is filmed.
 let twelfthPath = "/productions";
 const remember = ({ production }) => { twelfthPath = `/productions/${production.id}`; };
-
-/** Literal-ize a role/ensemble name before it goes into a RegExp. None of
- * today's fixture names carry regex metacharacters, but a role can be
- * renamed by hand later, so this is defensive rather than decorative. */
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// RoleCard.tsx renders a role's row as a single <button> whose accessible
-// name is "<▸ or ▾><role name>[<icons><collapsed summary>]", the triangle
-// literally first (confirmed live with playwright-cli against the running
-// app; a collapsed, uncast role's summary renders as a lone em dash). A plan
-// draft's `^Viola` anchor never matches that button at all. Anchor past the
-// triangle instead.
-const roleNameRe = (name) => new RegExp(`^[▸▾]\\s*${escapeRe(name)}\\b`);
-
-// Every role's <li> holds its own row button, tabs, and (once open) its
-// Cast & Measure panel. Scoping to that <li> is not optional: a role card
-// stays open once opened (RoleCard persists `open` per role id), so once
-// two cards are open in the same take (cast-performers opens Viola, then
-// Olivia, without closing Viola), an unscoped `getByRole("button", { name:
-// "Cast & Measure" })` or `"+ Add"` matches TWO elements and Playwright's
-// strict mode throws. Confirmed live by reproducing exactly that collision.
-const roleCard = (page, name) =>
-  page.locator("main li").filter({ has: page.getByRole("button", { name: roleNameRe(name) }) }).first();
-const roleRow = (page, name) => roleCard(page, name).getByRole("button", { name: roleNameRe(name) }).first();
 
 async function openTwelfth(page, h, s) {
   if (s === null) {
