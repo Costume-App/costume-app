@@ -4,7 +4,7 @@ Voice: Ava (en-US-AvaMultilingualNeural). Recorded against the Demo Theatre Co. 
 
 ## Measurements (`intro`)
 
-In the last video, we cast Twelfth Night, giving every role its performers. Now it is time to measure everyone, so the costumes actually fit. This video walks through the full measuring workflow, from your first number to a whole cast recorded. We will fill in a performer's measurements, see where each one is taken on the body, move quickly between every person in the show, and bring in forms that were already filled in on paper. By the end, every performer will be ready for costume creations.
+In the last video, we cast Twelfth Night. Now it is time to measure everyone, so the costumes actually fit. This video walks through the full measuring workflow, from your first number to a whole cast recorded. We will fill in a performer's measurements, see where each one is taken on the body, move quickly between every person in the show, and bring in forms that were already filled in on paper. By the end, you will know every way to get a whole cast measured.
 
 ## Open a performer (`open-performer`)
 
@@ -28,11 +28,11 @@ Sizes like shirt, pant, and shoe are free text instead, so write them the way th
 
 ## Where to measure (`where-to-measure`)
 
-Not sure where a measurement is taken? Open "Where do I measure?" to see a front and back body diagram, shown side by side. Every measurement on the form has a matching spot on that diagram.
+Not sure where a measurement is taken? For a front and back body diagram, shown side by side, open "Where do I measure?" Each body measurement has a matching spot on that diagram.
 
 > click: "Where do I measure?"
 
-Click into any box, and its spot on the diagram lights up in red, so you always know exactly where to put the tape measure. This works for every field, from the neck down to the inseam.
+Click into a measurement box, and its spot on the diagram lights up in red, so you always know exactly where to put the tape measure. This works for every body measurement, from the neck down to the inseam.
 
 > focus "Nape to floor"; zoom the highlighted back-view marker; then focus "Inseam"
 

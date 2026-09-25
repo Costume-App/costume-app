@@ -55,6 +55,23 @@ const ROSA_IMPORTED = Object.freeze({
   shoe_size: ROSA_FORM.sizes.shoe,
 });
 const ROSA_FIELD_COUNT = Object.keys(ROSA_IMPORTED).length; // 12
+// The review table's row label for each imported key (measurement_definitions
+// labels as the review renders them), so the guard can check every value on
+// its own row rather than as an unordered set.
+const REVIEW_LABELS = Object.freeze({
+  height: "Height", chest: "Chest / bust", waist: "Waist", hips: "Hips",
+  shoulder: "Shoulder width", inseam: "Inseam", neck: "Neck", head: "Head circumference",
+  nape_to_floor: "Nape to floor", shirt_size: "Shirt size", pant_size: "Pant size", shoe_size: "Shoe size",
+});
+for (const key of Object.keys(ROSA_IMPORTED)) {
+  if (!Object.hasOwn(REVIEW_LABELS, key)) throw new Error(`measurements walkthrough: no review label for "${key}"`);
+}
+/** What the review's "On form" cell shows for a value: height as feet and
+ * inches (formatHeight in src/lib/height.ts), everything else as-is. */
+function reviewDisplay(key, value) {
+  if (key === "height" && typeof value === "number") return `${Math.floor(value / 12)}'${value % 12}"`;
+  return String(value);
+}
 
 const withMeasurements = (measurements) => ({ ...TWELFTH_CAST_STATE, measurements });
 const STATE_ENTERED = withMeasurements({ "Maya Brooks": MAYA_ENTERED });
@@ -147,7 +164,7 @@ export const WALKTHROUGH = {
         await h.point(page, roleRow(page, TWELFTH_ENSEMBLE), { s: 3 });
         await h.hold(page, 2200);
         await h.zoom(page, importToolbar(page), { s: 3, holdMs: 2600 });
-        // s:4: "By the end, every performer will be ready..."
+        // s:4: "By the end, you will know every way to get a whole cast measured."
         await h.point(page, roleRow(page, "Sebastian"), { s: 4 });
         await h.hold(page, 2000);
       },
@@ -239,36 +256,36 @@ export const WALKTHROUGH = {
         // s:0: "Not sure where a measurement is taken?"
         await h.point(page, summary, { s: 0 });
         await h.hold(page, 900);
-        // s:1: "Open Where do I measure?"
+        // s:1: "For a front and back body diagram, shown side by side, open Where do I measure?"
         await h.point(page, summary, { s: 1 });
         await summary.click();
         await diagram.waitFor({ state: "visible", timeout: 4000 });
         await h.hold(page, 600);
-        // s:2: "to see a front and back body diagram, shown side by side."
-        await h.zoom(page, diagram, { s: 2, holdMs: 2600 });
-        // s:3: "Every measurement on the form has a matching spot on that diagram."
-        await h.point(page, diagram.getByText("Chest", { exact: true }), { s: 3 });
+        // Still s:1: the diagram opens while the sentence describes it.
+        await h.zoom(page, diagram, { s: 1, holdMs: 2600 });
+        // s:2: "Each body measurement has a matching spot on that diagram."
+        await h.point(page, diagram.getByText("Chest", { exact: true }), { s: 2 });
         await h.hold(page, 1400);
-        // s:4: "Click into any box, and its spot on the diagram lights up in red..."
+        // s:3: "Click into a measurement box, and its spot on the diagram lights up in red..."
         // The field sits far below the diagram at this zoom, so click it,
         // then glide back up: activeKey stays set after the field blurs.
         const nape = field(page, "Nape to floor");
-        await h.point(page, nape, { s: 4 });
+        await h.point(page, nape, { s: 3 });
         await h.hold(page, 500);
         await nape.click();
         await h.hold(page, 600);
         // Zoom the whole diagram: its centre is the gap between the two
         // figures, so the cursor never hides the red marker.
-        await h.zoom(page, diagram, { s: 4, holdMs: 3000 });
-        // s:5: "This works for every field, from the neck down to the inseam."
+        await h.zoom(page, diagram, { s: 3, holdMs: 3000 });
+        // s:4: "This works for every body measurement, from the neck down to the inseam."
         const inseam = field(page, "Inseam");
         // One beat on the last sentence, so it lands at the sentence start
         // and the zoom fits before the section's tail is trimmed.
-        await h.point(page, inseam, { s: 5, mark: false });
+        await h.point(page, inseam, { s: 4, mark: false });
         await h.hold(page, 400);
         await inseam.click();
         await h.hold(page, 500);
-        await h.zoom(page, diagram, { s: 5, holdMs: 2200 });
+        await h.zoom(page, diagram, { s: 4, holdMs: 2200 });
         await h.hold(page, 800);
       },
     },
@@ -429,6 +446,18 @@ export const WALKTHROUGH = {
         if (unreadable > 0) throw new Error(`import-forms: ${unreadable} couldn't-read row(s) in the review; retake`);
         const rows = await panel.locator("tbody tr").count();
         if (rows !== ROSA_FIELD_COUNT) throw new Error(`import-forms: the review lists ${rows} rows, expected ${ROSA_FIELD_COUNT}; retake`);
+        // Every value, on its own row, must match ROSA_FORM before anything is
+        // filmed as correct. The "On form" cell is the value text node plus a
+        // status span ("new"), so read the text node alone.
+        const mismatches = [];
+        for (const [key, value] of Object.entries(ROSA_IMPORTED)) {
+          const label = REVIEW_LABELS[key];
+          const cells = panel.locator("tbody tr").filter({ has: page.getByRole("cell", { name: label, exact: true }) }).first().locator("td");
+          const shown = (await cells.nth(2).evaluate((td) => td.firstChild?.textContent ?? "")).trim();
+          const want = reviewDisplay(key, value);
+          if (shown !== want) mismatches.push(`${label}: shows "${shown}", form says "${want}"`);
+        }
+        if (mismatches.length > 0) throw new Error(`import-forms: the read disagrees with the form (${mismatches.join("; ")}); retake`);
         await h.hold(page, 600);
         await h.zoom(page, performer, { s: 2, holdMs: 2400 });
         // s:3: "Before anything is saved, you check each value next to what is already saved..."
