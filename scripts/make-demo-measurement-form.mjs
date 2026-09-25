@@ -20,6 +20,9 @@ const OUT_PATH = join(HERE, "fixtures", "training", "measurement-form-rosa-diaz.
 // Present on macOS at /System/Library/Fonts; Bradley Hand is not installed on
 // this machine, so Noteworthy is the handwriting font actually available.
 const HAND_FONT = "Noteworthy";
+// local() matches a face name, not a family: "Noteworthy" alone never
+// resolves. Light is the face the family renders at the default weight.
+const HAND_FACE = "Noteworthy Light";
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -186,13 +189,20 @@ function buildHtml() {
 }
 
 async function assertHandFontLoaded(page) {
-  const ok = await page.evaluate(async (font) => {
-    await document.fonts.ready;
-    return document.fonts.check(`30px "${font}"`);
-  }, HAND_FONT);
-  if (!ok) {
+  // document.fonts.check() returns true for a font that is not installed at
+  // all (nothing to load means nothing pending), so it cannot fail. A
+  // FontFace bound to local() rejects when the system has no such font.
+  const error = await page.evaluate(async (face) => {
+    try {
+      await new FontFace("HandProbe", `local("${face}")`).load();
+      return null;
+    } catch (err) {
+      return String(err);
+    }
+  }, HAND_FACE);
+  if (error !== null) {
     throw new Error(
-      `Handwriting font "${HAND_FONT}" is not available to the page (document.fonts.check failed). ` +
+      `Handwriting font "${HAND_FACE}" is not installed (local() FontFace load failed: ${error}). ` +
         "The form would render in a fallback font, which is not a handwriting convention test.",
     );
   }
