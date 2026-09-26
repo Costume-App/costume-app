@@ -472,7 +472,7 @@ export function MakePieceRow({
                       ? `"${length.trim()}" isn't a valid length. Using the outseam (${outseamIn}") until you enter a positive number.`
                       : `"${length.trim()}" isn't a valid length. Enter a positive number of inches.`
                     : outseamIn != null
-                      ? `Defaults to the outseam (${outseamIn}"), type over it for a shorter/longer piece.`
+                      ? `Defaults to the outseam (${outseamIn}"). Type over it for a shorter/longer piece.`
                       : "No outseam recorded yet. Enter the skirt length directly."
                 }
               />
@@ -491,7 +491,7 @@ export function MakePieceRow({
                   : estimate
                     ? isManualOverride(yardage, calculatorYardage)
                       ? "Your own number, not the calculator's. Clear it, then re-pick the skirt type or change the width or length, to hand it back."
-                      : "Calculated from the skirt type, width, and length, type over it to override."
+                      : "Calculated from the skirt type, width, and length. Type over it to override."
                     : construction
                       ? "Enter yardage manually until the measurements below are filled in."
                       : "Leave blank to have the system estimate yardage."
