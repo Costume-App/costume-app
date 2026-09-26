@@ -44,7 +44,8 @@ test("loadWorkspaceSnapshot maps rows to the workspace's state shape", async () 
 
 test("pickCastColors prefers unused palette colors, then cycles", () => {
   expect(pickCastColors(["slate"], 2)).toEqual(["red", "gold"]);
-  expect(pickCastColors(["slate", "red", "gold", "blue", "green", "plum"], 2)).toEqual(["slate", "red"]);
+  expect(pickCastColors(["slate", "red", "gold", "blue", "green", "plum"], 3)).toEqual(["pink", "orange", "pink"]);
+  expect(pickCastColors(["slate", "red", "gold", "blue", "green", "plum", "pink", "orange"], 2)).toEqual(["slate", "red"]);
   expect(pickCastColors([], 0)).toEqual([]);
 });
 

@@ -13,6 +13,8 @@ export const CAST_COLORS: CastColor[] = [
   { token: "blue", label: "Blue", hex: "#3b6ea5" },
   { token: "green", label: "Green", hex: "#3f7d4f" },
   { token: "plum", label: "Plum", hex: "#6d4c7d" },
+  { token: "pink", label: "Pink", hex: "#c2577f" },
+  { token: "orange", label: "Orange", hex: "#c8652a" },
 ];
 
 export const DEFAULT_CAST_COLOR = "slate";
