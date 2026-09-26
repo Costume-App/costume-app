@@ -1,11 +1,16 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import {
-  TWELFTH, TWELFTH_ROLES, TWELFTH_CAST_STATE,
-  deleteByTitle, ensureTwelfthNight, resetTwelfthNight,
+  TWELFTH, TWELFTH_ROLES, TWELFTH_CAST_STATE, TWELFTH_MEASURED_STATE,
+  DEMO_MAKERS, DEMO_INVENTORY_NAMES,
+  deleteByTitle, ensureTwelfthNight, resetTwelfthNight, resetDemoCostumeOrg,
 } from "./demo-productions.mjs";
 import { showDate } from "./demo-fixtures.mjs";
+import { ROSA_FORM } from "./demo-measurement-form.mjs";
 
-function fakeApi(productions = []) {
+function fakeApi(productions = [], { inventory = [], makers = [] } = {}) {
   const calls = [];
   let n = 0;
   const api = {
@@ -13,6 +18,8 @@ function fakeApi(productions = []) {
     get: async (p) => {
       calls.push(["GET", p]);
       if (p === "/api/productions") return { productions };
+      if (p === "/api/inventory") return { items: inventory };
+      if (p === "/api/makers") return { makers };
       if (p.endsWith("/casts")) return { casts: [{ id: "cast-main" }] };
       throw new Error(`unexpected GET ${p}`);
     },
@@ -23,20 +30,45 @@ function fakeApi(productions = []) {
         productions.push(production);
         return { production };
       }
+      if (p === "/api/makers") {
+        const maker = { id: `maker-${++n}`, name: b.name, color: b.color };
+        makers.push(maker);
+        return { maker };
+      }
       if (p.endsWith("/roles") && b.names) return { roles: b.names.map((name) => ({ id: `role-${name}`, name })) };
       if (p.endsWith("/roles")) return { role: { id: `role-${b.name}`, name: b.name } };
-      if (p.endsWith("/castings")) return { performer: { id: b.performerId ?? `perf-${++n}` }, casting: { id: `c-${n}` } };
+      if (p.endsWith("/castings")) {
+        return { performer: { id: b.performerId ?? `perf-${++n}` }, casting: { id: `c-${++n}` } };
+      }
+      if (p.endsWith("/designs")) return { design: { id: `design-${++n}`, name: b.name } };
       throw new Error(`unexpected POST ${p}`);
     },
     put: async (p, b) => {
       calls.push(["PUT", p, b]);
-      return { measurement: { id: `meas-${++n}` } };
+      if (p.endsWith("/measurements")) return { measurement: { id: `meas-${++n}` } };
+      if (p.endsWith("/pieces")) return { piece: { id: `piece-${++n}` } };
+      throw new Error(`unexpected PUT ${p}`);
+    },
+    patch: async (p, b) => {
+      calls.push(["PATCH", p, b]);
+      if (p.startsWith("/api/makers/")) return { maker: { id: p.split("/").pop(), ...b } };
+      if (p.includes("/designs/")) return { design: { id: p.split("/").pop(), ...b } };
+      throw new Error(`unexpected PATCH ${p}`);
     },
     del: async (p) => {
       calls.push(["DELETE", p]);
-      const id = p.split("/").pop();
-      productions.splice(productions.findIndex((x) => x.id === id), 1);
+      if (p.startsWith("/api/productions/")) {
+        const id = p.split("/").pop();
+        productions.splice(productions.findIndex((x) => x.id === id), 1);
+      } else if (p.startsWith("/api/inventory/")) {
+        const id = p.split("/").pop();
+        inventory.splice(inventory.findIndex((x) => x.id === id), 1);
+      }
       return null;
+    },
+    upload: async (p, filePath) => {
+      calls.push(["upload", p, filePath]);
+      return { image: { id: `img-${++n}` } };
     },
   };
   return api;
@@ -161,6 +193,218 @@ describe("resetTwelfthNight", () => {
     })).rejects.toThrow(/measurement "waist" needs a number/);
     expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
   });
+
+  describe("designs and pieces", () => {
+    async function withViolaCast(api) {
+      return resetTwelfthNight(api, {
+        roles: ["Viola", "Sebastian"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet" }],
+        pieces: [{ role: "Viola", design: "Doublet", performer: "Maya Brooks", source: "make" }],
+      });
+    }
+
+    it("creates a design via POST /designs with roleId and name", async () => {
+      const api = fakeApi([]);
+      await withViolaCast(api);
+      const post = api.calls.find((c) => c[0] === "POST" && c[1].endsWith("/designs"));
+      expect(post[2]).toEqual({ roleId: "role-Viola", name: "Doublet" });
+    });
+
+    it("sends a PUT /pieces body with the resolved designId and castingId", async () => {
+      const api = fakeApi([]);
+      const { designIds, castingIds } = await withViolaCast(api);
+      const put = api.calls.find((c) => c[0] === "PUT" && c[1].endsWith("/pieces"));
+      expect(put[2]).toEqual({
+        designId: designIds.get("Viola\u0000Doublet"),
+        castingId: castingIds.get("Viola\u0000Maya Brooks"),
+        source: "make",
+      });
+    });
+
+    it("sends the passed-in makerId and the purchase price for a purchased, maker-assigned piece", async () => {
+      const api = fakeApi([]);
+      const makerIds = new Map([["Priya Shah", "maker-priya"]]);
+      await resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Boots" }],
+        pieces: [{
+          role: "Viola", design: "Boots", performer: "Maya Brooks",
+          source: "purchase", maker: "Priya Shah", purchasePrice: 24,
+        }],
+      }, { makerIds });
+      const put = api.calls.find((c) => c[0] === "PUT" && c[1].endsWith("/pieces"));
+      expect(put[2].makerId).toBe("maker-priya");
+      expect(put[2].source).toBe("purchase");
+      expect(put[2].purchasePrice).toBe(24);
+    });
+
+    it("PATCHes notes and uploads every photo for a design with both", async () => {
+      const api = fakeApi([]);
+      const { production, designIds } = await resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet", notes: "wool, deep green", photos: ["/tmp/a.jpg", "/tmp/b.jpg"] }],
+      });
+      const designId = designIds.get("Viola\u0000Doublet");
+      const patches = api.calls.filter((c) => c[0] === "PATCH" && c[1] === `/api/productions/${production.id}/designs/${designId}`);
+      expect(patches.length).toBe(1);
+      expect(patches[0][2]).toEqual({ notes: "wool, deep green" });
+      const uploads = api.calls.filter((c) => c[0] === "upload");
+      expect(uploads.map((c) => [c[1] === `/api/productions/${production.id}/designs/${designId}/images`, c[2]])).toEqual([
+        [true, "/tmp/a.jpg"],
+        [true, "/tmp/b.jpg"],
+      ]);
+    });
+
+    it("throws when a piece names an unknown role, before any design or piece write", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet" }],
+        pieces: [{ role: "Nobody's Role", design: "Doublet", performer: "Maya Brooks", source: "make" }],
+      })).rejects.toThrow(/unknown role "Nobody's Role"/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+      expect(api.calls.some((c) => c[0] === "PUT" && c[1].endsWith("/pieces"))).toBe(false);
+    });
+
+    it("throws when a piece names an unknown design, before any design or piece write", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet" }],
+        pieces: [{ role: "Viola", design: "Nonexistent", performer: "Maya Brooks", source: "make" }],
+      })).rejects.toThrow(/unknown design "Nonexistent"/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+    });
+
+    it("throws when a piece names an unknown performer, before any design or piece write", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet" }],
+        pieces: [{ role: "Viola", design: "Doublet", performer: "Nobody Here", source: "make" }],
+      })).rejects.toThrow(/unknown performer "Nobody Here"/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+    });
+
+    it("throws when a piece names an unknown maker, before any design or piece write", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet" }],
+        pieces: [{ role: "Viola", design: "Doublet", performer: "Maya Brooks", source: "make", maker: "Nobody's Maker" }],
+      })).rejects.toThrow(/unknown maker "Nobody's Maker"/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+    });
+
+    it("throws on an unknown source, before any design or piece write", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Viola"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }],
+        designs: [{ role: "Viola", name: "Doublet" }],
+        pieces: [{ role: "Viola", design: "Doublet", performer: "Maya Brooks", source: "borrowed" }],
+      })).rejects.toThrow(/unknown source "borrowed"/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+    });
+
+    it("throws /not cast in/ when the performer is not cast in the piece's role, before any design or piece write", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Viola", "Sebastian"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }, { role: "Sebastian", name: "Jordan Lee" }],
+        designs: [{ role: "Sebastian", name: "Doublet" }],
+        pieces: [{ role: "Sebastian", design: "Doublet", performer: "Maya Brooks", source: "make" }],
+      })).rejects.toThrow(/not cast in/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+      expect(api.calls.some((c) => c[0] === "PUT" && c[1].endsWith("/pieces"))).toBe(false);
+    });
+
+    it("allows the same design name to repeat across two different roles", async () => {
+      const api = fakeApi([]);
+      const { designIds } = await resetTwelfthNight(api, {
+        roles: ["Viola", "Sebastian"],
+        castings: [{ role: "Viola", name: "Maya Brooks" }, { role: "Sebastian", name: "Jordan Lee" }],
+        designs: [{ role: "Viola", name: "Doublet" }, { role: "Sebastian", name: "Doublet" }],
+        pieces: [
+          { role: "Viola", design: "Doublet", performer: "Maya Brooks", source: "make" },
+          { role: "Sebastian", design: "Doublet", performer: "Jordan Lee", source: "make" },
+        ],
+      });
+      expect(designIds.get("Viola\u0000Doublet")).not.toBe(designIds.get("Sebastian\u0000Doublet"));
+      const puts = api.calls.filter((c) => c[0] === "PUT" && c[1].endsWith("/pieces")).map((c) => c[2].designId);
+      expect(new Set(puts).size).toBe(2);
+    });
+  });
+});
+
+describe("resetDemoCostumeOrg", () => {
+  it("deletes only inventory items named in DEMO_INVENTORY_NAMES", async () => {
+    const [wanted] = DEMO_INVENTORY_NAMES;
+    const api = fakeApi([], {
+      inventory: [{ id: "keep", name: "Not A Demo Item" }, { id: "gone", name: wanted }],
+      makers: DEMO_MAKERS.map((m) => ({ id: `maker-${m.name}`, name: m.name, color: m.color })),
+    });
+    await resetDemoCostumeOrg(api);
+    const deletes = api.calls.filter((c) => c[0] === "DELETE");
+    expect(deletes).toEqual([["DELETE", "/api/inventory/gone"]]);
+  });
+
+  it("deletes every item sharing a demo name, not just the first", async () => {
+    const [wanted] = DEMO_INVENTORY_NAMES;
+    const api = fakeApi([], {
+      inventory: [{ id: "gone-1", name: wanted }, { id: "gone-2", name: wanted }],
+      makers: DEMO_MAKERS.map((m) => ({ id: `maker-${m.name}`, name: m.name, color: m.color })),
+    });
+    await resetDemoCostumeOrg(api);
+    const deletes = api.calls.filter((c) => c[0] === "DELETE").map((c) => c[1]);
+    expect(deletes.sort()).toEqual(["/api/inventory/gone-1", "/api/inventory/gone-2"]);
+  });
+
+  it("PATCHes an existing maker's color to match DEMO_MAKERS instead of creating a duplicate", async () => {
+    const api = fakeApi([], {
+      inventory: [],
+      makers: [
+        { id: "maker-priya", name: "Priya Shah", color: "slate" },
+        { id: "maker-unrelated", name: "Someone Else", color: "gold" },
+      ],
+    });
+    const makerIds = await resetDemoCostumeOrg(api);
+    expect(makerIds.get("Priya Shah")).toBe("maker-priya");
+    const patches = api.calls.filter((c) => c[0] === "PATCH");
+    expect(patches).toEqual([["PATCH", "/api/makers/maker-priya", { color: "pink" }]]);
+    const posts = api.calls.filter((c) => c[0] === "POST" && c[1] === "/api/makers");
+    expect(posts).toEqual([["POST", "/api/makers", { name: "Sam Ortiz", color: "orange" }]]);
+    expect(api.calls.some((c) => c[1] === "/api/makers/maker-unrelated")).toBe(false);
+  });
+
+  it("sends no call at all for a maker that already matches", async () => {
+    const api = fakeApi([], {
+      inventory: [],
+      makers: DEMO_MAKERS.map((m) => ({ id: `maker-${m.name}`, name: m.name, color: m.color })),
+    });
+    await resetDemoCostumeOrg(api);
+    expect(api.calls.some((c) => c[0] === "PATCH" || (c[0] === "POST" && c[1] === "/api/makers"))).toBe(false);
+  });
+});
+
+describe("DEMO_MAKERS", () => {
+  it("has no more than the 3-maker seat cap and only CAST_COLORS tokens", () => {
+    expect(DEMO_MAKERS.length).toBeLessThanOrEqual(3);
+    const castColorsPath = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../src/lib/cast-colors.ts");
+    const source = readFileSync(castColorsPath, "utf8");
+    const tokens = [...source.matchAll(/token: "([a-z]+)"/g)].map((m) => m[1]);
+    expect(tokens.length).toBeGreaterThan(0);
+    for (const maker of DEMO_MAKERS) {
+      expect(tokens).toContain(maker.color);
+    }
+  });
 });
 
 describe("TWELFTH_CAST_STATE", () => {
@@ -175,5 +419,31 @@ describe("TWELFTH_CAST_STATE", () => {
       { role: "Sebastian", name: "Jordan Lee" },
       { role: "Musicians", name: "Jordan Lee", reuse: true },
     ]);
+  });
+});
+
+describe("TWELFTH_MEASURED_STATE", () => {
+  it("deep-equals the STATE_WRAP measurements.mjs used before the move", () => {
+    // Snapshot of measurements.mjs's own STATE_WRAP as it read before this
+    // task moved it (and the constants it is built from) into
+    // demo-productions.mjs, so a later edit on either side shows up here.
+    const oldStateWrap = {
+      ...TWELFTH_CAST_STATE,
+      measurements: {
+        "Maya Brooks": { height: 66, chest: 34, shirt_size: "M", waist: 26.5 },
+        "Jordan Lee": {
+          height: 70, weight: 165, chest: 40, waist: 32, hips: 38, shoulder: 18,
+          sleeve: 25, back_length: 18, inseam: 32, outseam: 42, neck: 15.5,
+          arm_circumference: 12, wrist: 7, thigh: 22, knee: 15, head: 23, nape_to_floor: 60,
+          shirt_size: "L", pant_size: "32/32", shoe_size: "Men's 10",
+        },
+        [ROSA_FORM.name]: {
+          chest: 36, waist: 26.5, hips: 38, inseam: 30, nape_to_floor: 58, height: 65,
+          shoulder: 15.5, head: 22.5, neck: 13.5,
+          shirt_size: "S", pant_size: "4", shoe_size: "Women's 7",
+        },
+      },
+    };
+    expect(TWELFTH_MEASURED_STATE).toEqual(oldStateWrap);
   });
 });
