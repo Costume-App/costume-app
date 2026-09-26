@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { TWELFTH, TWELFTH_ROLES, deleteByTitle, ensureTwelfthNight, resetTwelfthNight } from "./demo-productions.mjs";
+import {
+  TWELFTH, TWELFTH_ROLES, TWELFTH_CAST_STATE,
+  deleteByTitle, ensureTwelfthNight, resetTwelfthNight,
+} from "./demo-productions.mjs";
 import { showDate } from "./demo-fixtures.mjs";
 
 function fakeApi(productions = []) {
@@ -24,6 +27,10 @@ function fakeApi(productions = []) {
       if (p.endsWith("/roles")) return { role: { id: `role-${b.name}`, name: b.name } };
       if (p.endsWith("/castings")) return { performer: { id: b.performerId ?? `perf-${++n}` }, casting: { id: `c-${n}` } };
       throw new Error(`unexpected POST ${p}`);
+    },
+    put: async (p, b) => {
+      calls.push(["PUT", p, b]);
+      return { measurement: { id: `meas-${++n}` } };
     },
     del: async (p) => {
       calls.push(["DELETE", p]);
@@ -88,5 +95,85 @@ describe("resetTwelfthNight", () => {
   it("rejects reuse of a name not created earlier in the same call", async () => {
     await expect(resetTwelfthNight(fakeApi([]), { roles: ["Viola"], castings: [{ role: "Viola", name: "X", reuse: true }] }))
       .rejects.toThrow(/no performer "X" to reuse/);
+  });
+
+  it("writes a numeric measurement as valueNumeric with its unit", async () => {
+    const api = fakeApi([]);
+    const { performerIds } = await resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { chest: 34 } },
+    });
+    const puts = api.calls.filter((c) => c[0] === "PUT");
+    expect(puts).toEqual([
+      ["PUT", `/api/performers/${performerIds.get("Maya Brooks")}/measurements`, { measurementKey: "chest", valueNumeric: 34, unit: "in" }],
+    ]);
+  });
+
+  it("writes a text measurement as valueText with an empty unit", async () => {
+    const api = fakeApi([]);
+    const { performerIds } = await resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { shirt_size: "M" } },
+    });
+    const puts = api.calls.filter((c) => c[0] === "PUT");
+    expect(puts).toEqual([
+      ["PUT", `/api/performers/${performerIds.get("Maya Brooks")}/measurements`, { measurementKey: "shirt_size", valueText: "M", unit: "" }],
+    ]);
+  });
+
+  it("rejects measurements for a name not cast in this call", async () => {
+    const api = fakeApi([]);
+    await expect(resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Nobody Here": { chest: 34 } },
+    })).rejects.toThrow(/no performer "Nobody Here" to measure/);
+  });
+
+  it("rejects an unknown measurement key before any PUT is sent", async () => {
+    const api = fakeApi([]);
+    await expect(resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { chest: 34, foo: 1 } },
+    })).rejects.toThrow(/unknown measurement key "foo"/);
+    expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
+  });
+
+  it("rejects an inherited Object property as a measurement key", async () => {
+    const api = fakeApi([]);
+    await expect(resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { toString: 1 } },
+    })).rejects.toThrow(/unknown measurement key "toString"/);
+    expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
+  });
+
+  it("names a numeric key given a string instead of calling it unknown", async () => {
+    const api = fakeApi([]);
+    await expect(resetTwelfthNight(api, {
+      roles: ["Viola"],
+      castings: [{ role: "Viola", name: "Maya Brooks" }],
+      measurements: { "Maya Brooks": { waist: "26 1/2" } },
+    })).rejects.toThrow(/measurement "waist" needs a number/);
+    expect(api.calls.some((c) => c[0] === "PUT")).toBe(false);
+  });
+});
+
+describe("TWELFTH_CAST_STATE", () => {
+  it("holds video 2's end state after Combine duplicates", () => {
+    expect(TWELFTH_CAST_STATE.roles).toEqual([...TWELFTH_ROLES, "Sea Captain"]);
+    expect(TWELFTH_CAST_STATE.ensembleRoles).toEqual(["Musicians"]);
+    expect(TWELFTH_CAST_STATE.castings).toEqual([
+      { role: "Viola", name: "Maya Brooks" },
+      { role: "Olivia", name: "Maya Brooks", assignment: "understudy", reuse: true },
+      { role: "Musicians", name: "Theo Park" },
+      { role: "Musicians", name: "Rosa Diaz" },
+      { role: "Sebastian", name: "Jordan Lee" },
+      { role: "Musicians", name: "Jordan Lee", reuse: true },
+    ]);
   });
 });

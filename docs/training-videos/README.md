@@ -35,7 +35,7 @@ already be held by someone else's dev server. Recordings for video 1 used a
 scratch production server on port 3000 instead:
 
 ```bash
-npm run build && DEMO_BASE_URL=http://localhost:3000 PORT=3000 npm start
+npm run build && npx next start -p 3000   # not npm start, which pins 6100
 DEMO_BASE_URL=http://localhost:3000 node scripts/seed-demo-org.mjs
 DEMO_BASE_URL=http://localhost:3000 node scripts/record-training-video.mjs --video <slug>
 ```
@@ -84,3 +84,4 @@ constant makes every measured lag `<= 0`.
 |-------|--------|------|
 | getting-started | approved by Chris | 2026-09-23 |
 | roles-and-cast | approved by Chris | 2026-09-24 |
+| measurements | approved by Chris | 2026-09-26 |

@@ -6,61 +6,28 @@
 // retakes alone. "ai-roles" films a live Haiku call through the app's own
 // route, whose output varies; later sections start from TWELFTH_ROLES
 // instead, so their retakes never depend on the model's answer.
-import { TWELFTH, TWELFTH_ROLES, ensureTwelfthNight, resetTwelfthNight } from "../demo-productions.mjs";
+import {
+  TWELFTH, TWELFTH_ROLES, ensureTwelfthNight, resetTwelfthNight,
+  TWELFTH_EXTRA_ROLE, TWELFTH_ENSEMBLE, TWELFTH_ROLES_AFTER_ADD,
+  TWELFTH_CAST_AFTER_CASTING, TWELFTH_CAST_WITH_DUPLICATE,
+  TWELFTH_CAST_STATE,
+} from "../demo-productions.mjs";
+import { roleCard, roleNameRe, roleRow } from "../role-rows.mjs";
 
-const EXTRA_ROLE = "Sea Captain";
-const ENSEMBLE = "Musicians";
-const ROLES_AFTER_ADD = { roles: [...TWELFTH_ROLES, EXTRA_ROLE], ensembleRoles: [ENSEMBLE] };
-const CAST_AFTER_CASTING = [
-  { role: "Viola", name: "Maya Brooks" },
-  { role: "Olivia", name: "Maya Brooks", assignment: "understudy", reuse: true },
-];
-const CAST_AFTER_ENSEMBLE = [
-  ...CAST_AFTER_CASTING,
-  { role: ENSEMBLE, name: "Theo Park" },
-  { role: ENSEMBLE, name: "Rosa Diaz" },
-];
+// video 3 (Measurements) shares this end state via TWELFTH_CAST_STATE, so
+// these are aliases onto demo-productions.mjs's constants rather than this
+// video's own definitions; the two videos cannot drift apart.
+const EXTRA_ROLE = TWELFTH_EXTRA_ROLE;
+const ENSEMBLE = TWELFTH_ENSEMBLE;
+const ROLES_AFTER_ADD = TWELFTH_ROLES_AFTER_ADD;
+const CAST_AFTER_CASTING = TWELFTH_CAST_AFTER_CASTING;
 // The deliberate duplicate: two separate performer rows named Jordan Lee.
-const CAST_WITH_DUPLICATE = [
-  ...CAST_AFTER_ENSEMBLE,
-  { role: "Sebastian", name: "Jordan Lee" },
-  { role: ENSEMBLE, name: "Jordan Lee" },
-];
-// What the viewer is left with after "Combine selected": one Jordan Lee in both roles.
-const CAST_AFTER_COMBINE = [
-  ...CAST_AFTER_ENSEMBLE,
-  { role: "Sebastian", name: "Jordan Lee" },
-  { role: ENSEMBLE, name: "Jordan Lee", reuse: true },
-];
+const CAST_WITH_DUPLICATE = TWELFTH_CAST_WITH_DUPLICATE;
 
 // Set by each prep so openRecord's fallback goto is the real URL (the id
 // changes on every reset). The row click is what is filmed.
 let twelfthPath = "/productions";
 const remember = ({ production }) => { twelfthPath = `/productions/${production.id}`; };
-
-/** Literal-ize a role/ensemble name before it goes into a RegExp. None of
- * today's fixture names carry regex metacharacters, but a role can be
- * renamed by hand later, so this is defensive rather than decorative. */
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// RoleCard.tsx renders a role's row as a single <button> whose accessible
-// name is "<▸ or ▾><role name>[<icons><collapsed summary>]", the triangle
-// literally first (confirmed live with playwright-cli against the running
-// app; a collapsed, uncast role's summary renders as a lone em dash). A plan
-// draft's `^Viola` anchor never matches that button at all. Anchor past the
-// triangle instead.
-const roleNameRe = (name) => new RegExp(`^[▸▾]\\s*${escapeRe(name)}\\b`);
-
-// Every role's <li> holds its own row button, tabs, and (once open) its
-// Cast & Measure panel. Scoping to that <li> is not optional: a role card
-// stays open once opened (RoleCard persists `open` per role id), so once
-// two cards are open in the same take (cast-performers opens Viola, then
-// Olivia, without closing Viola), an unscoped `getByRole("button", { name:
-// "Cast & Measure" })` or `"+ Add"` matches TWO elements and Playwright's
-// strict mode throws. Confirmed live by reproducing exactly that collision.
-const roleCard = (page, name) =>
-  page.locator("main li").filter({ has: page.getByRole("button", { name: roleNameRe(name) }) }).first();
-const roleRow = (page, name) => roleCard(page, name).getByRole("button", { name: roleNameRe(name) }).first();
 
 async function openTwelfth(page, h, s) {
   if (s === null) {
@@ -353,7 +320,7 @@ export const WALKTHROUGH = {
       id: "wrap-up",
       heading: "Wrap up",
       targetSeconds: 16,
-      prep: async (api) => remember(await resetTwelfthNight(api, { ...ROLES_AFTER_ADD, castings: CAST_AFTER_COMBINE })),
+      prep: async (api) => remember(await resetTwelfthNight(api, TWELFTH_CAST_STATE)),
       run: async (page, h) => {
         await openTwelfth(page, h, 0);
         await h.hold(page, 1000);
