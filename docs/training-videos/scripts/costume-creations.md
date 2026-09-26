@@ -76,7 +76,7 @@ The "Shopping" tab adds it all up for the whole show: the fabric still to buy, g
 
 > click "Shopping"; point at the fabric table, "Purchased subtotal"
 
-Suppliers with a website on file even become links you can tap straight through to shop. Together it all rolls up into one "Total (fabric + purchased)" figure, so you always know what the costumes will cost before opening your wallet.
+Suppliers with a website on file even become links you can tap straight through to shop. Together it all rolls up into one total that adds the fabric and the purchased pieces together, so you always know what the costumes will cost before opening your wallet.
 
 > zoom "Total (fabric + purchased)"
 
