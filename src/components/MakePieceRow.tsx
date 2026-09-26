@@ -81,12 +81,12 @@ export function MakePieceRow({
   const [fullness, setFullness] = useState<string>(
     item.fabric.skirtFullness != null ? String(item.fabric.skirtFullness) : "3",
   );
-  // Per-piece length override, in inches — e.g. a knee-length skirt for a role
+  // Per-piece length override, in inches, e.g. a knee-length skirt for a role
   // whose other pieces are floor-length. Pre-filled from the performer's outseam
   // ("waist to ankle") when no override is stored yet, so the field starts at a
   // sensible value the designer can type over. Only a value that genuinely
   // diverges from that outseam is ever persisted (`resolveLengthOverride`
-  // below) — otherwise the stored length would freeze at whatever the outseam
+  // below), otherwise the stored length would freeze at whatever the outseam
   // happened to be on last save, and a later re-measurement would never flow
   // through to the estimate.
   const outseamIn = measurementInches(measurements, "outseam");
@@ -98,20 +98,20 @@ export function MakePieceRow({
         : "",
   );
   const [makerId, setMakerId] = useState<string | null>(item.makerId ?? null);
-  // The yardage value the calculator itself last produced — kept separate
+  // The yardage value the calculator itself last produced, kept separate
   // from `yardage` (what the field displays) so the "Measurements changed"
   // prompt (see `shouldOfferYardageUpdate`) can tell a genuine staleness
   // (the field still shows this value, but the live estimate has moved on)
   // apart from a deliberate manual override (the field shows something else
   // entirely, which is the user's choice, not a claim about measurements).
-  // Persisted as `calculated_yardage`, not merely tracked in memory — so a
+  // Persisted as `calculated_yardage`, not merely tracked in memory, so a
   // hand-typed or AI-written value (which never sets this column) is never
   // mistaken for a stale calculator output after a reload.
   //
   // Seeded via `seedCalculatorYardage`, pulled out for the same reason
   // `deriveCalculatedYardage` below was: `item.fabric.yardage` and
   // `item.fabric.calculatedYardage` are both typed `number | null`, so a
-  // field swap here would typecheck clean and stay green — the extracted
+  // field swap here would typecheck clean and stay green: the extracted
   // function is what puts that swap under direct test.
   const [calculatorYardage, setCalculatorYardage] = useState<number | null>(
     seedCalculatorYardage(item.fabric),
@@ -132,17 +132,17 @@ export function MakePieceRow({
   const lengthOverrideIn = resolveLengthOverride(length, outseamIn);
   const effectiveLengthIn = lengthOverrideIn ?? outseamIn;
   // True only when the field holds non-blank text that fails the positive-
-  // number check (0, negative, non-numeric) — as opposed to being blank, or
+  // number check (0, negative, non-numeric), as opposed to being blank, or
   // holding a value that simply matches the outseam. Drives visible feedback
   // instead of silently substituting the outseam and leaving the rejected
   // text sitting there unexplained.
   const lengthInvalid = length.trim() !== "" && parsePositiveNumber(length) == null;
   // True only when the Yardage field holds non-blank text that doesn't parse
-  // as a real number ("6 1/2", "6 yards") — as opposed to being blank, or a
+  // as a real number ("6 1/2", "6 yards"), as opposed to being blank, or a
   // valid (even negative) number, which the server itself rejects visibly.
   // Unlike Length, there is no fallback value to substitute (no outseam
   // equivalent for yardage), so an unnoticed invalid value would silently
-  // become `null` on save via `JSON.stringify(NaN) === "null"` — the same
+  // become `null` on save via `JSON.stringify(NaN) === "null"`, the same
   // silent-loss shape this whole feature is calibrated against. Drives
   // visible feedback instead of leaving the rejected text sitting there
   // unexplained until a reload reveals the column went null.
@@ -166,7 +166,7 @@ export function MakePieceRow({
 
   // What the user has to supply before a number is possible. `missingWaist` and
   // `missingLength` map to an actual performer measurement (waist directly;
-  // length via outseam, since the Length field itself is right here) — only
+  // length via outseam, since the Length field itself is right here), only
   // those justify the Measurements-page link. `missingWidth` is a field two
   // columns to the left on this same row, never on the measurements page.
   const missingWaist = waistIn == null;
@@ -210,7 +210,7 @@ export function MakePieceRow({
     }
   }
 
-  // Applies a freshly computed yardage. The tracker always takes the new value —
+  // Applies a freshly computed yardage. The tracker always takes the new value:
   // it records what the calculator produced, regardless of what is displayed.
   // The visible field is only replaced when it is NOT a manual override: a
   // number the user typed is theirs, and a recompute offers rather than imposes
@@ -224,7 +224,7 @@ export function MakePieceRow({
   function applyConstruction(nextConstruction: string, nextFullness: string) {
     const nextYardage = computeYardage(nextConstruction, nextFullness, widthIn, effectiveLengthIn);
     // Captured before `applyComputedYardage` runs below, though reordering
-    // wouldn't actually change today's result — React doesn't retroactively
+    // wouldn't actually change today's result. React doesn't retroactively
     // mutate this bound `const` when a setter fires mid-handler. The ordering
     // is deliberate future-proofing, not a fix for a live hazard.
     const override = isManualOverride(yardage, calculatorYardage);
@@ -238,7 +238,7 @@ export function MakePieceRow({
   }
 
   // Width can change the estimate too (it's part of the same geometry), so it
-  // needs the same recompute-and-save treatment — otherwise the Yardage field
+  // needs the same recompute-and-save treatment, otherwise the Yardage field
   // is left showing a number computed for the *previous* width, which is the
   // exact failure this feature exists to prevent.
   function applyWidth(nextWidth: string) {
@@ -247,7 +247,7 @@ export function MakePieceRow({
       return;
     }
     const nextYardage = computeYardage(construction, fullness, parseWidthInches(nextWidth), effectiveLengthIn);
-    // Captured before `applyComputedYardage` — see the comment in `applyConstruction`.
+    // Captured before `applyComputedYardage`, see the comment in `applyConstruction`.
     const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
     void save({
@@ -267,7 +267,7 @@ export function MakePieceRow({
     }
     const nextEffectiveLength = resolveLengthOverride(nextLength, outseamIn) ?? outseamIn;
     const nextYardage = computeYardage(construction, fullness, widthIn, nextEffectiveLength);
-    // Captured before `applyComputedYardage` — see the comment in `applyConstruction`.
+    // Captured before `applyComputedYardage`, see the comment in `applyConstruction`.
     const override = isManualOverride(yardage, calculatorYardage);
     applyComputedYardage(nextYardage);
     void save({
@@ -412,7 +412,7 @@ export function MakePieceRow({
                 ))}
               </div>
             ) : (
-              <p className="text-sm muted">No measurements recorded yet — click to add.</p>
+              <p className="text-sm muted">No measurements recorded yet. Click to add.</p>
             )}
           </div>
           <PhotoStrip
@@ -469,11 +469,11 @@ export function MakePieceRow({
                 hint={
                   lengthInvalid
                     ? outseamIn != null
-                      ? `"${length.trim()}" isn't a valid length — using the outseam (${outseamIn}") until you enter a positive number.`
-                      : `"${length.trim()}" isn't a valid length — enter a positive number of inches.`
+                      ? `"${length.trim()}" isn't a valid length. Using the outseam (${outseamIn}") until you enter a positive number.`
+                      : `"${length.trim()}" isn't a valid length. Enter a positive number of inches.`
                     : outseamIn != null
-                      ? `Defaults to the outseam (${outseamIn}") — type over it for a shorter/longer piece.`
-                      : "No outseam recorded yet — enter the skirt length directly."
+                      ? `Defaults to the outseam (${outseamIn}"), type over it for a shorter/longer piece.`
+                      : "No outseam recorded yet. Enter the skirt length directly."
                 }
               />
             )}
@@ -487,11 +487,11 @@ export function MakePieceRow({
               warn={yardageInvalid}
               hint={
                 yardageInvalid
-                  ? `"${yardage.trim()}" isn't a number of yards — saving now would clear it. Enter a number, e.g. 4.5.`
+                  ? `"${yardage.trim()}" isn't a number of yards. Saving now would clear it. Enter a number, e.g. 4.5.`
                   : estimate
                     ? isManualOverride(yardage, calculatorYardage)
-                      ? "Your own number, not the calculator's — clear it, then re-pick the skirt type or change the width or length, to hand it back."
-                      : "Calculated from the skirt type, width, and length — type over it to override."
+                      ? "Your own number, not the calculator's. Clear it, then re-pick the skirt type or change the width or length, to hand it back."
+                      : "Calculated from the skirt type, width, and length, type over it to override."
                     : construction
                       ? "Enter yardage manually until the measurements below are filled in."
                       : "Leave blank to have the system estimate yardage."
@@ -535,11 +535,11 @@ export function MakePieceRow({
                           // right below it writes `next` unconditionally. That divergence
                           // is unreachable today ONLY because this button is gated on
                           // `shouldOfferYardageUpdate`, which requires the field to still
-                          // equal `calculatorYardage` — the exact negation of
+                          // equal `calculatorYardage`, the exact negation of
                           // `isManualOverride`, the condition `applyComputedYardage` checks.
                           // If that gating predicate ever widens to also fire on an
                           // override, this handler would persist the calculator's number
-                          // to `fabric_yardage` while the field kept showing the user's —
+                          // to `fabric_yardage` while the field kept showing the user's,
                           // a worse, equally silent version of the bug this button exists
                           // to avoid. Don't loosen `shouldOfferYardageUpdate` without also
                           // revisiting this `save` call.
@@ -548,7 +548,7 @@ export function MakePieceRow({
                           void save({ yardage: next });
                         }}
                       >
-                        Measurements changed — update to {estimate.yards} yd
+                        Measurements changed. Update to {estimate.yards} yd
                       </button>
                     )}
                     {shouldOfferCalculatorValue(yardage, estimate.yards, calculatorYardage) && (
@@ -559,10 +559,10 @@ export function MakePieceRow({
                           // Deliberately bypasses `applyComputedYardage`, unlike the
                           // "Measurements changed" button just above: that function
                           // now refuses to touch the field when it holds a manual
-                          // override — which is exactly the state this button only
+                          // override, which is exactly the state this button only
                           // ever renders in. Setting state directly here is how the
                           // user hands the piece back to the calculator on purpose.
-                          // Do not "unify" these two buttons' handlers — doing so
+                          // Do not "unify" these two buttons' handlers, doing so
                           // would silently reintroduce the override-overwrite bug.
                           const next = String(estimate.yards);
                           setYardage(next);
@@ -570,13 +570,13 @@ export function MakePieceRow({
                           void save({ yardage: next, calculatedYardage: next });
                         }}
                       >
-                        Calculator says {estimate.yards} yd — use it
+                        Calculator says {estimate.yards} yd. Use it
                       </button>
                     )}
                   </>
                 ) : (
                   <p className="text-xs muted">
-                    Couldn&rsquo;t calculate yardage from these values — check the width and measurements.
+                    Couldn&rsquo;t calculate yardage from these values. Check the width and measurements.
                   </p>
                 )}
               </div>
@@ -635,7 +635,7 @@ function measurementInches(rows: MeasurementView[], key: string): number | null 
 }
 
 // Parses the free-typed Length field. Blank or non-positive/non-finite text is
-// "no override" rather than an error — the caller falls back to outseam.
+// "no override" rather than an error. The caller falls back to outseam.
 function parsePositiveNumber(s: string): number | null {
   const trimmed = s.trim();
   if (trimmed === "") return null;
@@ -644,12 +644,12 @@ function parsePositiveNumber(s: string): number | null {
 }
 
 // Whether the Yardage field's raw text would silently become `null` on save.
-// A blank field is a deliberate clear, not invalid. A valid number — including
-// 0 or negative — is left alone here: the server's own `checkNum` rejects a
+// A blank field is a deliberate clear, not invalid. A valid number (including
+// 0 or negative) is left alone here: the server's own `checkNum` rejects a
 // negative value with a visible error, so only text that fails to parse as a
 // number at all ("6 1/2", "6 yards") reaches this check. That's the case
 // `Number()` turns into `NaN`, which `JSON.stringify` then serializes as
-// `null` — indistinguishable, once it reaches the server, from a deliberate
+// `null`, indistinguishable, once it reaches the server, from a deliberate
 // clear.
 export function isYardageTextInvalid(yardageText: string): boolean {
   const trimmed = yardageText.trim();
@@ -658,7 +658,7 @@ export function isYardageTextInvalid(yardageText: string): boolean {
 }
 
 // Whether the Length field holds a genuine override of the performer's
-// outseam — used identically by the compute path (what number to estimate
+// outseam, used identically by the compute path (what number to estimate
 // against) and the save path (what to persist as `skirt_length_in`).
 //
 // A parsed value that merely *equals* the current outseam is not an override:
@@ -667,7 +667,7 @@ export function isYardageTextInvalid(yardageText: string): boolean {
 // every construction pick, well before the designer has typed anything. Once
 // that was persisted, the field would initialize from the stored number on
 // every future load instead of from the (possibly since-changed) outseam, so
-// a re-measurement would never reach the estimate — a silent under-buy. Blank
+// a re-measurement would never reach the estimate: a silent under-buy. Blank
 // or invalid text (see `parsePositiveNumber`) is likewise "no override".
 export function resolveLengthOverride(rawLength: string, outseamIn: number | null): number | null {
   const parsed = parsePositiveNumber(rawLength);
@@ -678,7 +678,7 @@ export function resolveLengthOverride(rawLength: string, outseamIn: number | nul
 // Whether to show the "Measurements changed" nudge beneath the derivation.
 // It must fire only on genuine staleness: the Yardage field still holds the
 // calculator's own last output (`lastCalculatedYardage`), and the live
-// estimate has since diverged from it — e.g. a re-measurement moved the
+// estimate has since diverged from it, e.g. a re-measurement moved the
 // effective length. It must NOT fire on a blank field (`Number("")` is 0, a
 // false "divergence"), and it must NOT fire when the designer has typed a
 // different number on purpose: that is a deliberate override, not evidence
@@ -701,7 +701,7 @@ export function shouldOfferYardageUpdate(
 // for a smaller computed one is the under-buy failure this whole feature exists
 // to prevent.
 //
-// A blank field is deliberately NOT an override — clearing the field is how a
+// A blank field is deliberately NOT an override: clearing the field is how a
 // user hands the piece back to the calculator, and it is the only way to do so.
 // Non-numeric text is not an override either: there is nothing to protect, and
 // treating it as one would freeze the field on a typo.
@@ -720,7 +720,7 @@ export function isManualOverride(
 
 // The override counterpart to `shouldOfferYardageUpdate`. That one fires when
 // the field still shows the calculator's own number and the estimate has moved
-// away from it. This one fires when the field shows the user's number instead —
+// away from it. This one fires when the field shows the user's number instead,
 // offering the calculator's latest figure without ever imposing it.
 //
 // The two are mutually exclusive by construction: that predicate requires
@@ -734,22 +734,22 @@ export function shouldOfferCalculatorValue(
   if (yardageText.trim() === "" || lastCalculatedYardage == null) return false;
   const current = Number(yardageText);
   if (!Number.isFinite(current)) return false;
-  // Calculator-controlled — the other prompt owns this case.
+  // Calculator-controlled: the other prompt owns this case.
   if (current === lastCalculatedYardage) return false;
   // Nothing to offer if the calculator agrees with what they typed.
   return estimateYards !== current;
 }
 
-// What `save` persists as `calculated_yardage` — extracted from the inline
+// What `save` persists as `calculated_yardage`, extracted from the inline
 // body-builder so this ternary, the actual fix for the override-reverting
 // bug, is under direct test rather than only exercised incidentally through
 // `save()`.
 //
-// `optsYardage` is `save`'s own `opts.yardage` — present only on a recompute
+// `optsYardage` is `save`'s own `opts.yardage`, present only on a recompute
 // (a construction/width/length change, or the "Measurements changed" button),
 // where it holds the exact string `computeYardage` just produced. When
-// present, that value IS the calculator's output, full stop. When absent —
-// a manual edit, a maker change, a made toggle — there was no recompute, so
+// present, that value IS the calculator's output, full stop. When absent
+// (a manual edit, a maker change, a made toggle), there was no recompute, so
 // the previously tracked value carries through unchanged; this is what lets
 // a deliberate override permanently diverge from the live estimate and
 // silence the "Measurements changed" prompt for this piece instead of having
@@ -761,11 +761,11 @@ export function deriveCalculatedYardage(
   return optsYardage !== undefined ? Number(optsYardage) : trackedCalculatorYardage;
 }
 
-// What seeds `calculatorYardage` on mount/reload — extracted from the inline
+// What seeds `calculatorYardage` on mount/reload, extracted from the inline
 // `item.fabric.calculatedYardage ?? null` for the same reason as
 // `deriveCalculatedYardage` above: `yardage` and `calculatedYardage` are both
 // typed `number | null`, so a field swap here (reading `yardage` instead of
-// `calculatedYardage`) would typecheck clean and pass every existing test —
+// `calculatedYardage`) would typecheck clean and pass every existing test,
 // which is exactly the failure this branch exists to prevent, since it would
 // make every hand-typed override look calculator-derived again. `yardage` is
 // included in the parameter type on purpose, even though it's unused: it's
@@ -777,7 +777,7 @@ export function seedCalculatorYardage(
   return fabric.calculatedYardage ?? null;
 }
 
-// "waist", "waist and outseam", "waist, outseam, and fabric width" — a comma
+// "waist", "waist and outseam", "waist, outseam, and fabric width": a comma
 // before the final "and" once there are 3+ items, instead of stacking "and"s.
 function joinList(items: string[]): string {
   if (items.length <= 1) return items.join("");
@@ -804,7 +804,7 @@ function Field({
   inputMode?: "decimal";
   prefix?: string;
   hint?: string;
-  // Renders `hint` as a warning instead of a muted aside — for feedback the
+  // Renders `hint` as a warning instead of a muted aside, for feedback the
   // user needs to notice (e.g. a rejected Length value), not routine help text.
   warn?: boolean;
 }) {
