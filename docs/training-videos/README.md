@@ -85,4 +85,4 @@ constant makes every measured lag `<= 0`.
 | getting-started | approved by Chris | 2026-09-23 |
 | roles-and-cast | approved by Chris | 2026-09-24 |
 | measurements | approved by Chris | 2026-09-26 |
-| costume-creations | built, awaiting Chris | 2026-09-26 |
+| costume-creations | approved by Chris | 2026-09-26 |
