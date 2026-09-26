@@ -64,3 +64,15 @@ Verify by re-running `_probe` and extracting the frame at each marker's `t`. The
   - In dc6b7fd, 0220dac, cf495c1, bcbe3d3 and 9caaafd the `Co-Authored-By` is on the subject line, so git does not parse it as a trailer.
   - ce9428a and 9caaafd carry a Haiku 4.5 trailer. That conflicts with the controller's practice of amending model trailers in Tasks 9 and 12.
   - Fix at squash-merge time, or accept as is.
+
+## Video 4 (Costume Creations), parked 2026-09-26
+
+- **V4-1** `scripts/lib/walkthroughs/costume-creations.mjs:112,125`: Rosa's seeded skirt has `fabricYardage: 5.25` but no `calculatedYardage`, so `isManualOverride` (`MakePieceRow.tsx`) would label it "Your own number" if a later section ever expands that row. Add `calculatedYardage` to the seed.
+- **V4-2** `demo-productions.mjs:73`: `MAYA_AFTER_HANDWRITING` repeats the values of `MAYA_ENTERED` (`measurements.mjs:307`) instead of sharing one definition.
+- **V4-3** `demo-productions.mjs:154`: `resetDemoCostumeOrg` fixes the color of only the first maker with a given name; an existing duplicate keeps its old color.
+- **V4-4** `demo-api.mjs:27`: `upload` always sends `image/jpeg` and `photo.jpg`. Derive both from the file for a future PNG fixture.
+- **V4-5** `MakePieceRow.tsx:567,589`: "Measurements changed. Update to X yd" and "Calculator says X yd. Use it" read as two unpunctuated sentences after the em-dash removal. Copy polish.
+- **V4-6** The costs narration says suppliers with a website become links, but the demo org has no supplier URLs, so the footage shows plain names. Chris accepted this as is on 2026-09-26. Revisit if the video is re-recorded.
+- **V4-7** Walkthrough readability: group camera-typed values separately from off-camera fixture values (`ESTIMATED`) in `costume-creations.mjs`.
+- **V4-8** Task 3 sketch polish: the "brass buttons" leader starts on blank placket and crosses its label; the torso reads straight-sided.
+- **V4-9** 22 other `src/*.tsx` files still contain em-dashes (off camera). The empty-cell placeholder option in `MakePieceRow.tsx:863` stays by Chris's ruling 2026-09-26.
