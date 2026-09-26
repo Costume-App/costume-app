@@ -1,6 +1,7 @@
 // Drives the app's own API routes as the demo user from an UNRECORDED
 // headless context. Used by the seeder and by walkthrough section preps, so
 // fixture data is created exactly the way the product creates it.
+import { readFile } from "node:fs/promises";
 import { mintSignInTicket } from "./clerk-ticket.mjs";
 import { assertDemoSession, assertLocalBase } from "./demo-org.mjs";
 import { redactSecret } from "./redact.mjs";
@@ -64,12 +65,30 @@ export function createDemoApi(page) {
     if (res.status >= 400) throw new Error(`${method} ${path} -> ${res.status}: ${res.text.slice(0, 300)}`);
     return res.text ? JSON.parse(res.text) : null;
   }
+  // Photo uploads are multipart, not JSON, so `call` does not fit: the file
+  // is read here in Node, handed to the browser as base64, and rebuilt into
+  // a Blob there (the page has no access to this process's filesystem).
+  async function upload(path, filePath) {
+    const base64 = (await readFile(filePath)).toString("base64");
+    const res = await page.evaluate(async ({ path, base64 }) => {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const form = new FormData();
+      form.append("file", new Blob([bytes], { type: "image/jpeg" }), "photo.jpg");
+      const r = await fetch(path, { method: "POST", body: form });
+      return { status: r.status, text: await r.text() };
+    }, { path, base64 });
+    if (res.status >= 400) throw new Error(`POST ${path} (upload) -> ${res.status}: ${res.text.slice(0, 300)}`);
+    return res.text ? JSON.parse(res.text) : null;
+  }
   return {
     get: (p) => call("GET", p),
     post: (p, b) => call("POST", p, b ?? {}),
     put: (p, b) => call("PUT", p, b ?? {}),
     patch: (p, b) => call("PATCH", p, b ?? {}),
     del: (p) => call("DELETE", p),
+    upload: (path, filePath) => upload(path, filePath),
   };
 }
 

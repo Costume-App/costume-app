@@ -4,7 +4,7 @@ import { useState } from "react";
 
 // Inline two-step prompt to add a costume piece to House Inventory, shown right
 // after a piece is marked complete (made/purchased). Step 1 asks; step 2 collects
-// optional category / location / size — everything else (name, notes, quantity,
+// optional category / location / size. Everything else (name, notes, quantity,
 // photos) comes from the piece. The parent decides when to show this and is told
 // the new item id via onAdded.
 export function AddToInventoryControl({
@@ -63,7 +63,7 @@ export function AddToInventoryControl({
           <button
             type="button"
             onClick={onDismiss}
-            aria-label={`Dismiss — don't add ${pieceLabel} to House Inventory`}
+            aria-label={`Dismiss, don't add ${pieceLabel} to House Inventory`}
             className="link-muted text-xs"
           >
             Not now
@@ -71,7 +71,7 @@ export function AddToInventoryControl({
         </div>
       ) : (
         <div className="space-y-1.5">
-          <span className="lbl block">Add {pieceLabel} — optional details</span>
+          <span className="lbl block">Add {pieceLabel}: optional details</span>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
             <input className="field !p-1.5 text-sm" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" aria-label="Category" />
             <input className="field !p-1.5 text-sm" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" aria-label="Location" />

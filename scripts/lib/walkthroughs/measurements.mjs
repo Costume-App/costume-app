@@ -10,8 +10,10 @@
 // values instead, so its retake never depends on the model's answer.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { TWELFTH, TWELFTH_ENSEMBLE, TWELFTH_CAST_STATE, resetTwelfthNight } from "../demo-productions.mjs";
-import { MEASUREMENT_UNITS } from "../demo-fixtures.mjs";
+import {
+  TWELFTH, TWELFTH_ENSEMBLE, TWELFTH_CAST_STATE, TWELFTH_MEASURED_STATE,
+  MAYA_AFTER_HANDWRITING, JORDAN_ALL, ROSA_IMPORTED, resetTwelfthNight,
+} from "../demo-productions.mjs";
 import { ROSA_FORM } from "../demo-measurement-form.mjs";
 import { escapeRe, roleRow, roleCard } from "../role-rows.mjs";
 
@@ -21,39 +23,9 @@ const FORM_IMAGE = resolve(
 );
 
 // What "enter-measurements" types on camera for Maya Brooks: Height 5 ft 6 in
-// (saved as 66 inches), Chest / bust 34, Shirt size M.
+// (saved as 66 inches), Chest / bust 34, Shirt size M. "handwriting" then adds
+// Waist "26 1/2" (saved as 26.5): demo-productions.mjs's MAYA_AFTER_HANDWRITING.
 const MAYA_ENTERED = Object.freeze({ height: 66, chest: 34, shirt_size: "M" });
-// What "handwriting" leaves behind: Waist "26 1/2", saved as 26.5.
-const MAYA_AFTER_HANDWRITING = Object.freeze({ ...MAYA_ENTERED, waist: 26.5 });
-// Jordan Lee was "measured earlier", every one of the 20 fields, so the
-// switcher list shows a check beside him and "Skip anyone fully measured"
-// has someone to skip. Numbers for every numeric key, strings for sizes.
-const JORDAN_VALUES = Object.freeze({
-  height: 70, weight: 165, chest: 40, waist: 32, hips: 38, shoulder: 18,
-  sleeve: 25, back_length: 18, inseam: 32, outseam: 42, neck: 15.5,
-  arm_circumference: 12, wrist: 7, thigh: 22, knee: 15, head: 23, nape_to_floor: 60,
-});
-const JORDAN_ALL = Object.freeze({ ...JORDAN_VALUES, shirt_size: "L", pant_size: "32/32", shoe_size: "Men's 10" });
-if (Object.keys(JORDAN_VALUES).length !== Object.keys(MEASUREMENT_UNITS).length) {
-  throw new Error("measurements walkthrough: Jordan Lee must carry every numeric measurement key");
-}
-
-/** "26 1/2" to 26.5, "22.5" to 22.5. ROSA_FORM stores values the way the
- * form is written; the DB stores numbers. Throws on anything else rather
- * than guessing. */
-function formNumber(raw) {
-  const mixed = /^(\d+)\s+(\d+)\/(\d+)$/.exec(raw);
-  if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
-  if (/^\d+(?:\.\d+)?$/.test(raw)) return Number(raw);
-  throw new Error(`measurements walkthrough: cannot read ROSA_FORM value "${raw}"`);
-}
-// What "import-forms" imports on camera, taken from ROSA_FORM (never retyped).
-const ROSA_IMPORTED = Object.freeze({
-  ...Object.fromEntries(ROSA_FORM.fields.map((f) => [f.key, formNumber(f.value)])),
-  shirt_size: ROSA_FORM.sizes.shirt,
-  pant_size: ROSA_FORM.sizes.pant,
-  shoe_size: ROSA_FORM.sizes.shoe,
-});
 const ROSA_FIELD_COUNT = Object.keys(ROSA_IMPORTED).length; // 12
 // The review table's row label for each imported key (measurement_definitions
 // labels as the review renders them), so the guard can check every value on
@@ -76,9 +48,7 @@ function reviewDisplay(key, value) {
 const withMeasurements = (measurements) => ({ ...TWELFTH_CAST_STATE, measurements });
 const STATE_ENTERED = withMeasurements({ "Maya Brooks": MAYA_ENTERED });
 const STATE_SWITCHER = withMeasurements({ "Maya Brooks": MAYA_AFTER_HANDWRITING, "Jordan Lee": JORDAN_ALL });
-const STATE_WRAP = withMeasurements({
-  "Maya Brooks": MAYA_AFTER_HANDWRITING, "Jordan Lee": JORDAN_ALL, [ROSA_FORM.name]: ROSA_IMPORTED,
-});
+// "wrap-up"'s own end state is video 3's whole TWELFTH_MEASURED_STATE.
 
 // Set by each prep so openRecord's fallback goto and each section's opening
 // goto are the real URLs (the ids change on every reset).
@@ -481,7 +451,7 @@ export const WALKTHROUGH = {
       id: "wrap-up",
       heading: "Wrap up",
       targetSeconds: 30,
-      prep: async (api) => remember(await resetTwelfthNight(api, STATE_WRAP)),
+      prep: async (api) => remember(await resetTwelfthNight(api, TWELFTH_MEASURED_STATE)),
       run: async (page, h) => {
         await openTwelfthDirect(page, h);
         // s:0: "That is how you measure a cast..."
