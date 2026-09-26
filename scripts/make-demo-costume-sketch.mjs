@@ -67,7 +67,7 @@ function buildHtml() {
 <body>
   <div class="page">
     <div class="title">Viola: doublet</div>
-    <svg width="1080" height="1200" viewBox="0 0 1080 1200">
+    <svg width="960" height="1067" viewBox="0 0 1080 1200">
       <!-- pencil-grey sketch of a doublet, front view -->
       <g fill="none" stroke="#4a4a48" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
         <!-- high collar -->
