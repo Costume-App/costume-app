@@ -3,6 +3,9 @@
 // and touches only productions titled here, plus the org-wide makers and
 // House Inventory items named below. "Twelfth Night" is the show video 1
 // creates on camera and video 2 fills with roles and cast.
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { MEASUREMENT_UNITS, showDate } from "./demo-fixtures.mjs";
 import { ROSA_FORM } from "./demo-measurement-form.mjs";
 
@@ -108,6 +111,104 @@ export const TWELFTH_MEASURED_STATE = Object.freeze({
   }),
 });
 
+// Video 4 ("Costume Creations") builds Viola's costumes up to a finished,
+// inventoried Doublet. Moved here (from walkthroughs/costume-creations.mjs)
+// so video 5's House Inventory preps can start from that same finished
+// production instead of retyping it; costume-creations.mjs now imports this
+// state and the pieces its own earlier sections are built from instead of
+// defining them.
+
+// The one design photo the demo ever uploads. Exported: "photos-notes"
+// attaches this same file live, through the browser's file chooser, and
+// VIOLA_DESIGNS_WITH_PHOTO below records it as already attached for every
+// later section, so both point at one file.
+export const SKETCH = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "../fixtures/training/costume-sketch-viola-doublet.jpg",
+);
+
+// What "photos-notes" types on camera into the Doublet's notes.
+export const DOUBLET_NOTES = "Green wool, brass buttons, fitted to the waist.";
+// What "creations-page" types on camera for Maya's Doublet.
+export const DOUBLET_FABRIC = Object.freeze({ name: "Wool suiting", color: "Deep green", widthIn: 60, unitCost: 18, supplier: "Mill End Textiles" });
+// What "skirt-yardage" sets on camera for Rosa's skirt: Full circle, Width
+// 60, Length typed as 36 (shorter than her 40 inch outseam below).
+export const SKIRT_WIDTH = "60";
+export const SKIRT_LENGTH = "36";
+
+// Video 3 imported twelve values for Rosa Diaz and no outseam. The skirt
+// section's narration says the Length "starts from the performer's own
+// outseam", and the Length hint only says so when an outseam exists (with
+// none it reads "No outseam recorded yet"), so Rosa gets one here, off
+// camera: 40 inches, consistent with her 30 inch inseam and 58 inch nape to
+// floor. Nothing in video 4 lists her measurement count.
+const ROSA_OUTSEAM = 40;
+export const BASE_STATE = Object.freeze({
+  ...TWELFTH_MEASURED_STATE,
+  measurements: Object.freeze({
+    ...TWELFTH_MEASURED_STATE.measurements,
+    [ROSA_FORM.name]: Object.freeze({ ...TWELFTH_MEASURED_STATE.measurements[ROSA_FORM.name], outseam: ROSA_OUTSEAM }),
+  }),
+});
+export const withCostumes = (designs, pieces) => ({ ...BASE_STATE, designs, pieces });
+
+// Designs, section by section. A design is one costume piece on a role.
+// "creations-page" onward: pieces on the other roles, so the To make list is
+// not thin. Rosa Diaz wears the Musicians' skirt, the others its tunic; the
+// pieces nobody wears are marked "On hand" so they leave the To make list.
+export const VIOLA_DESIGNS_WITH_PHOTO = Object.freeze([
+  Object.freeze({ role: "Viola", name: "Doublet", notes: DOUBLET_NOTES, photos: [SKETCH] }),
+  Object.freeze({ role: "Viola", name: "Breeches" }),
+  Object.freeze({ role: "Viola", name: "Boots" }),
+]);
+export const ALL_DESIGNS = Object.freeze([
+  ...VIOLA_DESIGNS_WITH_PHOTO,
+  Object.freeze({ role: "Olivia", name: "Gown" }),
+  Object.freeze({ role: "Sebastian", name: "Doublet" }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, name: "Skirt" }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, name: "Tunic" }),
+]);
+
+export const BOOTS_PURCHASED = Object.freeze({ role: "Viola", design: "Boots", performer: "Maya Brooks", source: "purchase", purchasePrice: 45 });
+export const ENSEMBLE_SPLIT = Object.freeze([
+  Object.freeze({ role: TWELFTH_ENSEMBLE, design: "Skirt", performer: "Theo Park", source: "on_hand" }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, design: "Skirt", performer: "Jordan Lee", source: "on_hand" }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, design: "Tunic", performer: ROSA_FORM.name, source: "on_hand" }),
+]);
+// What the calculator shows on camera for Rosa's full circle skirt: waist
+// 26.5, length 36, 60 inch fabric (read off the live page; "skirt-yardage"
+// throws if the take shows anything else).
+export const ROSA_SKIRT_YARDS = "5.25";
+export const ROSA_SKIRT = Object.freeze({ type: "full_circle", lengthIn: Number(SKIRT_LENGTH) });
+
+// Fixed stand-ins for the live estimate, plus fabric for every piece so the
+// Shopping tab groups by type with a cost on each line. The viewer saw "some
+// numbers" filled in; the narration never reads them.
+export const ESTIMATED = Object.freeze([
+  Object.freeze({ role: "Viola", design: "Doublet", performer: "Maya Brooks", source: "make", maker: "Priya Shah", fabric: Object.freeze({ ...DOUBLET_FABRIC, yardage: 2.5 }) }),
+  Object.freeze({ role: "Viola", design: "Breeches", performer: "Maya Brooks", source: "make", maker: "Sam Ortiz", fabric: Object.freeze({ name: "Wool suiting", color: "Charcoal", widthIn: 60, yardage: 1.8, unitCost: 18, supplier: "Mill End Textiles" }) }),
+  BOOTS_PURCHASED,
+  ...ENSEMBLE_SPLIT,
+  Object.freeze({ role: "Olivia", design: "Gown", performer: "Maya Brooks", source: "make", fabric: Object.freeze({ name: "Silk taffeta", color: "Ivory", widthIn: 54, yardage: 6.5, unitCost: 24, supplier: "Fabric Row" }) }),
+  Object.freeze({ role: "Sebastian", design: "Doublet", performer: "Jordan Lee", source: "make", fabric: Object.freeze({ name: "Wool suiting", color: "Deep green", widthIn: 60, yardage: 2.8, unitCost: 18, supplier: "Mill End Textiles" }) }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, design: "Skirt", performer: ROSA_FORM.name, source: "make", fabric: Object.freeze({ name: "Cotton broadcloth", color: "Burgundy", widthIn: Number(SKIRT_WIDTH), yardage: Number(ROSA_SKIRT_YARDS), unitCost: 9, supplier: "Fabric Row" }), skirt: ROSA_SKIRT }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, design: "Tunic", performer: "Theo Park", source: "make", fabric: Object.freeze({ name: "Linen", color: "Oatmeal", widthIn: 54, yardage: 2.2, unitCost: 12, supplier: "Fabric Row" }) }),
+  Object.freeze({ role: TWELFTH_ENSEMBLE, design: "Tunic", performer: "Jordan Lee", source: "make", fabric: Object.freeze({ name: "Linen", color: "Oatmeal", widthIn: 54, yardage: 2.4, unitCost: 12, supplier: "Fabric Row" }) }),
+]);
+
+// What "made-to-inventory" does on camera: Viola's Doublet ticked Made and
+// logged to House Inventory with Location "Rack B". Video 5's preps read
+// this too, so a viewer's House Inventory item comes from the same doublet
+// they watched get made in video 4.
+export const TWELFTH_DOUBLET_TO_INVENTORY = Object.freeze({ role: "Viola", design: "Doublet", performer: "Maya Brooks", location: "Rack B" });
+
+// Video 4's own end state ("wrap-up"): every design and piece above, with
+// Viola's Doublet marked Made.
+export const TWELFTH_COSTUMED_STATE = Object.freeze(withCostumes(
+  ALL_DESIGNS,
+  ESTIMATED.map((p) => (p.role === "Viola" && p.design === "Doublet" ? { ...p, made: true } : p)),
+));
+
 // Video 4 ("Costume Creations") touches two org-wide things besides the
 // production itself: makers and House Inventory items. Both are cleaned up
 // by exact name in resetDemoCostumeOrg so repeated takes never pile up
@@ -121,12 +222,44 @@ export const DEMO_MAKERS = Object.freeze([
   Object.freeze({ name: "Sam Ortiz", color: "orange" }),
 ]);
 
-// Every House Inventory item name video 4 can create by logging a finished
-// piece to inventory. addPieceToInventory names the new item from the
-// design's own name, not the performer's (src/lib/data/piece-to-inventory.ts:61,
-// `name: design.name`). A later task confirms this against the live page
-// before recording and amends this list if the live name differs.
-export const DEMO_INVENTORY_NAMES = Object.freeze(["Doublet"]);
+// Resolves a House Inventory photo the same way costume-creations.mjs
+// resolves SKETCH: relative to this module's own file, never the caller's.
+function inventoryPhoto(fileName) {
+  return resolve(fileURLToPath(new URL(".", import.meta.url)), "../fixtures/training/inventory", fileName);
+}
+
+// Video 5's House Inventory items, rebuilt every take: what "browse-inventory"
+// (and later sections) sees already sitting in the list. Task 3 generates the
+// photo JPEGs these paths point to; task 4 may adjust these names, and the
+// generator changes with this list so the two never drift apart.
+export const DEMO_INVENTORY_ITEMS = Object.freeze([
+  Object.freeze({ name: "Top hat", category: "Hats", size: "7 1/4", quantity: 2, location: "Shelf 3", photo: inventoryPhoto("top-hat.jpg") }),
+  Object.freeze({ name: "Tricorn hat", category: "Hats", quantity: 4, location: "Shelf 3", photo: inventoryPhoto("tricorn-hat.jpg") }),
+  Object.freeze({ name: "Pirate coat", category: "Coats & capes", size: "L", quantity: 3, location: "Rack A", photo: inventoryPhoto("pirate-coat.jpg") }),
+  Object.freeze({ name: "Ball gown", category: "Dresses", size: "8", quantity: 1, location: "Rack C", photo: inventoryPhoto("ball-gown.jpg") }),
+  Object.freeze({ name: "Lace fan", category: "Accessories", quantity: 6, location: "Bin 2", photo: inventoryPhoto("lace-fan.jpg") }),
+  Object.freeze({ name: "Parasol", category: "Accessories", quantity: 2, location: "Bin 2", photo: inventoryPhoto("parasol.jpg") }),
+]);
+
+// What "add-item" types on camera: a new House Inventory item added live,
+// on top of the DEMO_INVENTORY_ITEMS already sitting there.
+export const DEMO_INVENTORY_CAMERA_ITEM = Object.freeze({
+  name: "Velvet cloak", category: "Coats & capes", size: "M", quantity: 2, location: "Rack A",
+  photo: inventoryPhoto("velvet-cloak.jpg"),
+});
+
+// Every House Inventory item name video 4 or video 5 can create: the Doublet
+// video 4 logs from a finished piece (addPieceToInventory names it from the
+// design's own name, not the performer's:
+// src/lib/data/piece-to-inventory.ts:61, `name: design.name`), plus video 5's
+// own seeded items and the one it adds on camera. A later task confirms the
+// Doublet name against the live page before recording and amends this list
+// if the live name differs.
+export const DEMO_INVENTORY_NAMES = Object.freeze([
+  "Doublet",
+  ...DEMO_INVENTORY_ITEMS.map((item) => item.name),
+  DEMO_INVENTORY_CAMERA_ITEM.name,
+]);
 
 // Mirrors the source tokens in src/lib/costume-sources.ts (scripts are plain
 // .mjs and cannot import a .ts module).
@@ -157,6 +290,49 @@ export async function resetDemoCostumeOrg(api) {
     }
   }
   return makerIds;
+}
+
+/** Seeds House Inventory for video 5. Assumes resetDemoCostumeOrg already
+ * ran (it deletes every item named in DEMO_INVENTORY_NAMES, so this always
+ * starts from an empty list of these names and a bare POST cannot collide).
+ * Validates every item before sending anything: its name must be one this
+ * training video ever shows, no two items in this call may share a name,
+ * and its photo file must exist. `fileExists` is injectable so a test never
+ * depends on the real fixture JPEGs a later task generates. Returns a Map
+ * from item name to the created item's id. */
+export async function resetDemoInventory(api, items = DEMO_INVENTORY_ITEMS, { fileExists = existsSync } = {}) {
+  const seen = new Set();
+  for (const item of items) {
+    if (!DEMO_INVENTORY_NAMES.includes(item.name)) {
+      throw new Error(`resetDemoInventory: "${item.name}" is not in DEMO_INVENTORY_NAMES`);
+    }
+    if (seen.has(item.name)) throw new Error(`resetDemoInventory: "${item.name}" repeats`);
+    seen.add(item.name);
+  }
+  for (const item of items) {
+    if (!fileExists(item.photo)) throw new Error(`resetDemoInventory: photo missing for "${item.name}": ${item.photo}`);
+  }
+  const itemIds = new Map();
+  for (const item of items) {
+    const body = { name: item.name, category: item.category, quantity: item.quantity, location: item.location };
+    if (item.size !== undefined) body.size = item.size;
+    if (item.notes !== undefined) body.notes = item.notes;
+    const { item: created } = await api.post("/api/inventory", body);
+    itemIds.set(item.name, created.id);
+    await api.upload(`/api/inventory/${created.id}/images`, item.photo);
+  }
+  return itemIds;
+}
+
+/** Guards a take against a manual add slipping into House Inventory between
+ * takes: throws naming every item whose name is not in DEMO_INVENTORY_NAMES.
+ * Deletes nothing; cleanup is resetDemoCostumeOrg's job, by exact name. */
+export async function assertDemoInventoryOnly(api) {
+  const { items } = await api.get("/api/inventory");
+  const strays = items.filter((item) => !DEMO_INVENTORY_NAMES.includes(item.name)).map((item) => item.name);
+  if (strays.length > 0) {
+    throw new Error(`assertDemoInventoryOnly: unexpected House Inventory item(s): ${strays.join(", ")}`);
+  }
 }
 
 // Numeric measurement keys carry a unit from MEASUREMENT_UNITS; these three
@@ -203,7 +379,7 @@ const scopedKey = (role, name) => `${role}\u0000${name}`;
 export async function resetTwelfthNight(
   api,
   { roles = [], ensembleRoles = [], castings = [], measurements = {}, designs = [], pieces = [] } = {},
-  { makerIds = new Map() } = {},
+  { makerIds = new Map(), inventoryIds = new Map() } = {},
 ) {
   await deleteByTitle(api, TWELFTH);
   const production = await createTwelfthNight(api);
@@ -256,11 +432,21 @@ export async function resetTwelfthNight(
 
   // Designs and pieces: validate every entry (known role, design, performer,
   // maker, source; a piece's performer must be cast in that piece's role)
-  // before the first design or piece write.
+  // before the first design or piece write. A design given as
+  // { role, fromInventory: "<item name>" } instead of { role, name } is
+  // keyed by the item's own name, since POST /designs names an
+  // inventory-linked design from the item and no separate name is sent.
   const designKeys = new Set();
   for (const d of designs) {
     if (!roleIds.has(d.role)) throw new Error(`resetTwelfthNight: unknown role "${d.role}"`);
-    designKeys.add(scopedKey(d.role, d.name));
+    if (d.fromInventory !== undefined) {
+      if (!inventoryIds.has(d.fromInventory)) {
+        throw new Error(`resetTwelfthNight: unknown inventory item "${d.fromInventory}" for fromInventory`);
+      }
+      designKeys.add(scopedKey(d.role, d.fromInventory));
+    } else {
+      designKeys.add(scopedKey(d.role, d.name));
+    }
   }
   const pieceBuilds = [];
   for (const p of pieces) {
@@ -285,8 +471,15 @@ export async function resetTwelfthNight(
   const designIds = new Map();
   for (const d of designs) {
     const roleId = roleIds.get(d.role);
-    const { design } = await api.post(`${base}/designs`, { roleId, name: d.name });
-    designIds.set(scopedKey(d.role, d.name), design.id);
+    let design;
+    if (d.fromInventory !== undefined) {
+      const inventoryItemId = inventoryIds.get(d.fromInventory);
+      ({ design } = await api.post(`${base}/designs`, { roleId, inventoryItemId }));
+      designIds.set(scopedKey(d.role, d.fromInventory), design.id);
+    } else {
+      ({ design } = await api.post(`${base}/designs`, { roleId, name: d.name }));
+      designIds.set(scopedKey(d.role, d.name), design.id);
+    }
     if (d.notes) await api.patch(`${base}/designs/${design.id}`, { notes: d.notes });
     for (const photoPath of d.photos ?? []) {
       await api.upload(`${base}/designs/${design.id}/images`, photoPath);

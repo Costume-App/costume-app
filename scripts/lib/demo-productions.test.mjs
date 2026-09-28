@@ -3,9 +3,10 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import {
-  TWELFTH, TWELFTH_ROLES, TWELFTH_CAST_STATE, TWELFTH_MEASURED_STATE,
-  DEMO_MAKERS, DEMO_INVENTORY_NAMES,
+  TWELFTH, TWELFTH_ROLES, TWELFTH_CAST_STATE, TWELFTH_MEASURED_STATE, TWELFTH_COSTUMED_STATE,
+  DEMO_MAKERS, DEMO_INVENTORY_NAMES, DEMO_INVENTORY_ITEMS, DEMO_INVENTORY_CAMERA_ITEM,
   deleteByTitle, ensureTwelfthNight, resetTwelfthNight, resetDemoCostumeOrg,
+  resetDemoInventory, assertDemoInventoryOnly,
 } from "./demo-productions.mjs";
 import { showDate } from "./demo-fixtures.mjs";
 import { ROSA_FORM } from "./demo-measurement-form.mjs";
@@ -34,6 +35,11 @@ function fakeApi(productions = [], { inventory = [], makers = [] } = {}) {
         const maker = { id: `maker-${++n}`, name: b.name, color: b.color };
         makers.push(maker);
         return { maker };
+      }
+      if (p === "/api/inventory") {
+        const item = { id: `inv-${++n}`, ...b };
+        inventory.push(item);
+        return { item };
       }
       if (p.endsWith("/roles") && b.names) return { roles: b.names.map((name) => ({ id: `role-${name}`, name })) };
       if (p.endsWith("/roles")) return { role: { id: `role-${b.name}`, name: b.name } };
@@ -341,6 +347,40 @@ describe("resetTwelfthNight", () => {
       const puts = api.calls.filter((c) => c[0] === "PUT" && c[1].endsWith("/pieces")).map((c) => c[2].designId);
       expect(new Set(puts).size).toBe(2);
     });
+
+    it("creates a design from fromInventory via POST /designs with inventoryItemId and no name", async () => {
+      const api = fakeApi([]);
+      const inventoryIds = new Map([["Pirate coat", "inv-1"]]);
+      const { designIds } = await resetTwelfthNight(api, {
+        roles: ["Sebastian"],
+        castings: [{ role: "Sebastian", name: "Jordan Lee" }],
+        designs: [{ role: "Sebastian", fromInventory: "Pirate coat" }],
+        pieces: [{ role: "Sebastian", design: "Pirate coat", performer: "Jordan Lee", source: "on_hand" }],
+      }, { inventoryIds });
+      const post = api.calls.find((c) => c[0] === "POST" && c[1].endsWith("/designs"));
+      expect(post[2]).toEqual({ roleId: "role-Sebastian", inventoryItemId: "inv-1" });
+      const put = api.calls.find((c) => c[0] === "PUT" && c[1].endsWith("/pieces"));
+      expect(put[2].designId).toBe(designIds.get("Sebastian\u0000Pirate coat"));
+    });
+
+    it("throws naming an unknown fromInventory item, before any POST /designs", async () => {
+      const api = fakeApi([]);
+      const inventoryIds = new Map([["Pirate coat", "inv-1"]]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Sebastian"],
+        designs: [{ role: "Sebastian", fromInventory: "Nope" }],
+      }, { inventoryIds })).rejects.toThrow(/Nope/);
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+    });
+
+    it("throws for fromInventory given with no inventoryIds, before any POST /designs", async () => {
+      const api = fakeApi([]);
+      await expect(resetTwelfthNight(api, {
+        roles: ["Sebastian"],
+        designs: [{ role: "Sebastian", fromInventory: "Pirate coat" }],
+      })).rejects.toThrow();
+      expect(api.calls.some((c) => c[0] === "POST" && c[1].endsWith("/designs"))).toBe(false);
+    });
   });
 });
 
@@ -445,5 +485,118 @@ describe("TWELFTH_MEASURED_STATE", () => {
       },
     };
     expect(TWELFTH_MEASURED_STATE).toEqual(oldStateWrap);
+  });
+});
+
+describe("TWELFTH_COSTUMED_STATE", () => {
+  it("deep-equals a snapshot of video 4's STATE_WRAP taken before the move", () => {
+    // Snapshot of costume-creations.mjs's own STATE_WRAP as it read before
+    // this task moved BASE_STATE, the design lists, and ESTIMATED into
+    // demo-productions.mjs, so a later edit on either side shows up here.
+    const oldMeasurements = {
+      ...TWELFTH_MEASURED_STATE.measurements,
+      [ROSA_FORM.name]: { ...TWELFTH_MEASURED_STATE.measurements[ROSA_FORM.name], outseam: 40 },
+    };
+    const oldBaseState = { ...TWELFTH_CAST_STATE, measurements: oldMeasurements };
+    const sketchPath = resolve(
+      fileURLToPath(new URL(".", import.meta.url)),
+      "../fixtures/training/costume-sketch-viola-doublet.jpg",
+    );
+    const doubletFabric = { name: "Wool suiting", color: "Deep green", widthIn: 60, unitCost: 18, supplier: "Mill End Textiles" };
+    const allDesigns = [
+      { role: "Viola", name: "Doublet", notes: "Green wool, brass buttons, fitted to the waist.", photos: [sketchPath] },
+      { role: "Viola", name: "Breeches" },
+      { role: "Viola", name: "Boots" },
+      { role: "Olivia", name: "Gown" },
+      { role: "Sebastian", name: "Doublet" },
+      { role: "Musicians", name: "Skirt" },
+      { role: "Musicians", name: "Tunic" },
+    ];
+    const bootsPurchased = { role: "Viola", design: "Boots", performer: "Maya Brooks", source: "purchase", purchasePrice: 45 };
+    const ensembleSplit = [
+      { role: "Musicians", design: "Skirt", performer: "Theo Park", source: "on_hand" },
+      { role: "Musicians", design: "Skirt", performer: "Jordan Lee", source: "on_hand" },
+      { role: "Musicians", design: "Tunic", performer: ROSA_FORM.name, source: "on_hand" },
+    ];
+    const rosaSkirt = { type: "full_circle", lengthIn: 36 };
+    const estimated = [
+      { role: "Viola", design: "Doublet", performer: "Maya Brooks", source: "make", maker: "Priya Shah", fabric: { ...doubletFabric, yardage: 2.5 } },
+      { role: "Viola", design: "Breeches", performer: "Maya Brooks", source: "make", maker: "Sam Ortiz", fabric: { name: "Wool suiting", color: "Charcoal", widthIn: 60, yardage: 1.8, unitCost: 18, supplier: "Mill End Textiles" } },
+      bootsPurchased,
+      ...ensembleSplit,
+      { role: "Olivia", design: "Gown", performer: "Maya Brooks", source: "make", fabric: { name: "Silk taffeta", color: "Ivory", widthIn: 54, yardage: 6.5, unitCost: 24, supplier: "Fabric Row" } },
+      { role: "Sebastian", design: "Doublet", performer: "Jordan Lee", source: "make", fabric: { name: "Wool suiting", color: "Deep green", widthIn: 60, yardage: 2.8, unitCost: 18, supplier: "Mill End Textiles" } },
+      { role: "Musicians", design: "Skirt", performer: ROSA_FORM.name, source: "make", fabric: { name: "Cotton broadcloth", color: "Burgundy", widthIn: 60, yardage: 5.25, unitCost: 9, supplier: "Fabric Row" }, skirt: rosaSkirt },
+      { role: "Musicians", design: "Tunic", performer: "Theo Park", source: "make", fabric: { name: "Linen", color: "Oatmeal", widthIn: 54, yardage: 2.2, unitCost: 12, supplier: "Fabric Row" } },
+      { role: "Musicians", design: "Tunic", performer: "Jordan Lee", source: "make", fabric: { name: "Linen", color: "Oatmeal", widthIn: 54, yardage: 2.4, unitCost: 12, supplier: "Fabric Row" } },
+    ];
+    const oldStateWrap = {
+      ...oldBaseState,
+      designs: allDesigns,
+      pieces: estimated.map((p) => (p.role === "Viola" && p.design === "Doublet" ? { ...p, made: true } : p)),
+    };
+    expect(TWELFTH_COSTUMED_STATE).toEqual(oldStateWrap);
+  });
+});
+
+describe("DEMO_INVENTORY_NAMES", () => {
+  it("contains Doublet, every DEMO_INVENTORY_ITEMS name, and the camera item's name, with no repeats", () => {
+    expect(DEMO_INVENTORY_NAMES).toContain("Doublet");
+    for (const item of DEMO_INVENTORY_ITEMS) expect(DEMO_INVENTORY_NAMES).toContain(item.name);
+    expect(DEMO_INVENTORY_NAMES).toContain(DEMO_INVENTORY_CAMERA_ITEM.name);
+    expect(new Set(DEMO_INVENTORY_NAMES).size).toBe(DEMO_INVENTORY_NAMES.length);
+  });
+});
+
+describe("resetDemoInventory", () => {
+  it("sends one POST /api/inventory and one upload per item, returning a name-to-id map", async () => {
+    const api = fakeApi([], { inventory: [] });
+    const itemIds = await resetDemoInventory(api, DEMO_INVENTORY_ITEMS, { fileExists: () => true });
+    const posts = api.calls.filter((c) => c[0] === "POST" && c[1] === "/api/inventory");
+    expect(posts.length).toBe(DEMO_INVENTORY_ITEMS.length);
+    for (const item of DEMO_INVENTORY_ITEMS) {
+      const post = posts.find((c) => c[2].name === item.name);
+      const expectedBody = { name: item.name, category: item.category, quantity: item.quantity, location: item.location };
+      if (item.size !== undefined) expectedBody.size = item.size;
+      if (item.notes !== undefined) expectedBody.notes = item.notes;
+      expect(post[2]).toEqual(expectedBody);
+      const id = itemIds.get(item.name);
+      expect(id).toBeTruthy();
+      const upload = api.calls.find((c) => c[0] === "upload" && c[1] === `/api/inventory/${id}/images`);
+      expect(upload[2]).toBe(item.photo);
+    }
+  });
+
+  it("throws when an item's name is not in DEMO_INVENTORY_NAMES, before any write", async () => {
+    const api = fakeApi([], { inventory: [] });
+    const items = [{ name: "Not listed", category: "Hats", quantity: 1, location: "Shelf 3", photo: "/tmp/not-listed.jpg" }];
+    await expect(resetDemoInventory(api, items, { fileExists: () => true })).rejects.toThrow(/not in DEMO_INVENTORY_NAMES/);
+    expect(api.calls.length).toBe(0);
+  });
+
+  it("throws when two items share a name, before any write", async () => {
+    const api = fakeApi([], { inventory: [] });
+    const [first] = DEMO_INVENTORY_ITEMS;
+    await expect(resetDemoInventory(api, [first, first], { fileExists: () => true })).rejects.toThrow(/repeats/);
+    expect(api.calls.length).toBe(0);
+  });
+
+  it("throws when a photo file is missing, before any write", async () => {
+    const api = fakeApi([], { inventory: [] });
+    await expect(resetDemoInventory(api, DEMO_INVENTORY_ITEMS, { fileExists: () => false })).rejects.toThrow(/photo/);
+    expect(api.calls.length).toBe(0);
+  });
+});
+
+describe("assertDemoInventoryOnly", () => {
+  it("passes on a list of listed names only", async () => {
+    const api = fakeApi([], { inventory: [{ id: "a", name: "Doublet" }, { id: "b", name: DEMO_INVENTORY_ITEMS[0].name }] });
+    await expect(assertDemoInventoryOnly(api)).resolves.toBeUndefined();
+  });
+
+  it("throws naming an item not in the list, and sends no DELETE", async () => {
+    const api = fakeApi([], { inventory: [{ id: "a", name: "Doublet" }, { id: "stray", name: "Hand-added thing" }] });
+    await expect(assertDemoInventoryOnly(api)).rejects.toThrow(/Hand-added thing/);
+    expect(api.calls.some((c) => c[0] === "DELETE")).toBe(false);
   });
 });
