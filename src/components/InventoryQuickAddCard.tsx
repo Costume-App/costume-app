@@ -82,7 +82,7 @@ export function InventoryQuickAddCard({ itemCount }: { itemCount: number }) {
       {added && (
         <div className="mt-3 space-y-2 border-t border-[var(--field-line)] pt-3">
           <p className="text-sm muted">
-            Added ✓ <strong>{added.name}</strong> — add details &amp; photos:
+            Added ✓ <strong>{added.name}</strong>. Add details &amp; photos:
           </p>
           <InventoryItemDetail
             item={added}
