@@ -17,6 +17,7 @@ import {
   DEMO_INVENTORY_ITEMS, DEMO_INVENTORY_CAMERA_ITEM,
   TWELFTH_COSTUMED_STATE, TWELFTH_DOUBLET_TO_INVENTORY,
   resetDemoCostumeOrg, resetDemoInventory, resetTwelfthNight,
+  assertDemoInventoryOnly,
 } from "../demo-productions.mjs";
 import { escapeRe, roleRow, roleCard } from "../role-rows.mjs";
 
@@ -30,8 +31,9 @@ const SEBASTIAN = "Sebastian";
 const JORDAN = "Jordan Lee";
 const DOUBLET = TWELFTH_DOUBLET_TO_INVENTORY.design; // "Doublet"
 const DOUBLET_CATEGORY = "Doublets";
-// Typed into the Doublet's Size on camera in "item-details" (the category
-// edit regroups the item and loses its flash), so later preps set it too.
+// Typed into the Doublet's Size on camera in "item-details" (every field,
+// category included, keeps its flash and its editor open now), so later
+// preps set it too.
 const DOUBLET_SIZE = "M";
 
 // Twelfth Night once "reuse" has filmed: Sebastian also wears the Pirate
@@ -53,6 +55,7 @@ const key = (role, name) => `${role}\u0000${name}`;
  * Pirate coat. */
 async function prepWith(api, { cloak = false, doubletCategory = false, reused = false } = {}) {
   const makerIds = await resetDemoCostumeOrg(api);
+  await assertDemoInventoryOnly(api);
   const inventoryIds = await resetDemoInventory(api, cloak ? [...DEMO_INVENTORY_ITEMS, CLOAK] : DEMO_INVENTORY_ITEMS);
   const { production, designIds, castingIds } = await resetTwelfthNight(
     api, reused ? STATE_REUSED : TWELFTH_COSTUMED_STATE, { makerIds, inventoryIds },
@@ -342,10 +345,9 @@ export const WALKTHROUGH = {
         // of the thumbnail, so the cursor never covers it (lessons A4).
         await h.zoom(page, thumb.locator("xpath=ancestor::div[contains(@class,'flex-wrap')][1]"), { s: 3, holdMs: 2000 });
         // Guard: the typed values and the photo reached the server. "Done" is
-        // NOT clicked on camera: the new tile it reveals shows the garment
-        // placeholder until a reload (InventoryManager keeps the POSTed row,
-        // which has no photoUrl; confirmed live), and a placeholder tile
-        // under "recognize it at a glance" would contradict the narration.
+        // not clicked on camera for pacing and scope: this section is about
+        // filling in an item's details, not the grid's tile refresh, which
+        // "the-grid" already covers.
         const items = await page.evaluate(async () => {
           const r = await fetch("/api/inventory", { credentials: "include" });
           if (!r.ok) throw new Error(`GET /api/inventory -> ${r.status}`);
@@ -395,23 +397,22 @@ export const WALKTHROUGH = {
         await typeInto(page, h, category, DOUBLET_CATEGORY, 3, true, 110);
         await h.hold(page, 300);
         await category.press("Tab");
-        // Filing it moves the item into its new "Doublets" group, and its
-        // editor with it (a remount, so this edit's "Saved ✓" is lost with
-        // the old editor, confirmed live). Glide up to the new group; the
-        // Size edit below then carries the flash the narration promises.
-        const moved = itemEditor(page, DOUBLET);
-        await groupHeader(page, DOUBLET_CATEGORY).waitFor({ state: "visible", timeout: 6000 });
-        await moved.waitFor({ state: "visible", timeout: 6000 });
-        await h.point(page, groupHeader(page, DOUBLET_CATEGORY), { s: 3, mark: false });
-        await h.hold(page, 1400);
+        // The item stays in its original group and its editor keeps focus
+        // while the editor is open (confirmed live): it regroups only once
+        // the editor closes. Zoom on the Category/Size row to hold on the
+        // "Saved ✓" flash for roughly the glide the old choreography spent;
+        // a plain hold has no motion of its own and freezes once the TTS
+        // stretch lengthens it past freezedetect's static-frame floor.
+        await waitForSaved(page, editor, "item-details Category");
+        await h.zoom(page, editor.locator("div.grid").first(), { s: 3, holdMs: 1400 });
         // s:4: "You can also update its size, quantity, or storage location...
         // and the same Saved flash confirms every edit."
-        const size = moved.getByLabel("Size", { exact: true });
+        const size = editor.getByLabel("Size", { exact: true });
         await typeInto(page, h, size, DOUBLET_SIZE, 4, true, 150);
         await size.press("Tab");
-        await waitForSaved(page, moved, "item-details Size");
-        await h.zoom(page, moved.locator("div.grid").first(), { s: 4, holdMs: 2200 });
-        await h.point(page, moved.getByLabel("Location", { exact: true }), { s: 4, mark: false });
+        await waitForSaved(page, editor, "item-details Size");
+        await h.zoom(page, editor.locator("div.grid").first(), { s: 4, holdMs: 2200 });
+        await h.point(page, editor.getByLabel("Location", { exact: true }), { s: 4, mark: false });
         await h.hold(page, 1200);
       },
     },
