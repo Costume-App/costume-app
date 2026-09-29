@@ -12,19 +12,16 @@
 // filmed; the narration never reads an estimated number aloud, and the later
 // sections start from fixed yardages (ESTIMATED below), so their retakes
 // never depend on the model's answer.
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
-  TWELFTH, TWELFTH_ENSEMBLE, TWELFTH_MEASURED_STATE, DEMO_MAKERS,
+  TWELFTH, TWELFTH_ENSEMBLE, DEMO_MAKERS,
   resetDemoCostumeOrg, resetTwelfthNight,
+  withCostumes, VIOLA_DESIGNS_WITH_PHOTO, ALL_DESIGNS, SKETCH,
+  BOOTS_PURCHASED, ENSEMBLE_SPLIT, DOUBLET_FABRIC, DOUBLET_NOTES,
+  SKIRT_WIDTH, SKIRT_LENGTH, ROSA_SKIRT_YARDS, ROSA_SKIRT,
+  ESTIMATED, TWELFTH_COSTUMED_STATE, TWELFTH_DOUBLET_TO_INVENTORY,
 } from "../demo-productions.mjs";
 import { ROSA_FORM } from "../demo-measurement-form.mjs";
 import { escapeRe, roleRow, roleCard } from "../role-rows.mjs";
-
-const SKETCH = resolve(
-  fileURLToPath(new URL(".", import.meta.url)),
-  "../../fixtures/training/costume-sketch-viola-doublet.jpg",
-);
 
 const MAYA = "Maya Brooks";
 const JORDAN = "Jordan Lee";
@@ -35,60 +32,17 @@ if (PRIYA !== "Priya Shah" || SAM !== "Sam Ortiz") {
   throw new Error("costume-creations walkthrough: DEMO_MAKERS changed; the narration and zooms assume Priya Shah (pink) and Sam Ortiz (orange)");
 }
 
-// What "photos-notes" types on camera into the Doublet's notes.
-const DOUBLET_NOTES = "Green wool, brass buttons, fitted to the waist.";
-// What "creations-page" types on camera for Maya's Doublet.
-const DOUBLET_FABRIC = Object.freeze({ name: "Wool suiting", color: "Deep green", widthIn: 60, unitCost: 18, supplier: "Mill End Textiles" });
-// What "skirt-yardage" sets on camera for Rosa's skirt: Full circle, Width
-// 60, Length typed as 36 (shorter than her 40 inch outseam below).
-const SKIRT_WIDTH = "60";
-const SKIRT_LENGTH = "36";
-
-// Video 3 imported twelve values for Rosa Diaz and no outseam. The skirt
-// section's narration says the Length "starts from the performer's own
-// outseam", and the Length hint only says so when an outseam exists (with
-// none it reads "No outseam recorded yet"), so Rosa gets one here, off
-// camera: 40 inches, consistent with her 30 inch inseam and 58 inch nape to
-// floor. Nothing in video 4 lists her measurement count.
-const ROSA_OUTSEAM = 40;
-const BASE_STATE = Object.freeze({
-  ...TWELFTH_MEASURED_STATE,
-  measurements: Object.freeze({
-    ...TWELFTH_MEASURED_STATE.measurements,
-    [ROSA]: Object.freeze({ ...TWELFTH_MEASURED_STATE.measurements[ROSA], outseam: ROSA_OUTSEAM }),
-  }),
-});
-
 // Designs, section by section. A design is one costume piece on a role.
+// VIOLA_DESIGNS_WITH_PHOTO, ALL_DESIGNS, BOOTS_PURCHASED, ENSEMBLE_SPLIT,
+// DOUBLET_FABRIC, DOUBLET_NOTES, the skirt constants, ESTIMATED, and
+// TWELFTH_COSTUMED_STATE all live in demo-productions.mjs now (video 5
+// starts its own preps from TWELFTH_COSTUMED_STATE, so this video's finished
+// state cannot drift from that one by being redefined twice).
 const VIOLA_DESIGNS = [
   { role: "Viola", name: "Doublet" },
   { role: "Viola", name: "Breeches" },
   { role: "Viola", name: "Boots" },
 ];
-const VIOLA_DESIGNS_WITH_PHOTO = [
-  { role: "Viola", name: "Doublet", notes: DOUBLET_NOTES, photos: [SKETCH] },
-  { role: "Viola", name: "Breeches" },
-  { role: "Viola", name: "Boots" },
-];
-// "creations-page" onward: pieces on the other roles, so the To make list is
-// not thin. Rosa Diaz wears the Musicians' skirt, the others its tunic; the
-// pieces nobody wears are marked "On hand" so they leave the To make list.
-const ALL_DESIGNS = [
-  ...VIOLA_DESIGNS_WITH_PHOTO,
-  { role: "Olivia", name: "Gown" },
-  { role: "Sebastian", name: "Doublet" },
-  { role: TWELFTH_ENSEMBLE, name: "Skirt" },
-  { role: TWELFTH_ENSEMBLE, name: "Tunic" },
-];
-
-const BOOTS_PURCHASED = { role: "Viola", design: "Boots", performer: MAYA, source: "purchase", purchasePrice: 45 };
-const ENSEMBLE_SPLIT = [
-  { role: TWELFTH_ENSEMBLE, design: "Skirt", performer: THEO, source: "on_hand" },
-  { role: TWELFTH_ENSEMBLE, design: "Skirt", performer: JORDAN, source: "on_hand" },
-  { role: TWELFTH_ENSEMBLE, design: "Tunic", performer: ROSA, source: "on_hand" },
-];
-
-const withCostumes = (designs, pieces) => ({ ...BASE_STATE, designs, pieces });
 
 const STATE_PHOTOS = withCostumes(VIOLA_DESIGNS, []);
 const STATE_MAKE_OR_BUY = withCostumes(VIOLA_DESIGNS_WITH_PHOTO, []);
@@ -102,37 +56,11 @@ const piecesCreations = (doubletFabric) => [
 ];
 const STATE_CREATIONS = withCostumes(ALL_DESIGNS, piecesCreations(null));
 const STATE_SKIRT = withCostumes(ALL_DESIGNS, piecesCreations(DOUBLET_FABRIC));
-const ROSA_SKIRT = { type: "full_circle", lengthIn: Number(SKIRT_LENGTH) };
-// What the calculator shows on camera for Rosa's full circle skirt: waist
-// 26.5, length 36, 60 inch fabric (read off the live page; "skirt-yardage"
-// throws if the take shows anything else).
-const ROSA_SKIRT_YARDS = "5.25";
 const STATE_ESTIMATE = withCostumes(ALL_DESIGNS, [
   ...piecesCreations(DOUBLET_FABRIC),
   { role: TWELFTH_ENSEMBLE, design: "Skirt", performer: ROSA, source: "make", fabric: { widthIn: Number(SKIRT_WIDTH), yardage: Number(ROSA_SKIRT_YARDS) }, skirt: ROSA_SKIRT },
 ]);
-
-// Fixed stand-ins for the live estimate, plus fabric for every piece so the
-// Shopping tab groups by type with a cost on each line. The viewer saw "some
-// numbers" filled in; the narration never reads them.
-const ESTIMATED = [
-  { role: "Viola", design: "Doublet", performer: MAYA, source: "make", maker: PRIYA, fabric: { ...DOUBLET_FABRIC, yardage: 2.5 } },
-  { role: "Viola", design: "Breeches", performer: MAYA, source: "make", maker: SAM, fabric: { name: "Wool suiting", color: "Charcoal", widthIn: 60, yardage: 1.8, unitCost: 18, supplier: "Mill End Textiles" } },
-  BOOTS_PURCHASED,
-  ...ENSEMBLE_SPLIT,
-  { role: "Olivia", design: "Gown", performer: MAYA, source: "make", fabric: { name: "Silk taffeta", color: "Ivory", widthIn: 54, yardage: 6.5, unitCost: 24, supplier: "Fabric Row" } },
-  { role: "Sebastian", design: "Doublet", performer: JORDAN, source: "make", fabric: { name: "Wool suiting", color: "Deep green", widthIn: 60, yardage: 2.8, unitCost: 18, supplier: "Mill End Textiles" } },
-  { role: TWELFTH_ENSEMBLE, design: "Skirt", performer: ROSA, source: "make", fabric: { name: "Cotton broadcloth", color: "Burgundy", widthIn: Number(SKIRT_WIDTH), yardage: Number(ROSA_SKIRT_YARDS), unitCost: 9, supplier: "Fabric Row" }, skirt: ROSA_SKIRT },
-  { role: TWELFTH_ENSEMBLE, design: "Tunic", performer: THEO, source: "make", fabric: { name: "Linen", color: "Oatmeal", widthIn: 54, yardage: 2.2, unitCost: 12, supplier: "Fabric Row" } },
-  { role: TWELFTH_ENSEMBLE, design: "Tunic", performer: JORDAN, source: "make", fabric: { name: "Linen", color: "Oatmeal", widthIn: 54, yardage: 2.4, unitCost: 12, supplier: "Fabric Row" } },
-];
 const STATE_COSTS = withCostumes(ALL_DESIGNS, ESTIMATED);
-// What "made-to-inventory" does on camera: Viola's Doublet ticked Made and
-// logged to House Inventory with Location "Rack B".
-const INVENTORY_LOCATION = "Rack B";
-const STATE_WRAP = withCostumes(ALL_DESIGNS, ESTIMATED.map((p) => (
-  p.role === "Viola" && p.design === "Doublet" ? { ...p, made: true } : p
-)));
 
 // Set by each prep so each section's opening goto is the real URL (the ids
 // change on every reset), and so the estimate guard and the wrap-up prep can
@@ -722,7 +650,7 @@ export const WALKTHROUGH = {
         await location.waitFor({ state: "visible", timeout: 4000 });
         await h.hold(page, 600);
         // s:2: "Add it once, and a future production can pull the same piece back out..."
-        await typeInto(page, h, location, INVENTORY_LOCATION, 2, true, 110);
+        await typeInto(page, h, location, TWELFTH_DOUBLET_TO_INVENTORY.location, 2, true, 110);
         await h.hold(page, 400);
         const confirm = row.getByRole("button", { name: "Add to House Inventory" });
         await h.point(page, confirm, { s: 2, mark: false });
@@ -738,11 +666,12 @@ export const WALKTHROUGH = {
       heading: "Wrap up",
       targetSeconds: 24,
       prep: async (api) => {
-        const { production, designIds, castingIds } = await prepWith(api, STATE_WRAP);
+        const { production, designIds, castingIds } = await prepWith(api, TWELFTH_COSTUMED_STATE);
+        const { role, design, performer, location } = TWELFTH_DOUBLET_TO_INVENTORY;
         await api.post(`/api/productions/${production.id}/pieces/to-inventory`, {
-          designId: designIds.get(key("Viola", "Doublet")),
-          castingId: castingIds.get(key("Viola", MAYA)),
-          location: INVENTORY_LOCATION,
+          designId: designIds.get(key(role, design)),
+          castingId: castingIds.get(key(role, performer)),
+          location,
         });
       },
       run: async (page, h) => {

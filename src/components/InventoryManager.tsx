@@ -111,7 +111,7 @@ export function InventoryManager({
           return (
             <div className="space-y-2">
               <p className="text-sm muted">
-                Added ✓ <strong>{justAdded.name}</strong> — add details &amp; photos:
+                Added ✓ <strong>{justAdded.name}</strong>. Add details &amp; photos:
               </p>
               <InventoryItemDetail
                 item={justAdded}
