@@ -5,6 +5,7 @@ import {
   filterItemsByName,
   groupItemsByCategory,
   uniqueCategories,
+  type GroupPin,
   type InventoryRow,
 } from "@/lib/inventory-grouping";
 import { CATEGORY_DATALIST_ID, InventoryItemDetail } from "@/components/InventoryItemDetail";
@@ -20,7 +21,10 @@ export function InventoryManager({
 }) {
   const [items, setItems] = useState<InventoryRow[]>(initialItems);
   const [query, setQuery] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // The open editor's item, pinned at the category and name it had when opened
+  // so an edit to either doesn't regroup the tile and remount the editor.
+  const [expanded, setExpanded] = useState<GroupPin | null>(null);
+  const expandedId = expanded?.id ?? null;
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
@@ -32,15 +36,16 @@ export function InventoryManager({
 
   const searching = query.trim().length > 0;
   const groups = useMemo(
-    () => groupItemsByCategory(filterItemsByName(items.filter((i) => i.id !== justAddedId), query)),
-    [items, query, justAddedId],
+    () => groupItemsByCategory(filterItemsByName(items.filter((i) => i.id !== justAddedId), query), expanded),
+    [items, query, justAddedId, expanded],
   );
   const categories = useMemo(() => uniqueCategories(items), [items]);
 
   useEffect(() => {
-    if (!focusItemId || !items.some((i) => i.id === focusItemId)) return;
+    const focused = focusItemId ? items.find((i) => i.id === focusItemId) : undefined;
+    if (!focused) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExpandedId(focusItemId);
+    setExpanded(pinOf(focused));
     document.getElementById(`inv-item-${focusItemId}`)?.scrollIntoView({ block: "center" });
     // run once on mount for the deep-linked item
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,7 +86,7 @@ export function InventoryManager({
     const res = await fetch(`/api/inventory/${id}`, { method: "DELETE", credentials: "include" });
     if (res.ok) {
       setItems((prev) => prev.filter((i) => i.id !== id));
-      setExpandedId((cur) => (cur === id ? null : cur));
+      setExpanded((cur) => (cur?.id === id ? null : cur));
     } else {
       setError("Couldn't remove item");
     }
@@ -181,7 +186,7 @@ export function InventoryManager({
                     <li id={`inv-item-${item.id}`}>
                       <button
                         type="button"
-                        onClick={() => setExpandedId((cur) => (cur === item.id ? null : item.id))}
+                        onClick={() => setExpanded((cur) => (cur?.id === item.id ? null : pinOf(item)))}
                         className={`surface !shadow-none block h-full w-full overflow-hidden text-left transition-colors hover:bg-[var(--bg)] ${
                           expandedId === item.id ? "ring-2 ring-[var(--red)]" : ""
                         }`}
@@ -228,6 +233,10 @@ export function InventoryManager({
       {error && <p className="text-[var(--red)] text-sm">{error}</p>}
     </div>
   );
+}
+
+function pinOf(item: InventoryRow): GroupPin {
+  return { id: item.id, category: item.category, name: item.name };
 }
 
 // Placeholder for items with no photo yet: a simple garment outline.
