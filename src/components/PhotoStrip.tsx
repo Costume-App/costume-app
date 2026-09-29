@@ -55,7 +55,7 @@ export function PhotoStrip({
   }
 
   useEffect(() => {
-    // Lazy load on mount — intentional load-from-server effect.
+    // Lazy load on mount: intentional load-from-server effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,7 +154,7 @@ export function PhotoStrip({
             >
               +
             </button>
-            {/* Camera capture — shown only on touch devices; opens the camera directly. */}
+            {/* Camera capture, shown only on touch devices; opens the camera directly. */}
             <button
               type="button"
               onClick={() => cameraRef.current?.click()}
