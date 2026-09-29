@@ -86,4 +86,4 @@ constant makes every measured lag `<= 0`.
 | roles-and-cast | approved by Chris | 2026-09-24 |
 | measurements | approved by Chris | 2026-09-26 |
 | costume-creations | approved by Chris | 2026-09-26 |
-| house-inventory | built, awaiting Chris | 2026-09-28 |
+| house-inventory | approved by Chris | 2026-09-29 |
