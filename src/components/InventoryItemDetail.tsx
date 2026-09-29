@@ -80,7 +80,13 @@ export function InventoryItemDetail({
         onBlur={(e) => e.target.value !== (item.location ?? "") && patch({ location: e.target.value.trim() || null })} aria-label="Location" />
       <textarea className="field w-full text-sm" rows={2} defaultValue={item.notes ?? ""} placeholder="Notes (optional)"
         onBlur={(e) => e.target.value !== (item.notes ?? "") && patch({ notes: e.target.value.trim() || null })} aria-label="Notes" />
-      <PhotoStrip endpoint={`/api/inventory/${item.id}/images`} max={6} label="Photos" />
+      <PhotoStrip
+        endpoint={`/api/inventory/${item.id}/images`}
+        max={6}
+        label="Photos"
+        // Keep the grid tile's photo in step with the first photo here.
+        onPhotosChanged={(images) => onChange({ photoUrl: images[0]?.url ?? null })}
+      />
       {madeFor.length > 0 && (
         <p className="text-xs muted">
           Made for: {madeFor.map((m) => `${m.productionName} → ${m.roleName}`).join(", ")}

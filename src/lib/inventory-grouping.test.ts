@@ -97,3 +97,31 @@ test("attachInventoryPhotoUrls: path with no signed url falls back to null", () 
   );
   expect(out[0].photoUrl).toBeNull();
 });
+
+test("groupItemsByCategory: a pinned item stays in its pinned group and sort slot", () => {
+  // Item 1 was expanded while it was "Top hat" in Hats; the user has since renamed
+  // it and moved it to Hands. Until the editor closes it keeps its place.
+  const edited = ITEMS.map((i) => (i.id === "1" ? { ...i, name: "Zebra cap", category: "Hands" } : i));
+  const groups = groupItemsByCategory(edited, { id: "1", category: "Hats", name: "Top hat" });
+  const hats = groups.find((g) => g.key === "hats");
+  expect(hats?.items.map((i) => i.id)).toEqual(["2", "1"]);
+  // The live row is what gets rendered, not the pinned values.
+  expect(hats?.items[1].name).toBe("Zebra cap");
+  expect(groups.find((g) => g.key === "hands")?.items.map((i) => i.id)).toEqual(["3"]);
+});
+
+test("groupItemsByCategory: a pinned category that no other item has still labels its group", () => {
+  const edited = ITEMS.map((i) => (i.id === "3" ? { ...i, category: "Hats" } : i));
+  const groups = groupItemsByCategory(edited, { id: "3", category: "Hands", name: "Gloves, white" });
+  expect(groups.find((g) => g.key === "hands")?.label).toBe("Hands");
+});
+
+test("groupItemsByCategory: no pin, or a pin for a missing id, groups by live values", () => {
+  const moved = ITEMS.map((i) => (i.id === "1" ? { ...i, category: "Hands" } : i));
+  const live = groupItemsByCategory(moved).map((g) => [g.key, g.items.map((i) => i.id)]);
+  expect(groupItemsByCategory(moved, null).map((g) => [g.key, g.items.map((i) => i.id)])).toEqual(live);
+  expect(
+    groupItemsByCategory(moved, { id: "nope", category: "Hats", name: "x" }).map((g) => [g.key, g.items.map((i) => i.id)]),
+  ).toEqual(live);
+  expect(live.find(([k]) => k === "hands")?.[1]).toEqual(["3", "1"]);
+});

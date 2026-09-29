@@ -18,11 +18,19 @@ export interface CategoryGroup {
   items: InventoryRow[];
 }
 
+/**
+ * Holds one item at the category and name it had when its editor opened, so
+ * editing either field doesn't move (and remount) the open editor mid-edit.
+ */
+export interface GroupPin {
+  id: string;
+  category: string | null;
+  name: string;
+}
+
 const UNCATEGORIZED_KEY = "";
 const UNCATEGORIZED_LABEL = "Uncategorized";
 
-const byNameCI = (a: InventoryRow, b: InventoryRow) =>
-  a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 
 const normalizeCategory = (category: string | null): string =>
   (category ?? "").trim().toLowerCase();
@@ -33,18 +41,22 @@ export function filterItemsByName(items: InventoryRow[], query: string): Invento
   return items.filter((i) => i.name.toLowerCase().includes(q));
 }
 
-export function groupItemsByCategory(items: InventoryRow[]): CategoryGroup[] {
+export function groupItemsByCategory(items: InventoryRow[], pin?: GroupPin | null): CategoryGroup[] {
   const groups = new Map<string, CategoryGroup>();
+  const sortName = (item: InventoryRow) => (pin && item.id === pin.id ? pin.name : item.name);
   for (const item of items) {
-    const key = normalizeCategory(item.category);
+    const category = pin && item.id === pin.id ? pin.category : item.category;
+    const key = normalizeCategory(category);
     let group = groups.get(key);
     if (!group) {
-      const label = key === UNCATEGORIZED_KEY ? UNCATEGORIZED_LABEL : (item.category ?? "").trim();
+      const label = key === UNCATEGORIZED_KEY ? UNCATEGORIZED_LABEL : (category ?? "").trim();
       group = { key, label, items: [] };
       groups.set(key, group);
     }
     group.items.push(item);
   }
+  const byNameCI = (a: InventoryRow, b: InventoryRow) =>
+    sortName(a).localeCompare(sortName(b), undefined, { sensitivity: "base" });
   const ordered = [...groups.values()].sort((a, b) => {
     if (a.key === UNCATEGORIZED_KEY) return 1;
     if (b.key === UNCATEGORIZED_KEY) return -1;
