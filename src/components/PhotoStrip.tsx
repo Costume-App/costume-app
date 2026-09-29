@@ -10,17 +10,20 @@ interface ImageView {
 
 // Reusable photo strip: thumbnails + add (gated by `max`) + delete + lightbox.
 // Self-fetches its list from `endpoint` on mount. Used for role reference photos
-// and costume-piece photos (different endpoints, same UX).
+// and costume-piece photos (different endpoints, same UX). `onPhotosChanged` fires
+// after an upload or delete (not the initial load) with the refreshed list.
 export function PhotoStrip({
   endpoint,
   max,
   label,
   readOnly = false,
+  onPhotosChanged,
 }: {
   endpoint: string;
   max: number;
   label?: string;
   readOnly?: boolean;
+  onPhotosChanged?: (images: ImageView[]) => void;
 }) {
   const [images, setImages] = useState<ImageView[]>([]);
   const [busy, setBusy] = useState(false);
@@ -30,22 +33,29 @@ export function PhotoStrip({
   const cameraRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
 
-  async function load() {
+  async function load(): Promise<ImageView[] | null> {
     try {
       const res = await fetch(endpoint, { credentials: "include" });
       if (res.ok) {
         const data = (await res.json()) as { images: ImageView[] };
         setImages(data.images);
+        return data.images;
       } else {
         setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't load photos");
       }
     } catch {
       setError("Couldn't load photos");
     }
+    return null;
+  }
+
+  async function reloadAfterChange() {
+    const fresh = await load();
+    if (fresh) onPhotosChanged?.(fresh);
   }
 
   useEffect(() => {
-    // Lazy load on mount — intentional load-from-server effect.
+    // Lazy load on mount: intentional load-from-server effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +85,7 @@ export function PhotoStrip({
       if (!res.ok) {
         setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Couldn't upload photo");
       } else {
-        await load();
+        await reloadAfterChange();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't upload photo");
@@ -93,7 +103,7 @@ export function PhotoStrip({
     if (!res.ok) {
       setError("Couldn't remove photo");
     } else {
-      await load();
+      await reloadAfterChange();
     }
     setBusy(false);
     inFlight.current = false;
@@ -144,7 +154,7 @@ export function PhotoStrip({
             >
               +
             </button>
-            {/* Camera capture — shown only on touch devices; opens the camera directly. */}
+            {/* Camera capture, shown only on touch devices; opens the camera directly. */}
             <button
               type="button"
               onClick={() => cameraRef.current?.click()}
