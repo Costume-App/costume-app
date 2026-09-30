@@ -34,7 +34,7 @@ import {
 } from "./lib/demo-org.mjs";
 import { assertServerServingBuild } from "./lib/build-check.mjs";
 import { withDemoApi } from "./lib/demo-api.mjs";
-import { assertNoPendingDemoShares } from "./lib/demo-productions.mjs";
+import { assertNoPendingDemoShares, resetSenderForSharing } from "./lib/demo-productions.mjs";
 import { createRecorder } from "./lib/record-core.mjs";
 import { loadWalkthrough, rawDir } from "./lib/training.mjs";
 
@@ -164,8 +164,13 @@ for (const section of walkthrough.sections) {
 // leftover token can never ship in a delivered video (see
 // assertNoPendingDemoShares in demo-productions.mjs). Runs even after a
 // section failure, since an earlier, successful section can still have
-// created a live share.
-await withDemoApi(browser, BASE, demo, (senderApi) => assertNoPendingDemoShares(senderApi));
+// created a live share. A walkthrough that shares on camera (needsReceiver)
+// leaves pending links by design, so it first recreates Twelfth Night, whose
+// shares cascade away; the assertion then proves the cleanup worked.
+await withDemoApi(browser, BASE, demo, async (senderApi) => {
+  if (walkthrough.needsReceiver) await resetSenderForSharing(senderApi);
+  await assertNoPendingDemoShares(senderApi);
+});
 
 await browser.close();
 console.log(`\nRaw section takes in ${OUT}`);
