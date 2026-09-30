@@ -7,9 +7,10 @@ import {
   LEGAL_LINKS,
   type FeatureGroup,
 } from "@/components/landing/landing-content";
+import { LandingVideoSlot } from "./LandingVideoSlot";
 
 const ACTS = ["Act I", "Act II", "Act III"];
-const DEMO_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demo request — Measure My Costume")}`;
+const DEMO_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demo request: Measure My Costume")}`;
 
 // One reusable, theatrical "playbill" marketing layout, themed entirely with the
 // app's Atelier tokens (muslin paper + curtain red + Fraunces). Single variant:
@@ -91,6 +92,8 @@ export function LandingPage() {
           </p>
         </div>
       </section>
+
+      <LandingVideoSlot slug={v.videoSlug} />
 
       {/* The program (features) */}
       <section className="relative mx-auto max-w-6xl px-5 py-20">
