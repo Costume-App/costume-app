@@ -143,7 +143,7 @@ export function SharePanel({
             measurements are not shared.
           </p>
 
-          {/* Create — email is optional; the link is generated either way. */}
+          {/* Create: email is optional; the link is generated either way. */}
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex min-w-[14rem] flex-1 flex-col gap-1">
               <span className="lbl">Email the link to (optional)</span>
@@ -167,7 +167,7 @@ export function SharePanel({
             <div className="surface space-y-2 p-3">
               <div className="flex items-start justify-between gap-2">
                 <span className="lbl">
-                  Share link ready{created.recipient_email ? ` — emailed to ${created.recipient_email}` : ""}
+                  Share link ready{created.recipient_email ? `. Emailed to ${created.recipient_email}` : ""}
                 </span>
                 <button
                   type="button"

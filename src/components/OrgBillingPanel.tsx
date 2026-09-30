@@ -66,7 +66,7 @@ export function OrgBillingPanel() {
         <span className="lbl block">Current plan</span>
         <span className="font-medium">{planLabel}</span>
         {status.subscriptionStatus && status.subscriptionStatus !== "active" && (
-          <span className="muted"> — {status.subscriptionStatus}</span>
+          <span className="muted"> ({status.subscriptionStatus})</span>
         )}
       </div>
       {!status.billingConfigured && <p className="muted">Online checkout isn&rsquo;t set up yet.</p>}

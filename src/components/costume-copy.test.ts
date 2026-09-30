@@ -1,14 +1,20 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 
-// Costume Creations and House Inventory copy is filmed in training videos 4
-// and 5; the owner's rule is no em-dashes in published copy. The bare
-// "no value" cell glyph is exempt.
+// Costume Creations, House Inventory, and sharing/billing copy is filmed in
+// training videos 4 to 6; the owner's rule is no em-dashes in published
+// copy. The bare "no value" cell glyph is exempt.
 const FILES = [
   "src/components/AddToInventoryControl.tsx",
   "src/components/MakePieceRow.tsx",
   "src/components/InventoryManager.tsx",
   "src/components/InventoryQuickAddCard.tsx",
+  "src/components/SharePanel.tsx",
+  "src/components/OrgBillingPanel.tsx",
+  "src/components/AcceptShareButton.tsx",
+  "src/components/PlanCard.tsx",
+  "src/app/(app)/share/[token]/page.tsx",
+  "src/app/(app)/productions/new/page.tsx",
 ];
 
 test.each(FILES)("%s has no em-dash in prose", (file) => {
