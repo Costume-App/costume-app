@@ -5,6 +5,9 @@ Spec: `docs/superpowers/specs/2026-09-22-training-videos-design.md`.
 Pipeline, in order, for one video `<slug>`:
 
 0. One-time: `node scripts/bootstrap-demo-org.mjs` and `npx playwright install chromium`.
+   From video 6 onward, also `node scripts/bootstrap-receiver-org.mjs` (the
+   share-receiver identity, needed by any walkthrough with a receiver
+   section).
 1. Script: `docs/training-videos/scripts/<slug>.md` (Chris approves before recording).
 2. Narration: `~/.venvs/edge-tts/bin/python scripts/generate-training-vo.py --video <slug>`
 3. Sentence indices for `s:` annotations: `node scripts/list-vo-sentences.mjs --video <slug>`
@@ -87,3 +90,4 @@ constant makes every measured lag `<= 0`.
 | measurements | approved by Chris | 2026-09-26 |
 | costume-creations | approved by Chris | 2026-09-26 |
 | house-inventory | approved by Chris | 2026-09-29 |
+| sharing-and-billing | approved by Chris | 2026-09-29 |

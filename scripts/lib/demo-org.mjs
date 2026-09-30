@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 export const DEMO_ORG_FILE = "scripts/lib/demo-org.json";
 export const DEMO_ORG_NAME = "Demo Theatre Co.";
+export const RECEIVER_ORG_NAME = "Demo Playhouse";
 
 export function readEnvLocal(path = ".env.local") {
   const env = {};
@@ -30,6 +31,45 @@ export function loadDemoOrg(path = DEMO_ORG_FILE) {
     if (typeof demo[k] !== "string" || !demo[k]) throw new Error(`${path}: missing ${k}`);
   }
   return demo;
+}
+
+const BOOTSTRAP_RECEIVER_HINT = "Run: node scripts/bootstrap-receiver-org.mjs";
+
+/** The second demo identity, the party a shared production or invite lands
+ * with. Lives at demo.receiver (written by bootstrap-receiver-org.mjs) so it
+ * ships in the same committed demo-org.json as the sender, but loadDemoOrg
+ * itself stays receiver-agnostic: videos 1 to 5 never touch this. */
+export function loadReceiver(demo) {
+  const receiver = demo.receiver;
+  if (!receiver) throw new Error(`demo.receiver missing. ${BOOTSTRAP_RECEIVER_HINT}`);
+  for (const k of ["clerkUserId", "clerkOrgId", "email", "name"]) {
+    if (typeof receiver[k] !== "string" || !receiver[k]) {
+      throw new Error(`demo.receiver: missing ${k}. ${BOOTSTRAP_RECEIVER_HINT}`);
+    }
+  }
+  if (receiver.name !== RECEIVER_ORG_NAME) {
+    throw new Error(`demo.receiver: name must be "${RECEIVER_ORG_NAME}". ${BOOTSTRAP_RECEIVER_HINT}`);
+  }
+  if (!receiver.clerkOrgId.startsWith("org_")) {
+    throw new Error(`demo.receiver: clerkOrgId must start with "org_". ${BOOTSTRAP_RECEIVER_HINT}`);
+  }
+  if (receiver.clerkOrgId === demo.clerkOrgId) {
+    throw new Error(`demo.receiver: clerkOrgId must differ from the sender's. ${BOOTSTRAP_RECEIVER_HINT}`);
+  }
+  if (receiver.clerkUserId === demo.clerkUserId) {
+    throw new Error(`demo.receiver: clerkUserId must differ from the sender's. ${BOOTSTRAP_RECEIVER_HINT}`);
+  }
+  return receiver;
+}
+
+/** Picks the identity a walkthrough section records as. "sender" is the demo
+ * org itself; "receiver" is the second identity a shared production or
+ * invite lands with. Anything else is a typo in a walkthrough's `actor`
+ * field, so it throws rather than silently recording as the sender. */
+export function identityFor(demo, actor) {
+  if (actor === "sender") return demo;
+  if (actor === "receiver") return loadReceiver(demo);
+  throw new Error(`identityFor: unknown actor "${actor}"`);
 }
 
 export function assertLocalBase(base) {

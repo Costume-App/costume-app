@@ -44,9 +44,8 @@ first drafts; the scripts may split or merge them.
    `#creations`, `#fabric-ai`.
 5. **house-inventory**: the photo tile grid, adding an item, reusing inventory
    in a production. Anchor `#inventory`.
-6. **sharing-and-billing**: share a production's design layer by link, plans
-   and checkout entry points (no real payment on camera). Anchors `#sharing`,
-   `#billing`.
+6. **sharing-and-billing**: share a production's design layer by link, plans,
+   and a sandbox checkout with a test card. Anchors `#sharing`, `#billing`.
 
 Every claim in a script is verified against the current code before it is
 written (see the user-guide maintenance memo). Chris approves each script

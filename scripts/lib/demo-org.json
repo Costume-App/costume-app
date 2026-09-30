@@ -2,5 +2,11 @@
   "clerkUserId": "user_3JicdQRNlAwQNJDwCNAICbkYdF0",
   "clerkOrgId": "org_3JicdSxzYqSH1wlvWG5rovadrC1",
   "email": "demo-theatre+clerk_test@example.com",
-  "name": "Demo Theatre Co."
+  "name": "Demo Theatre Co.",
+  "receiver": {
+    "clerkUserId": "user_3K1a6BCjvMmTtLej6aHzzPE3Mv9",
+    "clerkOrgId": "org_3K1a69me6hZYhjHmpn2OEuSg5zb",
+    "email": "demo-playhouse+clerk_test@example.com",
+    "name": "Demo Playhouse"
+  }
 }

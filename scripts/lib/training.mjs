@@ -21,6 +21,7 @@ export function validateWalkthrough(w, slug) {
   }
   if (!Array.isArray(w.sections) || w.sections.length === 0) throw new Error(`${slug}: sections must be a non-empty array`);
   const ids = new Set();
+  let hasReceiverSection = false;
   for (const s of w.sections) {
     if (typeof s.id !== "string" || !SAFE_ID.test(s.id)) throw new Error(`${slug}: section id "${s.id}" must match ${SAFE_ID}`);
     if (typeof s.heading !== "string" || !s.heading) throw new Error(`${slug}/${s.id}: missing string heading`);
@@ -29,6 +30,18 @@ export function validateWalkthrough(w, slug) {
     if (s.prep !== undefined && typeof s.prep !== "function") throw new Error(`${slug}/${s.id}: prep must be a function when present`);
     if (ids.has(s.id)) throw new Error(`${slug}: duplicate section id "${s.id}"`);
     ids.add(s.id);
+    const actor = s.actor ?? "sender";
+    if (actor !== "sender" && actor !== "receiver") {
+      throw new Error(`${slug}/${s.id}: actor must be "sender" or "receiver", got "${actor}"`);
+    }
+    if (actor === "receiver") hasReceiverSection = true;
+  }
+  // prep functions are opaque (they may reach into a receiver identity of
+  // their own), so this only enforces needsReceiver from what validation
+  // CAN see: a section that records as the receiver. A walkthrough whose
+  // prep alone uses the receiver is on the author to declare needsReceiver.
+  if (hasReceiverSection && !w.needsReceiver) {
+    throw new Error(`${slug}: has a receiver section but WALKTHROUGH.needsReceiver is not true`);
   }
   return w;
 }

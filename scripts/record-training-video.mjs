@@ -24,9 +24,17 @@
 //     screen, so the stitched cut is never shorter than the narration needs.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { chromium } from "playwright";
-import { assertDevClerkKey, assertLocalBase, loadDemoOrg, loadEnvLocalIntoProcess } from "./lib/demo-org.mjs";
+import {
+  assertDevClerkKey,
+  assertLocalBase,
+  identityFor,
+  loadDemoOrg,
+  loadEnvLocalIntoProcess,
+  loadReceiver,
+} from "./lib/demo-org.mjs";
 import { assertServerServingBuild } from "./lib/build-check.mjs";
 import { withDemoApi } from "./lib/demo-api.mjs";
+import { assertNoPendingDemoShares, resetSenderForSharing } from "./lib/demo-productions.mjs";
 import { createRecorder } from "./lib/record-core.mjs";
 import { loadWalkthrough, rawDir } from "./lib/training.mjs";
 
@@ -106,15 +114,34 @@ const OUT = rawDir(videoSlug);
 const browser = await chromium.launch();
 const recorder = createRecorder({ browser, base: BASE, demo, outRoot: OUT });
 
+// Loaded once, up front, so a walkthrough missing the bootstrap fails before
+// any take runs, not partway through. null for videos 1 to 5, which never
+// declare needsReceiver.
+const receiver = walkthrough.needsReceiver ? loadReceiver(demo) : null;
+
 const failed = [];
 for (const section of walkthrough.sections) {
   if (only && only !== section.id) continue;
   console.log(`\n[${videoSlug}] section "${section.id}" (${section.heading})`);
   try {
+    const identity = identityFor(demo, section.actor ?? "sender");
     // Off-camera DB prep: runs before the recorded context exists, via the
     // app's own API, so retaking one section converges its state without
-    // the cleanup ever appearing in frame.
-    if (section.prep) await withDemoApi(browser, BASE, demo, (api) => section.prep(api));
+    // the cleanup ever appearing in frame. Always runs as the sender; a
+    // walkthrough that needs the receiver's own API gets a second,
+    // nested withDemoApi so prep can act as both parties (e.g. sender
+    // shares, receiver accepts) in one off-camera pass.
+    if (section.prep) {
+      await withDemoApi(browser, BASE, demo, async (senderApi) => {
+        if (receiver) {
+          await withDemoApi(browser, BASE, receiver, async (receiverApi) => {
+            await section.prep(senderApi, { receiverApi });
+          });
+        } else {
+          await section.prep(senderApi, { receiverApi: null });
+        }
+      });
+    }
     await recorder.record(section.id, async (page) => {
       const startedAt = Date.now();
       await section.run(page, recorder);
@@ -123,7 +150,7 @@ for (const section of walkthrough.sections) {
       // one observed run.
       const remaining = section.targetSeconds * 1000 + 1500 - (Date.now() - startedAt);
       if (remaining > 0) await recorder.hold(page, remaining);
-    });
+    }, { identity });
   } catch (err) {
     // A dead section should not cost the rest of the run, takes are
     // per-section and independently retakeable by design. Record the
@@ -132,6 +159,18 @@ for (const section of walkthrough.sections) {
     console.error(`\n[${videoSlug}] section "${section.id}" FAILED: ${err.message}\n`);
   }
 }
+
+// Off camera, after every take: no pending share must survive a run, so a
+// leftover token can never ship in a delivered video (see
+// assertNoPendingDemoShares in demo-productions.mjs). Runs even after a
+// section failure, since an earlier, successful section can still have
+// created a live share. A walkthrough that shares on camera (needsReceiver)
+// leaves pending links by design, so it first recreates Twelfth Night, whose
+// shares cascade away; the assertion then proves the cleanup worked.
+await withDemoApi(browser, BASE, demo, async (senderApi) => {
+  if (walkthrough.needsReceiver) await resetSenderForSharing(senderApi);
+  await assertNoPendingDemoShares(senderApi);
+});
 
 await browser.close();
 console.log(`\nRaw section takes in ${OUT}`);

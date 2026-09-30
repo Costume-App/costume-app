@@ -2,9 +2,19 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertLocalBase, assertDevClerkKey, assertDemoSession, loadDemoOrg, readEnvLocal } from "./demo-org.mjs";
+import {
+  assertLocalBase,
+  assertDevClerkKey,
+  assertDemoSession,
+  loadDemoOrg,
+  loadReceiver,
+  identityFor,
+  readEnvLocal,
+  RECEIVER_ORG_NAME,
+} from "./demo-org.mjs";
 
 const demo = { clerkUserId: "user_1", clerkOrgId: "org_1", email: "d@example.com", name: "Demo Theatre Co." };
+const receiver = { clerkUserId: "user_2", clerkOrgId: "org_2", email: "r@example.com", name: RECEIVER_ORG_NAME };
 
 describe("assertLocalBase", () => {
   it("allows localhost and 127.0.0.1", () => {
@@ -29,6 +39,47 @@ describe("assertDemoSession", () => {
     expect(() => assertDemoSession({ userId: "user_1", orgId: "org_1" }, demo)).not.toThrow();
     expect(() => assertDemoSession({ userId: "user_1", orgId: "org_2" }, demo)).toThrow(/org_2/);
     expect(() => assertDemoSession({ userId: "user_9", orgId: "org_1" }, demo)).toThrow(/user_9/);
+  });
+});
+
+describe("loadReceiver", () => {
+  it("accepts a well-formed receiver", () => {
+    const d = { ...demo, receiver };
+    expect(loadReceiver(d)).toEqual(receiver);
+  });
+  it("throws on a missing receiver, naming the bootstrap script", () => {
+    expect(() => loadReceiver({ ...demo })).toThrow(/bootstrap-receiver-org\.mjs/);
+  });
+  it("throws on a wrong name", () => {
+    const d = { ...demo, receiver: { ...receiver, name: "Wrong Name" } };
+    expect(() => loadReceiver(d)).toThrow(/name/);
+  });
+  it("throws on a non-org_ id", () => {
+    const d = { ...demo, receiver: { ...receiver, clerkOrgId: "not-an-org" } };
+    expect(() => loadReceiver(d)).toThrow(/clerkOrgId/);
+  });
+  it("throws when the org id equals the sender's", () => {
+    const d = { ...demo, receiver: { ...receiver, clerkOrgId: demo.clerkOrgId } };
+    expect(() => loadReceiver(d)).toThrow(/clerkOrgId/);
+  });
+  it("throws when the user id equals the sender's", () => {
+    const d = { ...demo, receiver: { ...receiver, clerkUserId: demo.clerkUserId } };
+    expect(() => loadReceiver(d)).toThrow(/clerkUserId/);
+  });
+});
+
+describe("identityFor", () => {
+  it("returns the sender for \"sender\"", () => {
+    const d = { ...demo, receiver };
+    expect(identityFor(d, "sender")).toBe(d);
+  });
+  it("returns the receiver for \"receiver\"", () => {
+    const d = { ...demo, receiver };
+    expect(identityFor(d, "receiver")).toEqual(receiver);
+  });
+  it("throws on an unknown actor", () => {
+    const d = { ...demo, receiver };
+    expect(() => identityFor(d, "admin")).toThrow(/admin/);
   });
 });
 

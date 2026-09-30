@@ -264,7 +264,7 @@ export default function GuidePage() {
             <B>Share production</B> (also on the production&rsquo;s card on the Productions page).
           </P>
           <UL>
-            <LI>The copy includes roles, costume designs and pieces, notes, and photos. It never
+            <LI>The copy includes roles, costume designs, notes, and photos. It never
               includes performers or measurements.</LI>
             <LI>Each share link works once. Enter an email to send it, or use <B>Copy link</B> and send it yourself. You
               can <B>Resend</B> an unused link.</LI>

@@ -1,13 +1,16 @@
 // Off-camera state helpers shared by walkthrough preps. Every call goes
 // through the app's API as the demo user (lib/demo-api.mjs asserts that),
 // and touches only productions titled here, plus the org-wide makers and
-// House Inventory items named below. "Twelfth Night" is the show video 1
-// creates on camera and video 2 fills with roles and cast.
+// House Inventory items named below, with one exception: resetReceiver also
+// reaches the restricted billing module in receiver-billing.mjs, which talks
+// to Supabase directly rather than through the app's API. "Twelfth Night" is
+// the show video 1 creates on camera and video 2 fills with roles and cast.
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MEASUREMENT_UNITS, showDate } from "./demo-fixtures.mjs";
 import { ROSA_FORM } from "./demo-measurement-form.mjs";
+import { resetReceiverBilling as defaultResetReceiverBilling } from "./receiver-billing.mjs";
 
 export const TWELFTH = "Twelfth Night";
 // What getting-started's "create-production" types on camera, so a state a
@@ -510,4 +513,84 @@ export async function resetTwelfthNight(
   }
 
   return { production, roleIds, performerIds, designIds, castingIds };
+}
+
+// Video 6 ("Sharing and Billing") preps two identities: the sender (the
+// existing demo org, replaying video 4's finished Twelfth Night) and the
+// receiver (a second demo org that starts with nothing and needs its own
+// productions AND its own billing rows reset). The billing reset is a
+// network call against the one shared Supabase database, so resetReceiver
+// takes it as an injectable parameter (default: the real one in
+// receiver-billing.mjs) and tests never touch the network.
+
+/** Rebuilds the sender's Twelfth Night to video 4's finished, costumed
+ * state, the state video 6 shares from. Returns the new production's id. */
+export async function resetSenderForSharing(api) {
+  const makerIds = await resetDemoCostumeOrg(api);
+  const { production } = await resetTwelfthNight(api, TWELFTH_COSTUMED_STATE, { makerIds });
+  return production.id;
+}
+
+/** Creates a fresh, no-email share for the given production and returns its
+ * token. A new token every prep run, since resetSenderForSharing recreates
+ * the production and its old shares cascade away with it. */
+export async function createTwelfthShare(api, productionId) {
+  const { token } = await api.post(`/api/productions/${productionId}/shares`, {});
+  return token;
+}
+
+/** Guards a whole recording run against a live share token surviving into
+ * the delivered video: lists every production in the sender org, then every
+ * share on each, through the app API only (never Supabase directly), and
+ * throws naming how many are still "pending" (never the token itself, which
+ * would make the error message a usable link). A prep that runs
+ * resetSenderForSharing after this point recreates Twelfth Night and its old
+ * shares cascade away, so a run that ends here clean stays clean until the
+ * next one starts. Deletes nothing; a pending share found here is a bug to
+ * fix, not cleanup to perform silently. */
+export async function assertNoPendingDemoShares(api) {
+  const { productions } = await api.get("/api/productions");
+  let pendingCount = 0;
+  for (const p of productions) {
+    const { shares } = await api.get(`/api/productions/${p.id}/shares`);
+    pendingCount += shares.filter((s) => s.status === "pending").length;
+  }
+  if (pendingCount > 0) {
+    throw new Error(`assertNoPendingDemoShares: ${pendingCount} pending share(s) survive in the demo org`);
+  }
+}
+
+/** Guards a take against a stray production sitting in the receiver org
+ * (someone signed in by hand and added one): throws naming every production
+ * whose title is not TWELFTH. Deletes nothing; cleanup is resetReceiver's
+ * job, by exact title. */
+export async function assertReceiverProductionsOnly(receiverApi) {
+  const { productions } = await receiverApi.get("/api/productions");
+  const strays = productions.filter((p) => p.title !== TWELFTH).map((p) => p.title);
+  if (strays.length > 0) {
+    throw new Error(`assertReceiverProductionsOnly: unexpected production(s): ${strays.join(", ")}`);
+  }
+}
+
+/** Resets the receiver org for a take: asserts it holds nothing unexpected,
+ * deletes every Twelfth Night copy it holds, THEN resets its billing rows.
+ * Deleting the copy first matters: a copied production's unlock comes back
+ * unbound when the production is deleted (production_purchases.production_id
+ * ... on delete set null, 0028_billing.sql), so resetting billing first
+ * would leave that returned unlock behind. */
+export async function resetReceiver(receiverApi, { demo, grantUnlock = false, resetReceiverBilling = defaultResetReceiverBilling } = {}) {
+  await assertReceiverProductionsOnly(receiverApi);
+  await deleteByTitle(receiverApi, TWELFTH);
+  await resetReceiverBilling({ demo, grantUnlock });
+}
+
+/** Full video 6 prep: resets the sender's Twelfth Night, shares it, then
+ * resets the receiver so the take starts from an unused share link and a
+ * clean receiver org. Returns the token to open and the shared
+ * production's id. */
+export async function prepShareForReceiver(senderApi, receiverApi, { demo, grantUnlock = false } = {}) {
+  const productionId = await resetSenderForSharing(senderApi);
+  const token = await createTwelfthShare(senderApi, productionId);
+  await resetReceiver(receiverApi, { demo, grantUnlock });
+  return { token, productionId };
 }

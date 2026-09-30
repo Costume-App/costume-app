@@ -29,13 +29,26 @@ import { ZOOM } from "./zoom.mjs";
 // section may open a Clerk popover on camera (sign-in happens off camera
 // already; no training video needs the UserButton or OrgSwitcher menu open).
 export const PAGE_ZOOM = 1.5;
-const PAGE_ZOOM_INIT = `
-  (() => {
-    const apply = () => { document.documentElement.style.zoom = "${PAGE_ZOOM}"; };
-    if (document.documentElement) apply();
-    document.addEventListener("DOMContentLoaded", apply);
-  })();
-`;
+
+/** Builds the zoom init script for one recorded context. Scoped to
+ * `location.origin === base` so it fires only on this app's own pages: a
+ * section that navigates on-camera to a third-party page (Stripe Checkout)
+ * must render at ITS OWN scale, not ours, while the cursor overlay (a
+ * separate init script) keeps running everywhere. Exported so the string can
+ * be unit-tested; the actual zoom behavior is confirmed live (Step 5). */
+export function pageZoomInitScript(base) {
+  return `
+    (() => {
+      const BASE_ORIGIN = ${JSON.stringify(new URL(base).origin)};
+      const apply = () => {
+        if (location.origin !== BASE_ORIGIN) return;
+        document.documentElement.style.zoom = "${PAGE_ZOOM}";
+      };
+      if (document.documentElement) apply();
+      document.addEventListener("DOMContentLoaded", apply);
+    })();
+  `;
+}
 
 /** Polls until every <img> currently within the viewport reports
  * `complete === true && naturalWidth > 0`, the actual "a viewer would see
@@ -98,12 +111,14 @@ async function afterPaint(page) {
  * (see demo-org.mjs); `outRoot` where raw takes land (one subdir per
  * section id). */
 export function createRecorder({ browser, base, demo, outRoot }) {
-  /** Signs in as the demo user in a throwaway (never recorded) context,
-   * takes the resulting storage state, and closes that context. Called once
-   * per take, right before that take's recorded context is created, so the
-   * Clerk session cookies are always fresh. */
-  async function freshAuthedStorageState() {
-    const { context } = await signInDemo(browser, base, demo);
+  /** Signs in as `identity` in a throwaway (never recorded) context, takes
+   * the resulting storage state, and closes that context. Called once per
+   * take, right before that take's recorded context is created, so the
+   * Clerk session cookies are always fresh. `identity` is the sender demo
+   * org by default, or the receiver for a section recording as them (see
+   * identityFor in demo-org.mjs). */
+  async function freshAuthedStorageState(identity) {
+    const { context } = await signInDemo(browser, base, identity);
     const state = await context.storageState();
     await context.close();
     return state;
@@ -118,24 +133,34 @@ export function createRecorder({ browser, base, demo, outRoot }) {
   let markers = [];
   // The take dir record() created, for zoom() to write its still into.
   let currentDir = null;
+  // The identity of the take in progress, so gotoAuthed asserts against
+  // whoever THIS take signed in as, sender or receiver, instead of always
+  // the sender. Set at the top of record(), cleared in its finally so a
+  // gotoAuthed called outside a take (a bug) fails loudly instead of
+  // asserting against a stale identity.
+  let current = null;
 
   /** One recorded context per take, so a bad take re-runs alone. Clears any
    * prior take first, a retake REPLACES rather than accumulates, so there is
-   * never more than one file for a builder to choose between. */
-  async function record(id, fn) {
+   * never more than one file for a builder to choose between. `identity`
+   * defaults to the sender demo org; a section that records as the receiver
+   * passes theirs (see identityFor in demo-org.mjs). */
+  async function record(id, fn, { identity = demo } = {}) {
     const dir = `${outRoot}/${id}`;
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
     currentDir = dir;
-    const storageState = await freshAuthedStorageState();
+    current = identity;
+    const storageState = await freshAuthedStorageState(identity);
     const ctx = await browser.newContext({
       viewport: { width: ZOOM.VIEW_W, height: ZOOM.VIEW_H },
       deviceScaleFactor: 2, // zoom stills only; recordVideo stays 1920x1080
       recordVideo: { dir, size: { width: ZOOM.VIEW_W, height: ZOOM.VIEW_H } },
       colorScheme: "light", // seeded light-mode preference must not fight prefers-color-scheme
+      permissions: ["clipboard-read", "clipboard-write"],
       storageState,
     });
-    await ctx.addInitScript(PAGE_ZOOM_INIT);
+    await ctx.addInitScript(pageZoomInitScript(base));
     await ctx.addInitScript(CURSOR_INIT_SCRIPT);
     markers = [];
     // context.recordVideo's timeline starts inside newPage(), so the clock origin is taken just before it. The capture latency that remains is FRAME_LAG_S (markers.mjs).
@@ -157,6 +182,7 @@ export function createRecorder({ browser, base, demo, outRoot }) {
       }
     } finally {
       await ctx.close(); // flushes the video file
+      current = null;
     }
     writeFileSync(`${dir}/markers.json`, JSON.stringify({
       beats: rebaseMarkers(markers, clipT0),
@@ -262,7 +288,7 @@ export function createRecorder({ browser, base, demo, outRoot }) {
       userId: window.Clerk.user?.id ?? null,
       orgId: window.Clerk.organization?.id ?? null,
     }));
-    assertDemoSession(session, demo);
+    assertDemoSession(session, current);
   }
 
   /** Deliberate, on-camera navigation to another area of the app, the

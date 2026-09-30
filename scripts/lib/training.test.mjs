@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateWalkthrough, mmss, rawDir, voDir } from "./training.mjs";
+import { pageZoomInitScript } from "./record-core.mjs";
 
 const ok = () => ({
   slug: "demo",
@@ -42,6 +43,35 @@ describe("validateWalkthrough", () => {
     const w = ok();
     w.sections[0].id = "../x";
     expect(() => validateWalkthrough(w, "demo")).toThrow(/id/);
+  });
+  it("rejects an unknown actor", () => {
+    const w = ok();
+    w.sections[0].actor = "admin";
+    expect(() => validateWalkthrough(w, "demo")).toThrow(/actor/);
+  });
+  it("rejects a receiver section without needsReceiver", () => {
+    const w = ok();
+    w.sections[0].actor = "receiver";
+    expect(() => validateWalkthrough(w, "demo")).toThrow(/needsReceiver/);
+  });
+  it("accepts a receiver section when needsReceiver is true", () => {
+    const w = ok();
+    w.needsReceiver = true;
+    w.sections[0].actor = "receiver";
+    expect(() => validateWalkthrough(w, "demo")).not.toThrow();
+  });
+});
+
+describe("pageZoomInitScript", () => {
+  it("scopes the zoom apply to the given origin", () => {
+    const script = pageZoomInitScript("http://localhost:3000");
+    expect(script).toContain("location.origin");
+    expect(script).toContain("http://localhost:3000");
+  });
+  it("normalizes a base with a trailing slash to its bare origin", () => {
+    const script = pageZoomInitScript("http://localhost:3000/");
+    expect(script).toContain('"http://localhost:3000"');
+    expect(script).not.toContain("http://localhost:3000/");
   });
 });
 
