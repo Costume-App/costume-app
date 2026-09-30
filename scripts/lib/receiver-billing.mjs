@@ -73,7 +73,9 @@ export function planReceiverBillingReset({ sender, receiver, clerkOrgName, grant
  * "assertNotSubscribed" for the same org) before it sends its first call, so
  * a bad op anywhere in the plan means zero writes, not a partial run. */
 export async function applyReceiverBillingPlan(sb, plan, receiverOrgId) {
-  const ops = plan.map((op) => Object.freeze({ ...op }));
+  if (!Array.isArray(plan)) throw new Error("applyReceiverBillingPlan: plan must be an array.");
+  // Array.from, not plan.map: a caller-supplied map could hand back a live array.
+  const ops = Array.from(plan, (op) => Object.freeze({ ...op }));
 
   const assertedOrgs = new Set();
   for (const op of ops) {
