@@ -1,6 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 import { TrainingVideoPlayer } from "./TrainingVideo";
 
 const sources = {
