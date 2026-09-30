@@ -32,6 +32,14 @@ if (!slugs) {
   console.error("Usage: node scripts/upload-training-videos.mjs (--video <slug> | --all) [--apply]");
   process.exit(2);
 }
+// Validate before loading env, reading files, or running ffmpeg: an unknown
+// slug (including "_probe" or a path) must never touch disk or the network.
+for (const slug of slugs) {
+  if (!UPLOADABLE_SLUGS.includes(slug)) {
+    console.error(`Refusing to upload "${slug}": not an approved training video slug`);
+    process.exit(1);
+  }
+}
 const apply = has("apply");
 
 loadEnvLocalIntoProcess();
@@ -42,6 +50,7 @@ if (!url || !key) {
   process.exit(1);
 }
 const sb = createClient(url, key, { auth: { persistSession: false } });
+console.log(`Target: ${new URL(url).hostname} (bucket ${BUCKET})`);
 
 function readOutput(slug, ext) {
   const p = `${OUT}/${slug}.${ext}`;
@@ -77,7 +86,8 @@ async function putObject(o) {
 
 async function assertPublic(o) {
   const publicUrl = sb.storage.from(BUCKET).getPublicUrl(o.path).data.publicUrl;
-  const res = await fetch(publicUrl, { method: "HEAD" });
+  // identity: a compressing CDN must not drop content-length from the response.
+  const res = await fetch(publicUrl, { method: "HEAD", headers: { "accept-encoding": "identity" } });
   const type = res.headers.get("content-type") ?? "";
   const length = Number(res.headers.get("content-length"));
   if (res.status !== 200 || !type.startsWith(o.contentType) || length !== o.bytes.byteLength) {
@@ -101,7 +111,13 @@ for (const slug of slugs) {
     console.log(`${slug}: ${o.path} (${o.contentType}, ${o.bytes.byteLength} bytes)`);
   }
   if (plan.unchanged) {
-    console.log(`${slug}: manifest already current`);
+    if (apply) {
+      for (const o of plan.objects) console.log(`${slug}: ${o.path} ${await putObject(o)}`);
+      for (const o of plan.objects) await assertPublic(o);
+      console.log(`${slug}: manifest already current, objects verified live`);
+    } else {
+      console.log(`${slug}: manifest already current`);
+    }
     continue;
   }
   if (!apply) {
