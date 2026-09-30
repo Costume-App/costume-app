@@ -1,12 +1,23 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// demo-productions.mjs imports resetReceiverBilling from receiver-billing.mjs
+// as its default (real) receiver billing implementation. Mocking the module
+// before importing demo-productions.mjs keeps every test here off the
+// network: resetReceiver's own tests pass an explicit stub through its
+// injectable parameter, and prepShareForReceiver (whose brief-literal
+// signature has no such parameter) rides this module mock instead.
+vi.mock("./receiver-billing.mjs", () => ({ resetReceiverBilling: vi.fn(async () => {}) }));
+import { resetReceiverBilling as mockedResetReceiverBilling } from "./receiver-billing.mjs";
 import {
   TWELFTH, TWELFTH_ROLES, TWELFTH_CAST_STATE, TWELFTH_MEASURED_STATE, TWELFTH_COSTUMED_STATE,
   DEMO_MAKERS, DEMO_INVENTORY_NAMES, DEMO_INVENTORY_ITEMS, DEMO_INVENTORY_CAMERA_ITEM,
   deleteByTitle, ensureTwelfthNight, resetTwelfthNight, resetDemoCostumeOrg,
   resetDemoInventory, assertDemoInventoryOnly,
+  resetSenderForSharing, createTwelfthShare, assertReceiverProductionsOnly,
+  resetReceiver, prepShareForReceiver,
 } from "./demo-productions.mjs";
 import { showDate } from "./demo-fixtures.mjs";
 import { ROSA_FORM } from "./demo-measurement-form.mjs";
@@ -43,6 +54,10 @@ function fakeApi(productions = [], { inventory = [], makers = [] } = {}) {
       }
       if (p.endsWith("/roles") && b.names) return { roles: b.names.map((name) => ({ id: `role-${name}`, name })) };
       if (p.endsWith("/roles")) return { role: { id: `role-${b.name}`, name: b.name } };
+      if (p.endsWith("/shares")) {
+        const token = `token-${++n}`;
+        return { share: { id: `share-${n}`, token }, token };
+      }
       if (p.endsWith("/castings")) {
         return { performer: { id: b.performerId ?? `perf-${++n}` }, casting: { id: `c-${++n}` } };
       }
@@ -598,5 +613,113 @@ describe("assertDemoInventoryOnly", () => {
     const api = fakeApi([], { inventory: [{ id: "a", name: "Doublet" }, { id: "stray", name: "Hand-added thing" }] });
     await expect(assertDemoInventoryOnly(api)).rejects.toThrow(/Hand-added thing/);
     expect(api.calls.some((c) => c[0] === "DELETE")).toBe(false);
+  });
+});
+
+// Wraps a fakeApi so every call it makes is also pushed, tagged, into a
+// shared order array. Lets prepShareForReceiver's ordering test compare
+// sender calls and receiver calls on one timeline without conflating their
+// separate `calls` logs.
+function trackedApi(tag, order, api) {
+  const wrapped = { calls: api.calls };
+  for (const key of ["get", "post", "put", "patch", "del", "upload"]) {
+    wrapped[key] = async (...args) => {
+      order.push([tag, key, args[0]]);
+      return api[key](...args);
+    };
+  }
+  return wrapped;
+}
+
+const DEMO = { clerkUserId: "user_sender", clerkOrgId: "org_sender", email: "s@example.com", name: "Demo Theatre Co." };
+
+describe("resetSenderForSharing", () => {
+  it("rebuilds Twelfth Night to the costumed state and returns the new production id", async () => {
+    const api = fakeApi([{ id: "old", title: TWELFTH }]);
+    const productionId = await resetSenderForSharing(api);
+    expect(typeof productionId).toBe("string");
+    expect(productionId).not.toBe("old");
+    const posts = api.calls.filter((c) => c[0] === "POST" && c[1] === "/api/productions");
+    expect(posts.length).toBe(1);
+    expect(posts[0][2].title).toBe(TWELFTH);
+  });
+});
+
+describe("createTwelfthShare", () => {
+  it("POSTs the production's /shares with no body and returns the token", async () => {
+    const api = fakeApi([]);
+    const token = await createTwelfthShare(api, "prod-1");
+    expect(api.calls).toContainEqual(["POST", "/api/productions/prod-1/shares", {}]);
+    expect(token).toMatch(/^token-\d+$/);
+  });
+});
+
+describe("assertReceiverProductionsOnly", () => {
+  it("passes when every production is titled Twelfth Night", async () => {
+    const api = fakeApi([{ id: "a", title: TWELFTH }, { id: "b", title: TWELFTH }]);
+    await expect(assertReceiverProductionsOnly(api)).resolves.toBeUndefined();
+  });
+
+  it("throws naming the stray production, and sends no DELETE", async () => {
+    const api = fakeApi([{ id: "a", title: TWELFTH }, { id: "b", title: "Hamlet" }]);
+    await expect(assertReceiverProductionsOnly(api)).rejects.toThrow(/Hamlet/);
+    expect(api.calls.some((c) => c[0] === "DELETE")).toBe(false);
+  });
+});
+
+describe("resetReceiver", () => {
+  it("deletes every Twelfth Night copy before calling the billing stub, and passes grantUnlock through", async () => {
+    const api = fakeApi([{ id: "a", title: TWELFTH }, { id: "b", title: TWELFTH }]);
+    const order = [];
+    const originalDel = api.del;
+    api.del = async (p) => { order.push(["delete", p]); return originalDel(p); };
+    const stub = vi.fn(async (args) => { order.push(["billing", args]); });
+
+    await resetReceiver(api, { demo: DEMO, grantUnlock: true, resetReceiverBilling: stub });
+
+    expect(order[0]).toEqual(["delete", "/api/productions/a"]);
+    expect(order[1]).toEqual(["delete", "/api/productions/b"]);
+    expect(order[2]).toEqual(["billing", { demo: DEMO, grantUnlock: true }]);
+    expect(stub).toHaveBeenCalledTimes(1);
+  });
+
+  it("asserts productions-only before deleting anything, and never calls the billing stub on a stray production", async () => {
+    const api = fakeApi([{ id: "a", title: "Hamlet" }]);
+    const stub = vi.fn();
+    await expect(resetReceiver(api, { demo: DEMO, resetReceiverBilling: stub })).rejects.toThrow(/Hamlet/);
+    expect(stub).not.toHaveBeenCalled();
+    expect(api.calls.some((c) => c[0] === "DELETE")).toBe(false);
+  });
+
+  it("defaults grantUnlock to false and to the real resetReceiverBilling module export when no stub is given", async () => {
+    mockedResetReceiverBilling.mockClear();
+    const api = fakeApi([]);
+    await resetReceiver(api, { demo: DEMO });
+    expect(mockedResetReceiverBilling).toHaveBeenCalledWith({ demo: DEMO, grantUnlock: false });
+  });
+});
+
+describe("prepShareForReceiver", () => {
+  it("resets the sender, shares the NEW production, then resets the receiver, returning the fake's token", async () => {
+    mockedResetReceiverBilling.mockClear();
+    const senderRaw = fakeApi([{ id: "old", title: TWELFTH }]);
+    const receiverRaw = fakeApi([{ id: "r-old", title: TWELFTH }]);
+    const order = [];
+    const senderApi = trackedApi("sender", order, senderRaw);
+    const receiverApi = trackedApi("receiver", order, receiverRaw);
+
+    const { token, productionId } = await prepShareForReceiver(senderApi, receiverApi, { demo: DEMO, grantUnlock: true });
+
+    expect(token).toMatch(/^token-\d+$/);
+    expect(productionId).not.toBe("old");
+
+    const shareIndex = order.findIndex((e) => e[0] === "sender" && e[1] === "post" && e[2] === `/api/productions/${productionId}/shares`);
+    expect(shareIndex).toBeGreaterThan(-1);
+    expect(order.slice(0, shareIndex).every((e) => e[0] === "sender")).toBe(true);
+
+    const firstReceiverIndex = order.findIndex((e) => e[0] === "receiver");
+    expect(firstReceiverIndex).toBeGreaterThan(shareIndex);
+
+    expect(mockedResetReceiverBilling).toHaveBeenCalledWith({ demo: DEMO, grantUnlock: true });
   });
 });
