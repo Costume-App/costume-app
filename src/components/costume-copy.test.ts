@@ -15,6 +15,7 @@ const FILES = [
   "src/components/PlanCard.tsx",
   "src/app/(app)/share/[token]/page.tsx",
   "src/app/(app)/productions/new/page.tsx",
+  "src/app/(app)/guide/page.tsx",
 ];
 
 test.each(FILES)("%s has no em-dash in prose", (file) => {

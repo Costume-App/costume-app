@@ -34,6 +34,7 @@ import {
 } from "./lib/demo-org.mjs";
 import { assertServerServingBuild } from "./lib/build-check.mjs";
 import { withDemoApi } from "./lib/demo-api.mjs";
+import { assertNoPendingDemoShares } from "./lib/demo-productions.mjs";
 import { createRecorder } from "./lib/record-core.mjs";
 import { loadWalkthrough, rawDir } from "./lib/training.mjs";
 
@@ -158,6 +159,13 @@ for (const section of walkthrough.sections) {
     console.error(`\n[${videoSlug}] section "${section.id}" FAILED: ${err.message}\n`);
   }
 }
+
+// Off camera, after every take: no pending share must survive a run, so a
+// leftover token can never ship in a delivered video (see
+// assertNoPendingDemoShares in demo-productions.mjs). Runs even after a
+// section failure, since an earlier, successful section can still have
+// created a live share.
+await withDemoApi(browser, BASE, demo, (senderApi) => assertNoPendingDemoShares(senderApi));
 
 await browser.close();
 console.log(`\nRaw section takes in ${OUT}`);

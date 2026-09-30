@@ -68,6 +68,11 @@ describe("pageZoomInitScript", () => {
     expect(script).toContain("location.origin");
     expect(script).toContain("http://localhost:3000");
   });
+  it("normalizes a base with a trailing slash to its bare origin", () => {
+    const script = pageZoomInitScript("http://localhost:3000/");
+    expect(script).toContain('"http://localhost:3000"');
+    expect(script).not.toContain("http://localhost:3000/");
+  });
 });
 
 describe("mmss", () => {

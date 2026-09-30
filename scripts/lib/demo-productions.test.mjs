@@ -16,13 +16,13 @@ import {
   DEMO_MAKERS, DEMO_INVENTORY_NAMES, DEMO_INVENTORY_ITEMS, DEMO_INVENTORY_CAMERA_ITEM,
   deleteByTitle, ensureTwelfthNight, resetTwelfthNight, resetDemoCostumeOrg,
   resetDemoInventory, assertDemoInventoryOnly,
-  resetSenderForSharing, createTwelfthShare, assertReceiverProductionsOnly,
+  resetSenderForSharing, createTwelfthShare, assertNoPendingDemoShares, assertReceiverProductionsOnly,
   resetReceiver, prepShareForReceiver,
 } from "./demo-productions.mjs";
 import { showDate } from "./demo-fixtures.mjs";
 import { ROSA_FORM } from "./demo-measurement-form.mjs";
 
-function fakeApi(productions = [], { inventory = [], makers = [] } = {}) {
+function fakeApi(productions = [], { inventory = [], makers = [], shares = [] } = {}) {
   const calls = [];
   let n = 0;
   const api = {
@@ -33,6 +33,8 @@ function fakeApi(productions = [], { inventory = [], makers = [] } = {}) {
       if (p === "/api/inventory") return { items: inventory };
       if (p === "/api/makers") return { makers };
       if (p.endsWith("/casts")) return { casts: [{ id: "cast-main" }] };
+      const sharesMatch = /^\/api\/productions\/([^/]+)\/shares$/.exec(p);
+      if (sharesMatch) return { shares: shares.filter((s) => s.source_production_id === sharesMatch[1]) };
       throw new Error(`unexpected GET ${p}`);
     },
     post: async (p, b) => {
@@ -651,6 +653,45 @@ describe("createTwelfthShare", () => {
     const token = await createTwelfthShare(api, "prod-1");
     expect(api.calls).toContainEqual(["POST", "/api/productions/prod-1/shares", {}]);
     expect(token).toMatch(/^token-\d+$/);
+  });
+});
+
+describe("assertNoPendingDemoShares", () => {
+  it("passes when every share is accepted or revoked", async () => {
+    const api = fakeApi([{ id: "prod-1", title: TWELFTH }], {
+      shares: [
+        { id: "share-1", source_production_id: "prod-1", status: "accepted" },
+        { id: "share-2", source_production_id: "prod-1", status: "revoked" },
+      ],
+    });
+    await expect(assertNoPendingDemoShares(api)).resolves.toBeUndefined();
+  });
+
+  it("passes when a production has no shares at all", async () => {
+    const api = fakeApi([{ id: "prod-1", title: TWELFTH }], { shares: [] });
+    await expect(assertNoPendingDemoShares(api)).resolves.toBeUndefined();
+  });
+
+  it("throws naming the count of pending shares, never a token", async () => {
+    const api = fakeApi([{ id: "prod-1", title: TWELFTH }], {
+      shares: [
+        { id: "share-1", source_production_id: "prod-1", status: "pending", token: "secret-token" },
+        { id: "share-2", source_production_id: "prod-1", status: "accepted" },
+      ],
+    });
+    await expect(assertNoPendingDemoShares(api)).rejects.toThrow(/1 pending share/);
+    const err = await assertNoPendingDemoShares(api).catch((e) => e);
+    expect(err.message).not.toContain("secret-token");
+  });
+
+  it("sums pending shares across every production in the org", async () => {
+    const api = fakeApi([{ id: "prod-1", title: TWELFTH }, { id: "prod-2", title: "Hamlet" }], {
+      shares: [
+        { id: "share-1", source_production_id: "prod-1", status: "pending" },
+        { id: "share-2", source_production_id: "prod-2", status: "pending" },
+      ],
+    });
+    await expect(assertNoPendingDemoShares(api)).rejects.toThrow(/2 pending share/);
   });
 });
 

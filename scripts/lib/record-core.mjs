@@ -39,7 +39,7 @@ export const PAGE_ZOOM = 1.5;
 export function pageZoomInitScript(base) {
   return `
     (() => {
-      const BASE_ORIGIN = ${JSON.stringify(base)};
+      const BASE_ORIGIN = ${JSON.stringify(new URL(base).origin)};
       const apply = () => {
         if (location.origin !== BASE_ORIGIN) return;
         document.documentElement.style.zoom = "${PAGE_ZOOM}";

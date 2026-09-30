@@ -539,6 +539,27 @@ export async function createTwelfthShare(api, productionId) {
   return token;
 }
 
+/** Guards a whole recording run against a live share token surviving into
+ * the delivered video: lists every production in the sender org, then every
+ * share on each, through the app API only (never Supabase directly), and
+ * throws naming how many are still "pending" (never the token itself, which
+ * would make the error message a usable link). A prep that runs
+ * resetSenderForSharing after this point recreates Twelfth Night and its old
+ * shares cascade away, so a run that ends here clean stays clean until the
+ * next one starts. Deletes nothing; a pending share found here is a bug to
+ * fix, not cleanup to perform silently. */
+export async function assertNoPendingDemoShares(api) {
+  const { productions } = await api.get("/api/productions");
+  let pendingCount = 0;
+  for (const p of productions) {
+    const { shares } = await api.get(`/api/productions/${p.id}/shares`);
+    pendingCount += shares.filter((s) => s.status === "pending").length;
+  }
+  if (pendingCount > 0) {
+    throw new Error(`assertNoPendingDemoShares: ${pendingCount} pending share(s) survive in the demo org`);
+  }
+}
+
 /** Guards a take against a stray production sitting in the receiver org
  * (someone signed in by hand and added one): throws naming every production
  * whose title is not TWELFTH. Deletes nothing; cleanup is resetReceiver's

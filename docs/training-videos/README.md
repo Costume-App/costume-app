@@ -90,4 +90,4 @@ constant makes every measured lag `<= 0`.
 | measurements | approved by Chris | 2026-09-26 |
 | costume-creations | approved by Chris | 2026-09-26 |
 | house-inventory | approved by Chris | 2026-09-29 |
-| sharing-and-billing | built, awaiting Chris | 2026-09-29 |
+| sharing-and-billing | approved by Chris | 2026-09-29 |

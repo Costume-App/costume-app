@@ -485,6 +485,12 @@ export const WALKTHROUGH = {
         await h.hold(page, 700);
         await choose.click();
         await page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, { timeout: 30000 });
+        // Guard: refuse to type a card number into anything but a Stripe
+        // sandbox session. The same locator is pointed at again for s:4 below.
+        const sandboxBadge = page.getByText("Sandbox", { exact: true }).first();
+        if (!(await appears(sandboxBadge, 10000))) {
+          throw new Error("checkout: Stripe Sandbox badge is not visible; refusing to type card details");
+        }
         // First checkout for this org: an empty #email input to type into.
         // Every later one: Stripe reuses the org's customer (the app stores
         // it) and shows that customer's email read-only instead.
@@ -561,8 +567,7 @@ export const WALKTHROUGH = {
         // Sandbox badge: an earlier beat would pin the processing wait
         // against s:4's short voice and push the landing past s:5.
         const landedEarly = await page.waitForURL(isHome, { timeout: 3000 }).then(() => true, () => false);
-        const badge = page.getByText("Sandbox", { exact: true }).first();
-        await h.point(page, landedEarly ? page.locator("main h1").first() : badge, { s: 4, steps: 10 });
+        await h.point(page, landedEarly ? page.locator("main h1").first() : sandboxBadge, { s: 4, steps: 10 });
         await page.waitForURL(isHome, { timeout: 60000 });
         // s:5: "When the payment goes through, you land back in the app, ready to go."
         // The beat waits for the finished header, never Clerk's half-built one.

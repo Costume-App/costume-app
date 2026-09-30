@@ -370,7 +370,7 @@ Rules carried from videos 2 to 5: a zoom target stays still for its whole `holdM
   - No frame shows the phone field filled, a Link one-time-code prompt, a Clerk popover, a native dialog, or an error page.
   - The accept frames land on the copy with Viola's sketch visible.
   - Report the sandbox branding and the localhost link (rulings 2 and 3) as they appear.
-- [ ] **Step 6: Confirm both orgs are clean.** After the delivered pass: `assertReceiverProductionsOnly` passes, the sender's `assertDemoInventoryOnly` passes, and the receiver holds at most one Twelfth Night.
+- [ ] **Step 6: Confirm both orgs are clean.** After the delivered pass: `assertReceiverProductionsOnly` passes, the sender's `assertDemoInventoryOnly` passes, the receiver holds at most one Twelfth Night, and zero pending shares in the demo org (`assertNoPendingDemoShares`).
 - [ ] **Step 7: README, commit.** Run `npx vitest run` and `npx eslint scripts`, the em-dash grep over every file written, stage by name, and commit `feat(training): Sharing and Billing walkthrough recorded and built`. Stop your server by port.
 - [ ] **Step 8: STOP for Chris's review.** Report:
   - the MP4 and VTT paths and the duration
