@@ -1,5 +1,7 @@
 // Shared content for the Measure My Costume landing page. Rendered by
-// LandingPage (single variant — A/B testing removed 2026-06-18).
+// LandingPage (single variant; A/B testing removed 2026-06-18).
+
+import type { TrainingVideoSlug } from "@/lib/training-videos/catalog";
 
 export type FeatureGroup = "Production" | "Costumes & Inventory" | "Cost";
 
@@ -12,7 +14,7 @@ export interface Feature {
 
 // `id` keys an icon in LandingPage. Order within a group is the display order.
 export const FEATURES: Feature[] = [
-  { id: "all-in-one", group: "Production", title: "Everything in One Place", blurb: "Casts, roles, costumes, fabric, and budget for a whole show — together." },
+  { id: "all-in-one", group: "Production", title: "Everything in One Place", blurb: "Casts, roles, costumes, fabric, and budget for a whole show, together." },
   { id: "auto-roles", group: "Production", title: "Auto-Built Cast Lists", blurb: "Generate the standard roles for popular productions in a click." },
   { id: "character-boards", group: "Production", title: "Character Boards", blurb: "Pin reference photos, ideas, and notes to every role." },
   { id: "measurements", group: "Production", title: "Cast Measurements", blurb: "Capture each performer's measurements right where you need them." },
@@ -33,15 +35,18 @@ export interface LandingConfig {
   tagline: string;
   eyebrow: string;
   groupOrder: FeatureGroup[];
+  /** Training video shown under the hero; null hides the section. */
+  videoSlug: TrainingVideoSlug | null;
 }
 
 export const LANDING: LandingConfig = {
   brand: "Measure My Costume",
   titleLead: "Measure My",
   titleAccent: "Costume",
-  tagline: "Every costume, every cast member, every yard — in one place.",
+  tagline: "Every costume, every cast member, every yard, in one place.",
   eyebrow: "The costume shop, organized",
   groupOrder: ["Costumes & Inventory", "Production", "Cost"],
+  videoSlug: null,
 };
 
 export interface PricingTier {
@@ -53,7 +58,7 @@ export interface PricingTier {
   checkoutType: "unlock" | "unlimited";
 }
 
-// Marketing copy — keep in sync by eye with PLANS in src/lib/billing-plans.ts.
+// Marketing copy: keep in sync by eye with PLANS in src/lib/billing-plans.ts.
 export const PRICING_TIERS: PricingTier[] = [
   {
     name: "Pay Per Production",

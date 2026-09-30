@@ -16,6 +16,10 @@ const FILES = [
   "src/app/(app)/share/[token]/page.tsx",
   "src/app/(app)/productions/new/page.tsx",
   "src/app/(app)/guide/page.tsx",
+  "src/components/TrainingVideo.tsx",
+  "src/components/landing/landing-content.ts",
+  "src/components/landing/LandingPage.tsx",
+  "src/components/landing/LandingVideoSlot.tsx",
 ];
 
 test.each(FILES)("%s has no em-dash in prose", (file) => {

@@ -1,0 +1,38 @@
+{
+  "costume-creations": {
+    "mp4": "costume-creations/3fcb0bb243675a8d.mp4",
+    "vtt": "costume-creations/ac38e1e0472883da.vtt",
+    "poster": "costume-creations/3561635241de57a1.jpg",
+    "durationS": 275.903
+  },
+  "getting-started": {
+    "mp4": "getting-started/4ae2c2689c84bb98.mp4",
+    "vtt": "getting-started/d14c4a09860b2053.vtt",
+    "poster": "getting-started/817f7cb382d0ecb1.jpg",
+    "durationS": 134.5
+  },
+  "house-inventory": {
+    "mp4": "house-inventory/75873e54738a51b8.mp4",
+    "vtt": "house-inventory/0ded76689568c55e.vtt",
+    "poster": "house-inventory/929f11c72ba8e532.jpg",
+    "durationS": 197.633
+  },
+  "measurements": {
+    "mp4": "measurements/34c681ac05124da3.mp4",
+    "vtt": "measurements/0432b9ca4a399834.vtt",
+    "poster": "measurements/9460fac37e369c3d.jpg",
+    "durationS": 226.902
+  },
+  "roles-and-cast": {
+    "mp4": "roles-and-cast/f87255d60e8d5214.mp4",
+    "vtt": "roles-and-cast/a7d098f92839e0be.vtt",
+    "poster": "roles-and-cast/986095c8ddd77765.jpg",
+    "durationS": 202.993
+  },
+  "sharing-and-billing": {
+    "mp4": "sharing-and-billing/1c2ad2cace1f1bc9.mp4",
+    "vtt": "sharing-and-billing/d6c441c540fa68ac.vtt",
+    "poster": "sharing-and-billing/54176acfd845f5eb.jpg",
+    "durationS": 184.718
+  }
+}

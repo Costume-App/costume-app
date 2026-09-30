@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { FEATURES, LANDING, PRICING_TIERS, LEGAL_LINKS } from "@/components/landing/landing-content";
+import { isTrainingVideoSlug } from "@/lib/training-videos/catalog";
 
 const MINOR_WORDS = new Set([
   "a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or", "per", "the", "to", "with",
@@ -49,4 +50,8 @@ test("legal links point at the terms and privacy pages", () => {
     expect(l.label.length).toBeGreaterThan(0);
     expect(l.fullLabel.length).toBeGreaterThan(0);
   }
+});
+
+test("landing video slot is empty or names a catalog video", () => {
+  expect(LANDING.videoSlug === null || isTrainingVideoSlug(LANDING.videoSlug)).toBe(true);
 });

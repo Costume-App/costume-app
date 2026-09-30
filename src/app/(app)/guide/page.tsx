@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { BodyDiagram } from "@/components/BodyDiagram";
+import { TrainingVideo } from "@/components/TrainingVideo";
+import { videoForGuideSection } from "@/lib/training-videos/catalog";
 
 export const metadata = { title: "User Guide" };
 
@@ -301,9 +303,11 @@ export default function GuidePage() {
 }
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  const video = videoForGuideSection(id);
   return (
     <section id={id} className="scroll-mt-6">
       <h2 className="font-display text-2xl font-semibold">{title}</h2>
+      {video && <TrainingVideo slug={video} className="mt-3" />}
       <div className="mt-2 space-y-3">{children}</div>
     </section>
   );
