@@ -28,7 +28,7 @@ Choose "Copy link", then send it however you like, by email, text, or chat.
 
 ## Manage your links (`active-links`)
 
-Links you have not used yet stay listed under "Active links". You can copy a link again if it never got sent, or copy it fresh to share a different way. If you emailed a link instead, "Resend" sits right beside it, so you never have to start over. Revoke a link you no longer want to work, and it stops immediately, with no confirmation needed.
+Links you have not used yet stay listed under "Active links". You can copy a link again if it never got sent, or copy it fresh to share a different way. Revoke a link you no longer want to work, and it stops immediately, with no confirmation needed.
 
 > reopen the panel (prep made two pending links); zoom "Active links"; click "Revoke" on the top row; hold on the strike-through and the row leaving
 
@@ -54,7 +54,7 @@ To see the plans, choose "New Production". Any member of your organization can c
 
 ## Checkout (`checkout`)
 
-Choose a plan to pay securely with Stripe. We will pay for one production. Stripe handles your card, so the app never sees or stores the number. The page also offers wallet buttons like Apple Pay, but we will use a card instead.
+Choose a plan to pay securely with Stripe. We will pay for one production. Stripe handles your card, so the app never sees or stores the number.
 
 > click "Choose →" on Pay Per Production; Stripe loads; hold on the order summary
 
@@ -62,7 +62,7 @@ Enter an email and your card details, then choose "Pay". This is a test card in 
 
 > type riley@example.com; choose Card; type the test card, expiry, CVC, name, ZIP; untick "Save my information for faster checkout"; click "Pay"
 
-When the payment goes through, you land back in the app, ready to go. Your new plan is active right away, so you can start the production immediately. That plan shows up everywhere the app checks it, from "Billing" to "New Production".
+When the payment goes through, you land back in the app, ready to go. Your new plan is active right away, so you can start the production immediately.
 
 > return to /productions; hold
 
@@ -78,6 +78,6 @@ It is your copy now. Add your own performers and measurements, and change anythi
 
 ## Wrap up (`wrap-up`)
 
-You can see your plan anytime under "Billing", in your organization menu at the top of the page. If you want the details again, the "User Guide" covers sharing and billing too. From your first measurement to your first sale, you now know the whole app. That is sharing and billing, and that completes the series. Thanks for watching, and break a leg.
+You can see your plan anytime under "Billing", in your organization menu at the top of the page. If you want the details again, the "User Guide" covers sharing and billing too. That is sharing and billing, and that completes the series. Thanks for watching, and break a leg.
 
 > receiver, on /productions with the Twelfth Night copy; point (do not click) the organization switcher
