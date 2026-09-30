@@ -97,3 +97,6 @@ constant makes every measured lag `<= 0`.
 | costume-creations | approved by Chris | 2026-09-26 |
 | house-inventory | approved by Chris | 2026-09-29 |
 | sharing-and-billing | approved by Chris | 2026-09-29 |
+
+All six are hosted in the `training-videos` bucket and embedded in `/guide`
+(shipped 2026-09-29, main `a276817`). No landing-page video, by Chris's ruling.
