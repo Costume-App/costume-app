@@ -1,8 +1,10 @@
 // Off-camera state helpers shared by walkthrough preps. Every call goes
 // through the app's API as the demo user (lib/demo-api.mjs asserts that),
 // and touches only productions titled here, plus the org-wide makers and
-// House Inventory items named below. "Twelfth Night" is the show video 1
-// creates on camera and video 2 fills with roles and cast.
+// House Inventory items named below, with one exception: resetReceiver also
+// reaches the restricted billing module in receiver-billing.mjs, which talks
+// to Supabase directly rather than through the app's API. "Twelfth Night" is
+// the show video 1 creates on camera and video 2 fills with roles and cast.
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
