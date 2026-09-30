@@ -15,6 +15,12 @@ Pipeline, in order, for one video `<slug>`:
 5. Record: `node scripts/record-training-video.mjs --video <slug> [--section <id>]`
 6. Build: `node scripts/build-training-video.mjs --video <slug>`
 7. QC: `node scripts/qc-training-video.mjs --video <slug>`, then look at every image it writes.
+8. Host (after Chris approves the MP4): `node scripts/upload-training-videos.mjs --video <slug>`
+   is a dry run; add `--apply` (owner's go-ahead, it writes to the shared Supabase project)
+   to upload the MP4, captions and a generated poster to the public `training-videos`
+   bucket and record them in `src/lib/training-videos/manifest.json`. Commit the manifest;
+   `/guide` shows the video on the next deploy. A re-cut video gets new content-hashed
+   paths, so re-running after a rebuild is safe.
 
 Server for steps 4 and 5: port 6100 is the shared local default, but it is
 often held by someone else's dev server. If so, run a scratch production
