@@ -24,7 +24,7 @@
 
 ## Rulings for Chris (defaults apply unless he overrides at plan review)
 
-- **R1, landing video:** RULED by Chris 2026-09-29: `getting-started`. Task 4 still ships `videoSlug: null` (the manifest is empty until the upload); Task 5 step 5 sets `getting-started` once the manifest lists it. Egress note: the landing is public, so each play counts against the Supabase Free plan's monthly egress; `preload="none"` means only actual plays cost bandwidth.
+- **R1, landing video:** RULED by Chris 2026-09-29: no landing video for now. He first picked `getting-started`, then reversed it after the final review found that public egress on the shared Free-plan Supabase org can get every API call for the org (prod included) answered with 402 once the quota is gone. Videos stay on `/guide` (behind sign-in) in the shared project; `LANDING.videoSlug` stays `null` and the slot code ships inert.
 - **R2, guide placement:** one embed per video, at the top of these `/guide` sections:
 
   | Video | Section id | Section title |
@@ -1010,6 +1010,498 @@ Not a subagent task: every step touches the shared Supabase project or needs Chr
   ```
 
   Expected: one row, `public = true`, `52428800`, the three MIME types.
+
+  Also confirm no storage policy spans every bucket (role-images was created outside migrations):
+
+  ```sql
+  select policyname, roles, cmd, qual, with_check
+  from pg_policies where schemaname = 'storage' and tablename = 'objects';
+  ```
+
+- [ ] **Step 2: Dry run everything.** `node scripts/upload-training-videos.mjs --all`. Expected: 18 object lines, six "dry run" lines, manifest untouched. Read all six generated `*.poster.jpg` files and confirm each is its video's title card.
+
+- [ ] **Step 3: Upload on Chris's go-ahead.** `node scripts/upload-training-videos.mjs --all --apply`. Expected: six "live and recorded" lines; `git diff src/lib/training-videos/manifest.json` shows six entries. Commit it:
+
+  ```bash
+  git add src/lib/training-videos/manifest.json
+  git commit -m "chore(training): record the six hosted training videos"
+  ```
+
+- [ ] **Step 4: CORS and captions probe.** For one entry, `curl -sI -L -H 'Origin: http://localhost:3000' <public vtt url>` must show `200`, `content-type: text/vtt` and an `access-control-allow-origin` header. If CORS is absent, stop: the player's captions will not load, and the plan needs a same-origin caption route instead.
+
+- [ ] **Step 5: Landing pick (R1): skipped.** Chris ruled no landing video (see R1). `LANDING.videoSlug` stays `null`.
+
+- [ ] **Step 6: Implement the script**
+
+`scripts/upload-training-videos.mjs`:
+
+```js
+// Uploads approved training videos to the public training-videos bucket and
+// records them in src/lib/training-videos/manifest.json (committed; the app
+// renders a player only for slugs listed there).
+//
+//   node scripts/upload-training-videos.mjs --video <slug>          # dry run
+//   node scripts/upload-training-videos.mjs --all                   # dry run
+//   node scripts/upload-training-videos.mjs --all --apply           # upload
+//
+// Reads recordings/training/out/<slug>.mp4 and <slug>.vtt, and generates
+// <slug>.poster.jpg there from the title card (1.5 s in) with ffmpeg.
+// The bucket is in the single shared Supabase project, so --apply needs the
+// owner's go-ahead. The manifest is written only after every object answers
+// a public HEAD with 200, the right content type and the right length.
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createClient } from "@supabase/supabase-js";
+import { loadEnvLocalIntoProcess } from "./lib/demo-org.mjs";
+import { BUCKET, UPLOADABLE_SLUGS, planUpload, serializeManifest } from "./lib/training-upload.mjs";
+
+const OUT = "recordings/training/out";
+const MANIFEST = "src/lib/training-videos/manifest.json";
+
+function arg(name) {
+  const i = process.argv.indexOf(`--${name}`);
+  return i === -1 ? null : process.argv[i + 1] ?? null;
+}
+const has = (name) => process.argv.includes(`--${name}`);
+
+const one = arg("video");
+const slugs = has("all") ? UPLOADABLE_SLUGS : one ? [one] : null;
+if (!slugs) {
+  console.error("Usage: node scripts/upload-training-videos.mjs (--video <slug> | --all) [--apply]");
+  process.exit(2);
+}
+const apply = has("apply");
+
+loadEnvLocalIntoProcess();
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !key) {
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
+  process.exit(1);
+}
+const sb = createClient(url, key, { auth: { persistSession: false } });
+
+function readOutput(slug, ext) {
+  const p = `${OUT}/${slug}.${ext}`;
+  if (!existsSync(p)) throw new Error(`Missing ${p}: build the video first`);
+  return new Uint8Array(readFileSync(p));
+}
+
+function makePoster(slug) {
+  const p = `${OUT}/${slug}.poster.jpg`;
+  execFileSync("ffmpeg", ["-v", "error", "-y", "-ss", "1.5", "-i", `${OUT}/${slug}.mp4`, "-frames:v", "1", "-q:v", "3", p]);
+  return new Uint8Array(readFileSync(p));
+}
+
+function probeDuration(slug) {
+  const out = execFileSync("ffprobe", [
+    "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", `${OUT}/${slug}.mp4`,
+  ]).toString().trim();
+  return Number(out);
+}
+
+async function putObject(o) {
+  const { error } = await sb.storage.from(BUCKET).upload(o.path, o.bytes, {
+    contentType: o.contentType,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  // Content-addressed: an existing object at this path already holds these bytes.
+  if (error && !/exists|duplicate/i.test(error.message)) {
+    throw new Error(`Upload failed for ${o.path}: ${error.message}`);
+  }
+  return error ? "exists" : "uploaded";
+}
+
+async function assertPublic(o) {
+  const publicUrl = sb.storage.from(BUCKET).getPublicUrl(o.path).data.publicUrl;
+  const res = await fetch(publicUrl, { method: "HEAD" });
+  const type = res.headers.get("content-type") ?? "";
+  const length = Number(res.headers.get("content-length"));
+  if (res.status !== 200 || !type.startsWith(o.contentType) || length !== o.bytes.byteLength) {
+    throw new Error(
+      `Public check failed for ${o.path}: status ${res.status}, type "${type}", length ${length} (want ${o.bytes.byteLength})`,
+    );
+  }
+}
+
+let manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
+for (const slug of slugs) {
+  const plan = planUpload({
+    slug,
+    mp4: readOutput(slug, "mp4"),
+    vtt: readOutput(slug, "vtt"),
+    poster: makePoster(slug),
+    durationS: probeDuration(slug),
+    manifest,
+  });
+  for (const o of plan.objects) {
+    console.log(`${slug}: ${o.path} (${o.contentType}, ${o.bytes.byteLength} bytes)`);
+  }
+  if (plan.unchanged) {
+    console.log(`${slug}: manifest already current`);
+    continue;
+  }
+  if (!apply) {
+    console.log(`${slug}: dry run, nothing uploaded (add --apply)`);
+    continue;
+  }
+  for (const o of plan.objects) console.log(`${slug}: ${o.path} ${await putObject(o)}`);
+  for (const o of plan.objects) await assertPublic(o);
+  manifest = plan.manifest;
+  writeFileSync(MANIFEST, serializeManifest(manifest));
+  console.log(`${slug}: live and recorded in ${MANIFEST}`);
+}
+```
+
+Note: the manifest is written per slug after that slug's objects pass the public check, so an `--all` run that dies on video 4 leaves videos 1 to 3 recorded and nothing half-recorded.
+
+- [ ] **Step 7: Dry-run smoke (no network writes)**
+
+Run: `node scripts/upload-training-videos.mjs --video getting-started`
+Expected: three lines naming `getting-started/<16 hex>.mp4|.vtt|.jpg` with sizes, then `dry run, nothing uploaded`. `git status --short src/lib/training-videos/manifest.json` prints nothing. `recordings/training/out/getting-started.poster.jpg` exists (open it with Read and confirm it is the title card).
+
+Run: `node scripts/upload-training-videos.mjs --video _probe`
+Expected: exits non-zero with `Refusing to upload "_probe"`.
+
+- [ ] **Step 8: Document the step in the pipeline README**
+
+In `docs/training-videos/README.md`, after the line starting `7. QC:` add:
+
+```markdown
+8. Host (after Chris approves the MP4): `node scripts/upload-training-videos.mjs --video <slug>`
+   is a dry run; add `--apply` (owner's go-ahead, it writes to the shared Supabase project)
+   to upload the MP4, captions and a generated poster to the public `training-videos`
+   bucket and record them in `src/lib/training-videos/manifest.json`. Commit the manifest;
+   `/guide` shows the video on the next deploy. A re-cut video gets new content-hashed
+   paths, so re-running after a rebuild is safe.
+```
+
+- [ ] **Step 9: Em-dash grep, lint, commit**
+
+Run: `grep -n $'\xe2\x80\x94' supabase/migrations/0040_training_videos_bucket.sql scripts/lib/training-upload.mjs scripts/lib/training-upload.test.mjs scripts/upload-training-videos.mjs docs/training-videos/README.md` (expect no output), then `npx eslint scripts/upload-training-videos.mjs scripts/lib/training-upload.mjs && echo OK`.
+
+```bash
+git add supabase/migrations/0040_training_videos_bucket.sql scripts/lib/training-upload.mjs scripts/lib/training-upload.test.mjs scripts/upload-training-videos.mjs docs/training-videos/README.md
+git commit -m "feat(training): training-videos bucket migration and dry-run-first upload script"
+```
+
+---
+
+### Task 3: TrainingVideo component and /guide embeds
+
+**Files:**
+- Create: `src/components/TrainingVideo.tsx`
+- Test: `src/components/TrainingVideo.test.ts`
+- Modify: `src/app/(app)/guide/page.tsx` (the `Section` helper near line 303, plus one import)
+- Test: `src/app/(app)/guide/guide-videos.test.ts`
+- Modify: `src/components/costume-copy.test.ts` (add `src/components/TrainingVideo.tsx` to `FILES`)
+
+**Interfaces:**
+- Consumes: `trainingVideoSources`, `formatDuration`, `TrainingVideoSources` (urls.ts); `trainingVideoTitle`, `videoForGuideSection`, `TRAINING_VIDEOS`, `TrainingVideoSlug`, `TrainingVideoManifest` (catalog.ts); `manifest.json`.
+- Produces:
+  - `TrainingVideoPlayer({ title, sources }: { title: string; sources: TrainingVideoSources }): JSX.Element` (presentational, testable)
+  - `TrainingVideo({ slug, className }: { slug: TrainingVideoSlug; className?: string }): JSX.Element | null` (server component; reads the committed manifest and `process.env.SUPABASE_URL`)
+
+- [ ] **Step 1: Write the failing tests**
+
+`src/components/TrainingVideo.test.ts` (plain `.ts` with `createElement`, since the suite runs in the node environment without a JSX test setup):
+
+```ts
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, test } from "vitest";
+import { TrainingVideoPlayer } from "./TrainingVideo";
+
+const sources = {
+  src: "https://abc.supabase.co/storage/v1/object/public/training-videos/m/1.mp4",
+  captions: "https://abc.supabase.co/storage/v1/object/public/training-videos/m/1.vtt",
+  poster: "https://abc.supabase.co/storage/v1/object/public/training-videos/m/1.jpg",
+  durationS: 226.9,
+};
+const html = renderToStaticMarkup(createElement(TrainingVideoPlayer, { title: "Measurements", sources }));
+
+describe("TrainingVideoPlayer", () => {
+  test("is a native video that loads nothing until played", () => {
+    expect(html).toContain("<video");
+    expect(html).toContain('preload="none"');
+    expect(html).toContain("controls");
+    expect(html).toContain(`poster="${sources.poster}"`);
+    expect(html).toContain(`src="${sources.src}"`);
+    expect(html).toContain('type="video/mp4"');
+  });
+
+  test("requests cross-origin so the Supabase-hosted captions load", () => {
+    expect(html).toContain('crossorigin="anonymous"');
+  });
+
+  test("carries English captions on by default", () => {
+    expect(html).toMatch(/<track[^>]*kind="captions"/);
+    expect(html).toContain(`src="${sources.captions}"`);
+    expect(html).toContain('srclang="en"');
+    expect(html).toMatch(/<track[^>]*default/);
+  });
+
+  test("labels the video with its title and length", () => {
+    expect(html).toContain("Measurements");
+    expect(html).toContain("3:47");
+    expect(html).toContain('aria-label="Training video: Measurements"');
+  });
+});
+```
+
+`src/app/(app)/guide/guide-videos.test.ts`:
+
+```ts
+import { readFileSync } from "node:fs";
+import { expect, test } from "vitest";
+import { TRAINING_VIDEOS } from "@/lib/training-videos/catalog";
+
+const page = readFileSync("src/app/(app)/guide/page.tsx", "utf8");
+const sectionIds = [...page.matchAll(/<Section id="([^"]+)"/g)].map((m) => m[1]);
+
+test.each(TRAINING_VIDEOS.map((v) => [v.slug, v.guideSection]))(
+  "%s is hosted by an existing /guide section (%s)",
+  (_slug, section) => {
+    expect(sectionIds).toContain(section);
+  },
+);
+
+test("the Section helper places the catalog video", () => {
+  expect(page).toContain("videoForGuideSection(id)");
+  expect(page).toContain("<TrainingVideo");
+});
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `npx vitest run src/components/TrainingVideo.test.ts "src/app/(app)/guide/guide-videos.test.ts"`
+Expected: FAIL: `./TrainingVideo` does not resolve; the guide test fails on the `videoForGuideSection(id)` assertion (the section-id cases already pass).
+
+- [ ] **Step 3: Implement the component**
+
+`src/components/TrainingVideo.tsx`:
+
+```tsx
+import manifestJson from "@/lib/training-videos/manifest.json";
+import {
+  trainingVideoTitle,
+  type TrainingVideoManifest,
+  type TrainingVideoSlug,
+} from "@/lib/training-videos/catalog";
+import { formatDuration, trainingVideoSources, type TrainingVideoSources } from "@/lib/training-videos/urls";
+
+const manifest: TrainingVideoManifest = manifestJson;
+
+// Server component: renders nothing until the slug has been uploaded by
+// scripts/upload-training-videos.mjs, so an un-hosted video never shows a
+// broken player.
+export function TrainingVideo({ slug, className }: { slug: TrainingVideoSlug; className?: string }) {
+  const sources = trainingVideoSources(slug, manifest, process.env.SUPABASE_URL);
+  if (!sources) return null;
+  return (
+    <div className={className}>
+      <TrainingVideoPlayer title={trainingVideoTitle(slug)} sources={sources} />
+    </div>
+  );
+}
+
+// crossOrigin is required: the captions file is on the Supabase origin, and
+// browsers drop a cross-origin <track> without it.
+export function TrainingVideoPlayer({ title, sources }: { title: string; sources: TrainingVideoSources }) {
+  return (
+    <figure>
+      <video
+        controls
+        preload="none"
+        playsInline
+        crossOrigin="anonymous"
+        poster={sources.poster}
+        aria-label={`Training video: ${title}`}
+        className="aspect-video w-full rounded-md border border-[var(--field-line)] bg-black"
+      >
+        <source src={sources.src} type="video/mp4" />
+        <track kind="captions" src={sources.captions} srcLang="en" label="English" default />
+      </video>
+      <figcaption className="mt-1 text-sm muted">
+        Video: {title} ({formatDuration(sources.durationS)})
+      </figcaption>
+    </figure>
+  );
+}
+```
+
+If `const manifest: TrainingVideoManifest = manifestJson;` fails typecheck while the JSON is `{}` (it should not: `{}` is assignable to a `Partial` record), do not reach for `any` or `as unknown as`; report it instead.
+
+- [ ] **Step 4: Wire the guide**
+
+In `src/app/(app)/guide/page.tsx`, add the imports after the `BodyDiagram` import:
+
+```tsx
+import { TrainingVideo } from "@/components/TrainingVideo";
+import { videoForGuideSection } from "@/lib/training-videos/catalog";
+```
+
+Replace the `Section` helper with:
+
+```tsx
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  const video = videoForGuideSection(id);
+  return (
+    <section id={id} className="scroll-mt-6">
+      <h2 className="font-display text-2xl font-semibold">{title}</h2>
+      {video && <TrainingVideo slug={video} className="mt-3" />}
+      <div className="mt-2 space-y-3">{children}</div>
+    </section>
+  );
+}
+```
+
+Add `"src/components/TrainingVideo.tsx",` to the `FILES` array in `src/components/costume-copy.test.ts`.
+
+- [ ] **Step 5: Run the tests to verify they pass**
+
+Run: `npx vitest run src/components "src/app/(app)/guide" src/lib/training-videos`
+Expected: PASS.
+
+- [ ] **Step 6: Em-dash grep, typecheck, lint, commit**
+
+Run: `grep -n $'\xe2\x80\x94' src/components/TrainingVideo.tsx src/components/TrainingVideo.test.ts "src/app/(app)/guide/guide-videos.test.ts" "src/app/(app)/guide/page.tsx"` (expect no output), then `npx tsc --noEmit && npx eslint src/components/TrainingVideo.tsx "src/app/(app)/guide/page.tsx" && echo OK`.
+
+```bash
+git add src/components/TrainingVideo.tsx src/components/TrainingVideo.test.ts "src/app/(app)/guide/page.tsx" "src/app/(app)/guide/guide-videos.test.ts" src/components/costume-copy.test.ts
+git commit -m "feat(training): TrainingVideo player embedded in the matching /guide sections"
+```
+
+---
+
+### Task 4: Landing-page video slot
+
+**Files:**
+- Modify: `src/components/landing/landing-content.ts` (`LandingConfig`, `LANDING`, em-dashes per R3)
+- Modify: `src/components/landing/LandingPage.tsx` (new section between the hero, which ends before the `{/* The program (features) */}` comment, and the features section; demo mailto subject)
+- Test: `src/components/landing/landing-content.test.ts` (add cases)
+- Test: `src/components/landing/LandingVideoSlot.test.ts`
+- Create: `src/components/landing/LandingVideoSlot.tsx`
+- Modify: `src/components/costume-copy.test.ts` (add both landing files to `FILES`)
+
+**Interfaces:**
+- Consumes: `TrainingVideo` (Task 3), `isTrainingVideoSlug`, `TrainingVideoSlug` (Task 1).
+- Produces: `LandingConfig.videoSlug: TrainingVideoSlug | null`; `LandingVideoSlot({ slug }: { slug: TrainingVideoSlug | null }): JSX.Element | null`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `src/components/landing/landing-content.test.ts` (keep the file's existing imports; add `isTrainingVideoSlug` and make sure `LANDING` is imported):
+
+```ts
+import { isTrainingVideoSlug } from "@/lib/training-videos/catalog";
+
+test("landing video slot is empty or names a catalog video", () => {
+  expect(LANDING.videoSlug === null || isTrainingVideoSlug(LANDING.videoSlug)).toBe(true);
+});
+```
+
+`src/components/landing/LandingVideoSlot.test.ts`:
+
+```ts
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { expect, test } from "vitest";
+import { LandingVideoSlot } from "./LandingVideoSlot";
+
+test("renders no section when no video is chosen", () => {
+  expect(renderToStaticMarkup(createElement(LandingVideoSlot, { slug: null }))).toBe("");
+});
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
+
+Run: `npx vitest run src/components/landing`
+Expected: FAIL: `LANDING.videoSlug` is `undefined` (neither null nor a slug), and `./LandingVideoSlot` does not resolve.
+
+- [ ] **Step 3: Implement**
+
+In `src/components/landing/landing-content.ts`:
+- Add `import type { TrainingVideoSlug } from "@/lib/training-videos/catalog";` at the top.
+- Add to `LandingConfig`:
+
+  ```ts
+  /** Training video shown under the hero; null hides the section. */
+  videoSlug: TrainingVideoSlug | null;
+  ```
+
+- Add `videoSlug: null,` to `LANDING` (or the slug Chris picked under R1).
+- R3 copy fixes, exactly:
+  - tagline: `"Every costume, every cast member, every yard, in one place."`
+  - the `all-in-one` blurb: `"Casts, roles, costumes, fabric, and budget for a whole show, together."`
+  - the comment above `PRICING_TIERS`: `// Marketing copy: keep in sync by eye with PLANS in src/lib/billing-plans.ts.`
+  - the header comment on line 2: `// LandingPage (single variant; A/B testing removed 2026-06-18).`
+  - Then `grep -n $'\xe2\x80\x94' src/components/landing/landing-content.ts src/components/landing/LandingPage.tsx` must print nothing once the mailto fix below is in (it printed 5 lines before this task).
+
+`src/components/landing/LandingVideoSlot.tsx`:
+
+```tsx
+import { TrainingVideo } from "@/components/TrainingVideo";
+import type { TrainingVideoSlug } from "@/lib/training-videos/catalog";
+
+export function LandingVideoSlot({ slug }: { slug: TrainingVideoSlug | null }) {
+  if (!slug) return null;
+  return (
+    <section className="relative mx-auto max-w-4xl px-5 pt-4">
+      <div className="mb-6 text-center">
+        <p className="lbl">Take the tour</p>
+        <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">See It in Action</h2>
+      </div>
+      <TrainingVideo slug={slug} />
+    </section>
+  );
+}
+```
+
+If the chosen slug is not uploaded yet, `TrainingVideo` returns null but the heading would still render. That cannot ship: Task 5 sets `videoSlug` only after the manifest lists that slug, and step 1's test is extended there (see Task 5 step 5).
+
+In `src/components/landing/LandingPage.tsx`:
+- Import `LandingVideoSlot` from `./LandingVideoSlot`.
+- Directly above `{/* The program (features) */}` insert `<LandingVideoSlot slug={v.videoSlug} />` (confirm `v` is the `LANDING` alias used by the hero; if the file names it differently, use that name).
+- R3: change the mailto subject in `DEMO_HREF` (currently an em-dash between "Demo request" and "Measure My Costume") to `"Demo request: Measure My Costume"`.
+
+Add `"src/components/landing/landing-content.ts",`, `"src/components/landing/LandingPage.tsx",` and `"src/components/landing/LandingVideoSlot.tsx",` to `FILES` in `src/components/costume-copy.test.ts`.
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `npx vitest run src/components`
+Expected: PASS, including the three new em-dash cases.
+
+- [ ] **Step 5: Em-dash grep, typecheck, lint, commit**
+
+Run: `grep -n $'\xe2\x80\x94' src/components/landing/*.ts src/components/landing/*.tsx src/components/costume-copy.test.ts` (expect no output), then `npx tsc --noEmit && npx eslint src/components/landing && echo OK`.
+
+```bash
+git add src/components/landing/landing-content.ts src/components/landing/landing-content.test.ts src/components/landing/LandingPage.tsx src/components/landing/LandingVideoSlot.tsx src/components/landing/LandingVideoSlot.test.ts src/components/costume-copy.test.ts
+git commit -m "feat(landing): config-driven training video slot; drop em-dashes from landing copy"
+```
+
+---
+
+### Task 5: Go-live checkpoint (controller, with Chris)
+
+Not a subagent task: every step touches the shared Supabase project or needs Chris.
+
+- [ ] **Step 1: Chris applies migration 0040.** Ask Chris to run `supabase/migrations/0040_training_videos_bucket.sql` (or approve an `ops-runner` dispatch to apply it). Verify:
+
+  ```sql
+  select id, public, file_size_limit, allowed_mime_types
+  from storage.buckets where id = 'training-videos';
+  ```
+
+  Expected: one row, `public = true`, `52428800`, the three MIME types.
+
+  Also confirm no storage policy spans every bucket (role-images was created outside migrations):
+
+  ```sql
+  select policyname, roles, cmd, qual, with_check
+  from pg_policies where schemaname = 'storage' and tablename = 'objects';
+  ```
 
 - [ ] **Step 2: Dry run everything.** `node scripts/upload-training-videos.mjs --all`. Expected: 18 object lines, six "dry run" lines, manifest untouched. Read all six generated `*.poster.jpg` files and confirm each is its video's title card.
 
