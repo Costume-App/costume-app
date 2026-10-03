@@ -11,3 +11,7 @@ test("existing public routes are preserved", () => {
     expect(PUBLIC_ROUTES).toContain(route);
   }
 });
+
+test("the Supabase keepalive cron route is reachable without a Clerk session", () => {
+  expect(PUBLIC_ROUTES).toContain("/api/cron/keepalive");
+});
