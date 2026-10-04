@@ -5,6 +5,7 @@ export const PUBLIC_ROUTES = [
   "/sign-up(.*)",
   "/get-started",
   "/api/billing/webhook",
+  "/api/cron/keepalive",
   "/terms",
   "/privacy",
 ];
