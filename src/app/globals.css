@@ -103,6 +103,42 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .lp-rise { animation: none; opacity: 1; transform: none; }
 }
+/* Landing hero: cream copy on a dark ground, with the curtain-call photo pinned
+   to the bottom so the cast stands under the copy instead of behind it.
+   --lp-hero-frame is the photo height; --lp-hero-overlap is how far the copy
+   block may reach into the photo's dark upper set before it meets the cast. */
+.lp-hero-photo {
+  --lp-hero-frame: clamp(400px, 46vw, 760px);
+  --lp-hero-overlap: clamp(110px, 14vw, 215px);
+  background: #17100e;
+  color: var(--red-fg);
+}
+.lp-hero-frame {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--lp-hero-frame);
+}
+.lp-hero-copy { padding-bottom: calc(var(--lp-hero-frame) - var(--lp-hero-overlap)); }
+/* Melts the top of the photo into the ground and settles the bottom edge. */
+.lp-hero-scrim {
+  background: linear-gradient(
+    180deg,
+    #17100e 0%,
+    rgba(23, 16, 14, 0.7) 16%,
+    rgba(23, 16, 14, 0.12) 36%,
+    rgba(23, 16, 14, 0.08) 80%,
+    rgba(23, 16, 14, 0.45) 100%
+  );
+}
+.lp-hero-photo h1 { text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55); }
+.lp-hero-photo .lbl { color: #f1d9a8; }
+.lp-hero-accent { color: #ff6f61; }
+.lp-hero-note { color: rgba(246, 234, 210, 0.75); }
+.lp-hero-photo .btn-ghost {
+  color: var(--red-fg);
+  border-color: rgba(246, 234, 210, 0.6);
+  background: rgba(23, 16, 14, 0.35);
+}
 /* Faint paper grain overlay (theatrical playbill texture). */
 .lp-grain::before {
   content: "";

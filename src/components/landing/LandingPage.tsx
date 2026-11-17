@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   FEATURES,
@@ -34,24 +35,21 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="lp-grain relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-[-12%] h-[70vh] w-[130vw] -translate-x-1/2"
-          style={{ background: "radial-gradient(closest-side, rgba(140,43,34,0.17), transparent 72%)" }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-12 sm:w-28"
-          style={{ background: "linear-gradient(90deg, rgba(140,43,34,0.12), transparent)" }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-12 sm:w-28"
-          style={{ background: "linear-gradient(270deg, rgba(140,43,34,0.12), transparent)" }}
-        />
+      <section className="lp-hero-photo relative overflow-hidden">
+        {/* Curtain-call photo, pinned to the bottom of the hero so the cast stands under the copy. Decorative, so empty alt. */}
+        <div className="lp-hero-frame">
+          <Image
+            src="/landing/hero-curtain-call.jpg"
+            alt=""
+            fill
+            preload
+            sizes="(max-width: 716px) 717px, 100vw"
+            className="object-cover object-[center_35%]"
+          />
+          <div aria-hidden className="lp-hero-scrim pointer-events-none absolute inset-0" />
+        </div>
 
-        <div className="relative mx-auto max-w-4xl px-5 pb-24 pt-20 text-center sm:pt-28">
+        <div className="lp-hero-copy relative mx-auto max-w-4xl px-5 pt-16 text-center sm:pt-24">
           <p
             className="lp-rise lbl mb-6 flex items-center justify-center gap-2"
             style={{ animationDelay: "0.05s" }}
@@ -64,7 +62,7 @@ export function LandingPage() {
             className="lp-rise font-display font-semibold tracking-tight"
             style={{ fontSize: "clamp(3rem, 9vw, 6.25rem)", lineHeight: 0.95, animationDelay: "0.12s" }}
           >
-            {v.titleLead} <span className="italic text-[var(--red)]">{v.titleAccent}</span>
+            {v.titleLead} <span className="lp-hero-accent italic">{v.titleAccent}</span>
           </h1>
           <p
             className="lp-rise mx-auto mt-7 max-w-xl text-lg leading-relaxed opacity-80 sm:text-xl"
@@ -85,7 +83,7 @@ export function LandingPage() {
             <a href={DEMO_HREF} className="btn-ghost text-base">Request a demo</a>
           </div>
           <p
-            className="lp-rise mt-8 text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
+            className="lp-hero-note lp-rise mt-8 text-xs uppercase tracking-[0.18em]"
             style={{ animationDelay: "0.36s" }}
           >
             Built for school &amp; community theater programs
